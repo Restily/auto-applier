@@ -10,6 +10,8 @@
   },
   "scripts": {
     "dev:web": "npm run dev -w @autoapplier/web",
+    "gen:db-types": "python3 scripts/db_types.py --write",
+    "check:db-types": "python3 scripts/db_types.py --check",
     "lint": "npm run lint:py && npm run lint:web",
     "lint:py": "cd backend && uv run ruff check . && uv run ruff format --check . && uv run lint-imports",
     "lint:web": "npm run lint --workspaces --if-present",
