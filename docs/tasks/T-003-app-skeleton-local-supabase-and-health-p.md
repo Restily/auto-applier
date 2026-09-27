@@ -2,7 +2,7 @@
 id: T-003
 type: task
 title: "App skeleton, local Supabase and health page"
-status: todo
+status: in_progress
 milestone: M0
 owner: backend-dev
 priority: P0
@@ -27,3 +27,4 @@ updated: 2026-09-27
 
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 12:38 set plan=docs/superpowers/plans/2026-09-27-M0-foundations.md (team-lead)
+- 2026-09-27 13:05 todo → in_progress (team-lead)
