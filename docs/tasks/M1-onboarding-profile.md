@@ -28,3 +28,4 @@ Run `board.py gate M1 --run-checks` — it enforces the DoD from team/CONSTITUTI
 
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 14:38 todo → planning (team-lead)
+- 2026-09-27 15:12 note (qa-automation): Contract review (qa-automation): GAPS (3), full detail + gap list in docs/qa/plans/M1-test-plan.md#contract-review; tracked as T-005 (owner: architect). All 25 ACs of S-001..S-006 map to a plan task + concrete verification; TDD ordering, Postgres/Redis/Storage isolation, fakes-only third-party policy, and wave file/DB-state independence all checked and sound. Test plan: docs/qa/plans/M1-test-plan.md.

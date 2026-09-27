@@ -110,7 +110,7 @@ PRD budgets have no feature to measure yet at M0 beyond the health endpoint; eac
 
 | Budget (PRD) | Level / tool | Lands |
 |---|---|---|
-| LCP < 2.5 s, mid-range mobile | Playwright + web-vitals (or Lighthouse CI) in `tests/e2e/perf/` | M1 — first real page |
+| LCP < 2.5 s, mid-range mobile | Playwright + web-vitals (or Lighthouse CI) in `tests/e2e/perf/` | MR — needs a production build, not `next dev` (TECH-DEBT TD-005; M1 plan decision, PRD decision log) |
 | API p95 < 300 ms for reads | small load probe (autocannon/k6-style) over N requests in `tests/integration/perf/` | M2 — first list/read endpoints with realistic data |
 | Feed first page < 1 s @ 10k vacancies | seeded 10k-row perf fixture + timed request | M2 — vacancy feed (S-010) |
 | Resume extraction < 60 s | integration test timing the orchestration around the LLM port (the fake is near-instant, so this bounds our overhead, not model latency; real-provider timing is a human pre-launch step per PRD's open question) | M1 (S-003) |
