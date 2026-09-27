@@ -9,6 +9,8 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "dev": "python3 scripts/sync_env.py && bash scripts/valkey.sh start && concurrently --kill-others-on-fail --names api,worker,beat \"npm:dev:api\" \"npm:dev:worker\" \"npm:dev:beat\"",
+    "dev:api": "uv run --directory backend uvicorn autoapplier.api.main:app --host 127.0.0.1 --port 8000",
     "lint": "npm run lint:py",
     "lint:py": "cd backend && uv run ruff check . && uv run ruff format --check . && uv run lint-imports",
     "typecheck": "npm run typecheck:py",
@@ -18,7 +20,11 @@
     "test:integration:py": "bash team/bin/app.sh supabase && bash scripts/valkey.sh start && uv run --directory backend pytest tests/integration -q",
     "dev:worker": "uv run --directory backend celery -A autoapplier.worker.celery_app worker --loglevel INFO --concurrency 2 --queues default",
     "dev:beat": "uv run --directory backend celery -A autoapplier.worker.celery_app beat --loglevel INFO --schedule .celerybeat-schedule",
+    "gen:openapi": "uv run --directory backend python -m autoapplier.api.export_openapi --out openapi.json",
     "build": "npm run build:py",
     "build:py": "uv lock --directory backend --check"
+  },
+  "devDependencies": {
+    "concurrently": "^10"
   }
 }

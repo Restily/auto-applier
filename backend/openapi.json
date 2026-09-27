@@ -1,0 +1,121 @@
+{
+  "components": {
+    "schemas": {
+      "CheckOut": {
+        "description": "One named check in the `/health` response.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "down"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "latency_ms",
+          "detail"
+        ],
+        "title": "CheckOut",
+        "type": "object"
+      },
+      "ChecksOut": {
+        "description": "Every check `/health` reports.",
+        "properties": {
+          "database": {
+            "$ref": "#/components/schemas/CheckOut"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/CheckOut"
+          }
+        },
+        "required": [
+          "database",
+          "queue"
+        ],
+        "title": "ChecksOut",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "description": "The `GET /health` response body: never exposes secrets or connection strings.",
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/ChecksOut"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "checks"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "AutoApplier API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Report database and queue health; sets `Cache-Control: no-store`.",
+        "operationId": "get_health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Health"
+      }
+    }
+  }
+}
