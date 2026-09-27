@@ -1,0 +1,21 @@
+# AI team runtime state
+.team/state/
+.team/STOP
+.superpowers/
+.claude/settings.local.json
+.claude/agent-memory-local/
+strix_runs/
+.playwright-cli/
+
+# Test output
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# Dependencies and secrets
+node_modules/
+.env
+.env.*
+!.env.example
+__pycache__/

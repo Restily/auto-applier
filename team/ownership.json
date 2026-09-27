@@ -1,0 +1,42 @@
+{
+  "_about": "Who may change which files via Edit/Write (enforced by .claude/hooks/role-guard.py). Paths are repo-relative globs with ** support. Roles not listed here are unrestricted. The main session without --agent (human/lead) is unrestricted. docs/tasks/** is board.py-only for every subagent. An agent's own memory (.claude/agent-memory/<agent>/) is always allowed. Disable: TEAM_ROLE_GUARD=off.",
+  "aliases": {
+    "playwright-test-planner": "qa-automation",
+    "playwright-test-generator": "qa-automation",
+    "playwright-test-healer": "qa-automation"
+  },
+  "roles": {
+    "team-lead": {
+      "allow": ["docs/**", "README.md", "CLAUDE.md", "team/config.sh", ".superpowers/**", ".team/**"]
+    },
+    "architect": {
+      "allow": ["docs/architecture/**", "docs/superpowers/**", "docs/api/**", "docs/solutions/**", "team/config.sh", ".superpowers/**"]
+    },
+    "designer": {
+      "allow": ["docs/design/**"]
+    },
+    "backend-dev": {
+      "allow": ["**"],
+      "deny": ["docs/product/**", "docs/design/**", "docs/qa/**", "docs/security/**", "docs/architecture/**",
+               "docs/superpowers/specs/**", "docs/superpowers/plans/**", "CLAUDE.md", "team/**", ".claude/**", ".github/**"]
+    },
+    "frontend-dev": {
+      "allow": ["**"],
+      "deny": ["docs/product/**", "docs/design/**", "docs/qa/**", "docs/security/**", "docs/architecture/**",
+               "docs/superpowers/specs/**", "docs/superpowers/plans/**", "CLAUDE.md", "team/**", ".claude/**", ".github/**"]
+    },
+    "qa-manual": {
+      "allow": ["docs/qa/**"]
+    },
+    "qa-automation": {
+      "allow": ["tests/**", "test/**", "e2e/**", "specs/**", "**/__tests__/**", "**/*.test.*", "**/*.spec.*",
+                "playwright.config.*", "vitest.config.*", "vitest.workspace.*", "jest.config.*",
+                "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb",
+                "supabase/tests/**", "supabase/seed.sql", ".github/workflows/**", ".mcp.json",
+                ".claude/agents/playwright-test-*.md", "docs/qa/**", "docs/solutions/**"]
+    },
+    "security-auditor": {
+      "allow": ["docs/security/**"]
+    }
+  }
+}

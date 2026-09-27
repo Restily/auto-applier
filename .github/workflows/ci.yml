@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect project
+        id: detect
+        run: |
+          [ -f package.json ] && echo "js=true" >> "$GITHUB_OUTPUT" || echo "No package.json yet — skipping"
+          [ -f supabase/config.toml ] && echo "supabase=true" >> "$GITHUB_OUTPUT" || true
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.js == 'true'
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        if: steps.detect.outputs.supabase == 'true'
+        with:
+          version: latest
+      - name: Install dependencies
+        if: steps.detect.outputs.js == 'true'
+        run: |
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then corepack enable && yarn install --immutable
+          elif [ -f bun.lock ] || [ -f bun.lockb ]; then npx -y bun install --frozen-lockfile
+          else npm ci; fi
+      - name: Lint, typecheck, unit
+        if: steps.detect.outputs.js == 'true'
+        run: bash team/bin/quality-gate.sh fast
+      - name: Start local Supabase
+        if: steps.detect.outputs.supabase == 'true'
+        run: supabase start
+      - name: Install Playwright browsers
+        if: steps.detect.outputs.js == 'true'
+        run: npx playwright install --with-deps chromium || true
+      - name: Integration, build, e2e
+        if: steps.detect.outputs.js == 'true'
+        run: bash team/bin/quality-gate.sh full
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-output
+          path: |
+            .team/state/gate-*.log
+            playwright-report/
+            test-results/

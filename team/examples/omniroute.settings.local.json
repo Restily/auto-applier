@@ -1,0 +1,9 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:20128",
+    "ANTHROPIC_AUTH_TOKEN": "<your OmniRoute key>",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "<OmniRoute model/combo for planning roles: lead, architect, final review>",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "<OmniRoute model/combo for code, tests, QA, design, security>",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "<cheap model: /goal evaluator, summaries>"
+  }
+}

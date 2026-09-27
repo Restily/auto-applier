@@ -1,0 +1,24 @@
+name: strix-security
+
+# AI pentest of the source on pull requests (quick mode, scoped to changed files by Strix).
+# Requires repository secrets STRIX_LLM and LLM_API_KEY (optional LLM_API_BASE); skipped without them.
+on:
+  pull_request:
+
+jobs:
+  strix:
+    runs-on: ubuntu-latest
+    env:
+      STRIX_LLM: ${{ secrets.STRIX_LLM }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Strix
+        if: ${{ env.LLM_API_KEY != '' }}
+        run: pipx install strix-agent
+      - name: Run Strix (quick)
+        if: ${{ env.LLM_API_KEY != '' }}
+        run: strix -n -t ./ --scan-mode quick
