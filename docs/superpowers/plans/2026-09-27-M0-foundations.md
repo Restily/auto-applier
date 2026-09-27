@@ -26,10 +26,10 @@
 
 ## Review Focus
 
-1. **DB or Valkey unreachable or slow** → `GET /health` answers within `HEALTH_PROBE_TIMEOUT_S` + 1 s with `503` and the affected check `down`. It never hangs and never returns 500, and the API process starts even when Postgres or Valkey is down. Tests: Task 5 (probe timeout + closed-port Postgres and Redis), Task 6 (API with failing probe).
+1. **DB or Valkey unreachable or slow** → `GET /health` answers within `HEALTH_PROBE_TIMEOUT_S` + 1 s with `503` and the affected check `down`. It never hangs and never returns 500, and the API process starts even when Postgres or Valkey is down. Tests: Task 5 (probe timeout + closed-port Postgres and Redis), Task 6 (API with failing probe; `test_api_starts_and_reports_503_when_backends_unreachable` drives the real `create_app()` lifespan and `build_container()` against closed ports).
 2. **Error details leak secrets** (a DSN like `postgresql://postgres:<password>@…` inside an exception message) → `detail` carries only a sanitized reason. Tests: Task 5 (`test_probe_exception_detail_is_sanitized`), Task 11 (black-box body must not contain `postgres:postgres`).
 3. **Celery worker or Beat stopped, Valkey down, heartbeat stale** → queue `down` with a human-readable detail (`queue broker unreachable` / `no worker heartbeat (worker or beat not running)` / `worker heartbeat Ns old`), overall `degraded`, and the web shows "Degraded" rather than an error page. Tests: Task 5 (`queue_check` unit cases; probe integration with an empty unique prefix and with an unreachable Redis), Task 9 (degraded view).
-4. **Python API down while the web runs** → web `/health` renders "Unavailable" and `/api/health` returns `503` JSON (never a Next.js 500). Tests: Task 9 (`fetchApiHealth` network-error case, view mapping).
+4. **Python API down while the web runs** → web `/health` renders "Unavailable" and `/api/health` returns `503` JSON (never a Next.js 500). Tests: Task 9 (`fetchApiHealth` network-error case, view mapping, and `apps/web/src/app/api/health/route.test.ts` calling the exported `GET` with an unreachable API → 503 `{ status: "unavailable", api: null }`).
 5. **Mobile width 360 px and non-color status** → no horizontal scroll at 360 px; each status is conveyed by text ("OK"/"Down"), not color alone. Tests: Task 11 (e2e `chromium-mobile` project), Task 9 (component test asserts text).
 
 ---
@@ -431,7 +431,13 @@
   - `test_system_tasks.py`:
     - `test_ping_echoes_nonce` (`ping.apply(args=["n1"]).get() == "n1"`, which runs locally without a broker)
   - `test_celery_roundtrip.py` (integration, real Valkey):
-    - `test_ping_roundtrip_through_valkey`: start an in-process worker with `celery.contrib.testing.worker.start_worker(app, pool="solo", perform_ping_check=False, queues=[q])`, where `q = f"test-{uuid4().hex}"`. If the installed Celery doesn't accept `queues`, use `default`: any worker echoing the nonce is correct. Then `await CeleryJobQueue(app).enqueue(SYSTEM_PING, args=[nonce], queue=q)` and assert `AsyncResult(task_id, app=app).get(timeout=10) == nonce`.
+    - `test_ping_roundtrip_through_valkey`, isolated from the running dev worker (which consumes only `default`):
+      - `q = f"test-{uuid4().hex}"`.
+      - Build a **test-local** app: `test_app = create_celery_app(Settings(_env_file=None))`, then `test_app.conf.task_default_queue = q` and `test_app.conf.task_queues = (kombu.Queue(q),)`. Import `autoapplier.worker.tasks.system` first so the shared tasks bind to `test_app`.
+      - Precondition assert: `set(test_app.amqp.queues) == {q}`, so the worker consumes only `q` and never the literal `"default"`.
+      - Start the worker with `celery.contrib.testing.worker.start_worker(test_app, pool="solo", perform_ping_check=False)`. Check the installed Celery's signature. If it doesn't honour `task_queues`, restrict consumption with `worker.app.amqp.queues.select([q])` before it starts consuming.
+      - Enqueue with `await CeleryJobQueue(test_app).enqueue(SYSTEM_PING, args=[nonce], queue=q)` and assert `AsyncResult(task_id, app=test_app).get(timeout=10) == nonce`.
+      - There is no fallback to `default`: if isolation can't be achieved, report `BLOCKED`.
     - `test_heartbeat_task_writes_key`: set `REDIS_KEY_PREFIX` to a unique `aa:test:<uuid>:` and clear the `get_settings` cache, then run `heartbeat.apply()` and check that `read_heartbeat(...)` is not `None`.
     - `test_worker_ready_signal_writes_heartbeat`: call `write_ready_heartbeat()` with a unique prefix.
 - [ ] **Step 2: Verify failure.** `uv run --directory backend pytest tests/unit/test_async_runtime.py tests/unit/test_beat_schedule.py tests/unit/test_system_tasks.py tests/integration/test_celery_roundtrip.py -q` → FAIL.
@@ -524,8 +530,8 @@
 **Files:**
 - Modify: `backend/src/autoapplier/wiring.py`, `backend/src/autoapplier/worker/celery_app.py` (bind the runtime)
 - Create: `backend/src/autoapplier/api/{app,main,export_openapi}.py`, `backend/src/autoapplier/api/routes/{__init__,health}.py`, `backend/src/autoapplier/api/schemas/{__init__,health}.py`
-- Create: `backend/openapi.json` (generated), `backend/tests/unit/test_health_api.py`, `backend/tests/unit/test_openapi_snapshot.py`, `backend/tests/integration/test_api_health_live_db.py`, `backend/tests/unit/test_worker_runtime_binding.py`
-- Modify: `backend/pyproject.toml` — deps `fastapi>=0.141`, `uvicorn>=0.54`; dev group `httpx>=0.28`; import-linter contracts 1–2 also forbid `fastapi`, contract 3 forbids `fastapi`.
+- Create: `backend/openapi.json` (generated), `backend/tests/unit/test_health_api.py`, `backend/tests/unit/test_openapi_snapshot.py`, `backend/tests/integration/test_api_health_live_db.py`, `backend/tests/integration/test_api_lifespan_unreachable.py`, `backend/tests/unit/test_worker_runtime_binding.py`
+- Modify: `backend/pyproject.toml` — deps `fastapi>=0.141`, `uvicorn>=0.54`; dev group `httpx>=0.28`, `asgi-lifespan>=2.1` (MIT; httpx's `ASGITransport` does not run lifespan events); import-linter contracts 1–2 also forbid `fastapi`, contract 3 forbids `fastapi`.
 - Modify: root `package.json` — `dev:api` = `uv run --directory backend uvicorn autoapplier.api.main:app --host 127.0.0.1 --port 8000`; devDependency `concurrently@^10`; `dev` = `python3 scripts/sync_env.py && bash scripts/valkey.sh start && concurrently --kill-others-on-fail --names api,worker,beat "npm:dev:api" "npm:dev:worker" "npm:dev:beat"`; `gen:openapi` = `uv run --directory backend python -m autoapplier.api.export_openapi --out openapi.json`.
 
 **Interfaces:**
@@ -559,6 +565,13 @@
   - `test_health_api.py` (httpx `AsyncClient(transport=ASGITransport(app))`, `create_app(container=<Container with stub HealthService>)`): `test_health_ok_returns_200_with_both_checks` (body matches `HealthResponse`, `checks.database.status == "ok"`, `checks.queue.status == "ok"`); `test_health_degraded_returns_503_with_body`; `test_health_sets_no_store`; `test_health_body_has_no_secret_fields` (serialized body contains no `database_url`, `postgres:`, `key`); `test_openapi_documents_200_and_503`.
   - `test_openapi_snapshot.py`: `test_committed_openapi_matches_app` — `backend/openapi.json` equals the export; failure message: `"OpenAPI drift: run npm run gen:api-types"`.
   - `test_api_health_live_db.py` (integration, Supabase + Valkey): `settings = Settings(_env_file=None, redis_key_prefix=key_prefix)`, `write_heartbeat(..., prefix=key_prefix)`, real container via `build_container(settings)` → `GET /health` = 200, both `ok`; `test_live_health_degraded_without_heartbeat` (fresh unique prefix, no heartbeat) → 503, `queue.status == "down"`.
+  - `test_api_lifespan_unreachable.py` (integration; needs no running services):
+    - `test_api_starts_and_reports_503_when_backends_unreachable`:
+      - `settings = Settings(_env_file=None, database_url="postgresql://postgres:postgres@127.0.0.1:1/postgres", redis_url="redis://127.0.0.1:1/0", health_probe_timeout_s=1)`.
+      - `await build_container(settings)` does not raise; then close it with `close_container`.
+      - `app = create_app(settings)`. Use no injected container, so the **real lifespan** builds one.
+      - `async with LifespanManager(app)` (asgi-lifespan) plus `httpx.AsyncClient(transport=ASGITransport(app), base_url="http://test")`: `GET /health` returns `503`, `checks.database.status == "down"` and `checks.queue.status == "down"`, and the response takes < 2.0 s (timeout + 1 s).
+      - Leaving the lifespan context raises nothing.
   - `test_worker_runtime_binding.py`: `from autoapplier.worker.celery_app import runtime` is an `AsyncRuntime`; `worker_process_shutdown` has a receiver from `autoapplier.worker`.
 - [ ] **Step 2: Verify failure** — `uv run --directory backend pytest tests/unit/test_health_api.py tests/unit/test_openapi_snapshot.py -q` → FAIL.
 - [ ] **Step 3: Implement; generate** `npm run -s gen:openapi`.
@@ -646,7 +659,8 @@ Precondition: `docs/design/tokens.css` and `docs/design/design-system/<slug>/MAS
 
 **Files:**
 - Create: `apps/web/src/lib/api/schema.gen.ts` (generated by `openapi-typescript ../../backend/openapi.json -o src/lib/api/schema.gen.ts`), `apps/web/src/lib/api/client.ts`, `apps/web/src/lib/health.ts`, `apps/web/src/components/health/health-status.tsx`, `apps/web/src/app/health/page.tsx`, `apps/web/src/app/api/health/route.ts`
-- Create tests: `apps/web/src/lib/health.test.ts`, `apps/web/src/components/health/health-status.test.tsx`
+- Create: `apps/web/src/lib/health-route.ts`
+- Create tests: `apps/web/src/lib/health.test.ts`, `apps/web/src/components/health/health-status.test.tsx`, `apps/web/src/app/api/health/route.test.ts`
 - Modify: `apps/web/package.json` — deps `openapi-fetch@^0.17`; dev `openapi-typescript@^7`; script `gen:api-types` = `openapi-typescript ../../backend/openapi.json -o src/lib/api/schema.gen.ts`
 - Modify: root `package.json` — `gen:api-types` = `npm run gen:openapi && npm run gen:api-types -w @autoapplier/web`; `check:openapi` = regenerate `schema.gen.ts` into a temp file and `diff` against the committed one (fail message "API types drift: run npm run gen:api-types").
 
@@ -667,7 +681,8 @@ Precondition: `docs/design/tokens.css` and `docs/design/design-system/<slug>/MAS
   export type CheckKey = "database" | "queue";
   export interface HealthCheckView { key: CheckKey; label: string; state: "ok" | "down"; detail: string | null; latencyMs: number | null }
   export interface SystemHealthView { overall: "operational" | "degraded" | "unavailable"; version: string | null; checks: HealthCheckView[]; checkedAt: string }
-  export async function fetchApiHealth(client?: ApiClient): Promise<ApiHealthResult>   // never throws; 503 → kind "response"
+  export async function fetchApiHealth(client?: ApiClient): Promise<ApiHealthResult>   // never throws; 503 → kind "response";
+  // without an explicit client it calls createApiClient() per call, so openapi-fetch picks up globalThis.fetch at call time
   export function toSystemHealthView(result: ApiHealthResult, now: Date): SystemHealthView
   // operational iff httpStatus 200 and body.status "ok"; response otherwise → degraded;
   // error → unavailable, both checks down with detail "API unreachable"; labels "Database", "Queue" (literal until M1, TD-001)
@@ -675,10 +690,25 @@ Precondition: `docs/design/tokens.css` and `docs/design/design-system/<slug>/MAS
 - `components/health/health-status.tsx`: `export function HealthStatus({ view }: { view: SystemHealthView }): React.JSX.Element` —
   `<h1>System health</h1>`; overall in an element with `data-testid="health-overall"` whose text is exactly `Operational` | `Degraded` | `Unavailable`; `<ul aria-label="Checks">` with `<li data-testid="health-check-database">` / `health-check-queue` each showing the label, a status **text** `OK` | `Down` (icon `aria-hidden`, color from `--success`/`--destructive` tokens), and the detail when present; version line when known; `<time dateTime={checkedAt}>`. Uses shadcn `Card`/`Badge`. Layout works at 360 px.
 - `app/health/page.tsx`: `export const dynamic = "force-dynamic"`; `metadata.title = "System health"`; renders `HealthStatus` with `toSystemHealthView(await fetchApiHealth(), new Date())`.
-- `app/api/health/route.ts`: `export const dynamic = "force-dynamic"`; `GET` → JSON `{ status: "operational" | "degraded" | "unavailable", api: HealthResponse | null }`, HTTP `200` iff operational else `503`, header `Cache-Control: no-store`. This is `APP_READY_PATH` in `team/config.sh`.
+- `lib/health-route.ts` holds the injectable handler. Next.js route files may only export route fields, so the factory lives in `lib`.
+  ```ts
+  export interface HealthRouteBody { status: SystemHealthView["overall"]; api: HealthResponse | null }
+  export function createHealthRouteHandler(
+    fetchHealth: () => Promise<ApiHealthResult> = () => fetchApiHealth(),
+  ): () => Promise<Response>
+  ```
+  - The handler returns `Response.json(body, { status: 200 iff operational else 503, headers: { "Cache-Control": "no-store" } })`.
+  - `api` is the API body for `kind: "response"` and `null` for `kind: "error"`.
+  - If `fetchHealth` itself throws unexpectedly, the result is treated as `{ kind: "error" }` and the handler still returns `503 { status: "unavailable", api: null }`. It never throws.
+- `app/api/health/route.ts`: `export const dynamic = "force-dynamic"; export const GET = createHealthRouteHandler();`. It exports nothing else. This route is `APP_READY_PATH` in `team/config.sh`.
 
 - [ ] **Step 1: Failing tests**
   - `health.test.ts`: `maps 200 ok to operational`; `maps 503 with queue down to degraded and keeps detail`; `maps a network error to unavailable with both checks down`; `treats 200 with body status degraded as degraded`; `fetchApiHealth returns kind error when fetch rejects` (client built with a stub `fetch` that rejects); `fetchApiHealth returns kind response with body on 503` (stub fetch returns 503 JSON).
+  - `app/api/health/route.test.ts` (`// @vitest-environment node`). It imports the exported `GET` from `./route` and uses no network: `vi.stubGlobal("fetch", …)`, restored after each test.
+    - `returns 503 unavailable with no-store when the API is unreachable`: the stub fetch rejects with `TypeError("fetch failed")`. Expect status `503`, `cache-control` containing `no-store`, and JSON exactly `{ status: "unavailable", api: null }`.
+    - `returns 200 operational with the API body`: the stub returns `200` with a HealthResponse where both checks are ok. Expect `200`, `{ status: "operational", api: <that body> }`.
+    - `returns 503 degraded when the API reports 503`.
+    - `never throws when the injected fetchHealth throws`: `createHealthRouteHandler(() => Promise.reject(new Error("boom")))()` resolves to `503 { status: "unavailable", api: null }`.
   - `health-status.test.tsx`: `renders heading and overall text`; `renders OK/Down as text for each check` (not only color); `shows detail for a down check`; `renders Unavailable state without crashing`.
 - [ ] **Step 2: Verify failure** — `npm run test:unit -w @autoapplier/web` → FAIL.
 - [ ] **Step 3: Implement; generate** `npm run -s gen:api-types`.
@@ -779,7 +809,7 @@ Precondition: `docs/design/tokens.css` and `docs/design/design-system/<slug>/MAS
 | Item · AC | Task(s) | Tests (level) | Verification command |
 |---|---|---|---|
 | T-003 · 1 — fresh clone: `app.sh start` starts web, Python API and local Supabase; `app.sh url` works | 2 (Supabase config, env sync), 4A (Valkey `scripts/valkey.sh`), 4B (Celery worker + beat, `dev:worker`/`dev:beat`), 6 (API, `dev` starts Valkey + processes), 7 (web, `dev:web`), 9 (readiness route), 11 (fresh-clone smoke) | `tests/e2e/health.spec.ts` (e2e); `tests/integration/health.test.ts` (black-box) | `bash team/bin/app.sh start && bash team/bin/app.sh url && curl -fsS "$(bash team/bin/app.sh url)/api/health"`; Task 11 Step 4 fresh-clone script |
-| T-003 · 2 — API `GET /health` 200 with DB and queue status; web `/health` shows it | 4A (Redis heartbeat keys), 4B (worker/Beat heartbeat, Celery round-trip), 5 (probes, service), 6 (route), 9 (page, route handler) | `backend/tests/unit/test_health_domain.py`, `test_health_service.py`, `test_health_api.py`, `test_kv_keys.py`, `test_beat_schedule.py` (unit); `backend/tests/integration/test_heartbeat_redis.py`, `test_celery_roundtrip.py`, `test_health_probes.py`, `test_api_health_live_db.py` (integration, Supabase + Valkey); `apps/web/src/lib/health.test.ts`, `health-status.test.tsx` (web unit); `tests/integration/health.test.ts`; `tests/e2e/health.spec.ts` | `npm run -s test:integration:py` (starts Valkey, runs `pytest tests/integration`); `uv run --directory backend pytest tests/unit -q`; `npm run -s test:unit`; `npm run -s test:integration:web`; `npm run -s test:e2e` |
+| T-003 · 2 — API `GET /health` 200 with DB and queue status; web `/health` shows it | 4A (Redis heartbeat keys), 4B (worker/Beat heartbeat, Celery round-trip), 5 (probes, service), 6 (route), 9 (page, route handler) | `backend/tests/unit/test_health_domain.py`, `test_health_service.py`, `test_health_api.py`, `test_kv_keys.py`, `test_beat_schedule.py` (unit); `backend/tests/integration/test_heartbeat_redis.py`, `test_celery_roundtrip.py`, `test_health_probes.py`, `test_api_health_live_db.py` (integration, Supabase + Valkey), `test_api_lifespan_unreachable.py` (integration, closed ports); `apps/web/src/lib/health.test.ts`, `health-status.test.tsx`, `apps/web/src/app/api/health/route.test.ts` (web unit); `tests/integration/health.test.ts`; `tests/e2e/health.spec.ts` | `npm run -s test:integration:py` (starts Valkey, runs `pytest tests/integration`); `uv run --directory backend pytest tests/unit -q`; `npm run -s test:unit`; `npm run -s test:integration:web`; `npm run -s test:e2e` |
 | T-003 · 3a — first migration enables RLS by default | 2 | `supabase/tests/database/rls_default.test.sql` (pgTAP) | `npm run -s test:db` (= `bash scripts/supabase.sh test db`) |
 | T-003 · 3b — generated DB types available to the web app | 8 | `apps/web/src/lib/supabase/database.types.test.ts` (type + unit); drift check | `npm run -s typecheck && npm run -s check:db-types` |
 | T-003 · 3c — secrets read from env with a `.env.example` | 1 (`backend/.env.example`, `Settings`), 2 (`sync_env.py`), 8 (`apps/web/.env.example`, `env.server.ts`) | `backend/tests/unit/test_config.py`, `test_sync_env.py`; `apps/web/src/lib/env.server.test.ts` | `uv run --directory backend pytest tests/unit/test_config.py tests/unit/test_sync_env.py -q`; `npm run test:unit -w @autoapplier/web`; `ls backend/.env.example apps/web/.env.example` |
