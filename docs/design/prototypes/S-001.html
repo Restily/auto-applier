@@ -61,8 +61,11 @@
   .footer{margin-top:16px; text-align:center; font-size:14px; color:var(--muted-foreground);}
   .footer a{color:var(--primary); font-weight:600; text-decoration:none;}
 
-  .alert{display:flex; gap:10px; background:var(--danger-subtle); border:1px solid var(--danger);
+  .alert{background:var(--danger-subtle); border:1px solid var(--danger);
     color:#7A1728; border-radius:var(--radius-sm); padding:12px 14px; font-size:13.5px; margin-bottom:16px;}
+  .alert p{margin:0 0 8px;}
+  .alert .actions{display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center;}
+  .alert .actions a{color:var(--primary); font-weight:600; text-decoration:underline;}
 
   @media (max-width: 480px){
     .card{border:none; border-radius:0; padding:24px 16px; box-shadow:none;}
@@ -100,7 +103,10 @@
       </div>
       <div class="req met"><span class="dot"></span> At least 8 characters</div>
       <button class="btn btn-primary">Sign up</button>
-      <div class="alert">An account with this email already exists. <strong>Sign in</strong>, or <strong>reset your password</strong> if you forgot it.</div>
+      <div class="alert">
+        <p>An account with this email already exists.</p>
+        <div class="actions"><a href="#">Sign in</a> <a href="#">Reset password</a></div>
+      </div>
       <p class="footer">Already have an account? <a href="#">Sign in</a></p>
     </section>
 
@@ -122,7 +128,10 @@
       </div>
       <div class="req met"><span class="dot"></span> Минимум 8 символов</div>
       <button class="btn btn-primary">Зарегистрироваться</button>
-      <div class="alert">Аккаунт с этим email уже существует. <strong>Войдите</strong> или <strong>восстановите пароль</strong>, если забыли его.</div>
+      <div class="alert">
+        <p>Аккаунт с этим email уже существует.</p>
+        <div class="actions"><a href="#">Войти</a> <a href="#">Восстановить пароль</a></div>
+      </div>
       <p class="footer">Уже есть аккаунт? <a href="#">Войти</a></p>
     </section>
   </div>

@@ -161,3 +161,4 @@ Acceptance criteria rules: Given/When/Then, observable in the UI or API, include
   - LinkedIn via a Chrome extension;
   - risks accepted with protections;
   - Python backend, a UI component library, a pluggable LLM provider.
+- 2026-09-27 — Human decision (M0 planning): background jobs use **Celery with Redis** as broker/result backend (Valkey, the BSD-licensed Redis-compatible server, runs locally; any managed Redis/Valkey in production), replacing the Postgres-based PgQueuer choice. Long delays (pacing, next-day sends) are scheduled in the database and enqueued by Celery Beat, not via long ETA tasks.
