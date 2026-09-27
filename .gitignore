@@ -30,3 +30,6 @@ next-env.d.ts
 .mypy_cache/
 .pytest_cache/
 backend/.celerybeat-schedule*
+
+# agent git worktrees (parallel pipeline)
+.claude/worktrees/
