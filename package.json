@@ -15,6 +15,7 @@
     "typecheck:py": "uv run --directory backend mypy",
     "test:unit": "npm run test:unit:py",
     "test:unit:py": "uv run --directory backend pytest tests/unit -q",
+    "test:integration:py": "bash team/bin/app.sh supabase && bash scripts/valkey.sh start && uv run --directory backend pytest tests/integration -q",
     "build": "npm run build:py",
     "build:py": "uv lock --directory backend --check"
   }

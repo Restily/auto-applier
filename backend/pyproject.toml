@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "AutoApplier backend: domain logic, API and worker"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+    "celery[redis]>=5.6,<6",
     "pydantic>=2.13",
     "pydantic-settings>=2.15",
+    "redis>=5.2,<6.5",
 ]
 
 [dependency-groups]
@@ -46,6 +48,10 @@ strict = true
 files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*", "kombu", "kombu.*"]
+ignore_missing_imports = true
+
 [tool.importlinter]
 root_package = "autoapplier"
 include_external_packages = true
@@ -65,6 +71,8 @@ forbidden_modules = [
     "autoapplier.worker",
     "autoapplier.wiring",
     "autoapplier.config",
+    "celery",
+    "redis",
 ]
 
 [[tool.importlinter.contracts]]
@@ -79,6 +87,8 @@ forbidden_modules = [
     "autoapplier.api",
     "autoapplier.worker",
     "autoapplier.wiring",
+    "celery",
+    "redis",
 ]
 
 [[tool.importlinter.contracts]]
@@ -90,6 +100,7 @@ forbidden_modules = [
     "autoapplier.api",
     "autoapplier.worker",
     "autoapplier.wiring",
+    "celery",
 ]
 
 [[tool.importlinter.contracts]]
@@ -108,4 +119,11 @@ name = "api must not import adapters: get implementations from autoapplier.wirin
 type = "forbidden"
 source_modules = ["autoapplier.api"]
 forbidden_modules = ["autoapplier.adapters"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "api must enqueue through ports.queue.JobQueue, never import celery"
+type = "forbidden"
+source_modules = ["autoapplier.api"]
+forbidden_modules = ["celery"]
 allow_indirect_imports = true
