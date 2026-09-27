@@ -9,14 +9,19 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "lint": "npm run lint:py",
+    "dev:web": "npm run dev -w @autoapplier/web",
+    "lint": "npm run lint:py && npm run lint:web",
     "lint:py": "cd backend && uv run ruff check . && uv run ruff format --check . && uv run lint-imports",
-    "typecheck": "npm run typecheck:py",
+    "lint:web": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck:py && npm run typecheck:web",
     "typecheck:py": "uv run --directory backend mypy",
-    "test:unit": "npm run test:unit:py",
+    "typecheck:web": "npm run typecheck --workspaces --if-present",
+    "test:unit": "npm run test:unit:py && npm run test:unit:web",
     "test:unit:py": "uv run --directory backend pytest tests/unit -q",
+    "test:unit:web": "npm run test:unit --workspaces --if-present",
     "test:integration:py": "bash team/bin/app.sh supabase && bash scripts/valkey.sh start && uv run --directory backend pytest tests/integration -q",
-    "build": "npm run build:py",
-    "build:py": "uv lock --directory backend --check"
+    "build": "npm run build:web && npm run build:py",
+    "build:py": "uv lock --directory backend --check",
+    "build:web": "npm run build --workspaces --if-present"
   }
 }

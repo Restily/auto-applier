@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@import "../../../../docs/design/tokens.css";
+
+/*
+ * Everything below wires the design system (imported above, by path — see
+ * docs/design/tokens.css and docs/design/design-system/autoapplier/MASTER.md
+ * for the authoritative values; nothing here hard-codes a color) into
+ * Tailwind v4's theme and shadcn/ui's expected variable names.
+ *
+ * Radius is NOT remapped here: tokens.css's own --radius-sm/--radius-md/
+ * --radius-lg already share their names with Tailwind's default radius
+ * scale, so importing it above already overrides `rounded-*` globally.
+ */
+
+:root {
+  /* tokens.css defines --on-success but not this shadcn-shaped alias. */
+  --success-foreground: var(--on-success);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Self-hosted via next/font/local in layout.tsx (ruling: no next/font/google,
+     no network at build time); each next/font variable already carries its
+     own metric-matched fallback, so no extra fallback stack is copied here.
+     Golos Text Variable ships split Latin/Cyrillic files (see layout.tsx);
+     chaining both families here gives the browser per-glyph fallback from
+     Latin to Cyrillic, covering the product's EN/RU parity requirement. */
+  --font-sans: var(--font-golos-sans), var(--font-golos-sans-cyrillic);
+  --font-mono: var(--font-plex-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
