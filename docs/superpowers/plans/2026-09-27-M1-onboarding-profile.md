@@ -29,8 +29,18 @@
 - **Data limits (DB constraint = zod = backend normalization; the names are shared):**
   - `full_name` ≤ 200, `contact_email` ≤ 320, `phone` ≤ 50, `location` ≤ 200, `headline` ≤ 300, URL ≤ 500;
   - `target_titles` ≤ 10 items of ≤ 100 chars; `skills` ≤ 100 items of ≤ 60 chars;
-  - `experience` ≤ 50 entries, `education` ≤ 20, `languages` ≤ 20, entry `description` ≤ 2000;
+  - `experience` ≤ 50 entries, `education` ≤ 20, `languages` ≤ 20;
+  - entry text: experience `title`/`company`, education `institution`/`degree`/`field` ≤ 200; language `name` ≤ 100; experience `description` ≤ 2000; `work_authorization_other` ≤ 200;
   - resume file ≤ 5 MiB = **5 242 880 bytes**; resume text sent to the LLM ≤ 50 000 chars; a readable resume has ≥ 200 non-whitespace chars.
+  - **Where the profile limits are defined:** three places, each tested at N and N+1 by its own suite, all copying the values above.
+
+    | Where | Definition | Tests |
+    |---|---|---|
+    | SQL (Task 1) | column `check` constraints on the scalar columns; `internal.touch_candidate_profile()` for array item lengths and jsonb entry text lengths, raising `check_violation` 23514 | `m1_profiles_resumes.test.sql` §2 |
+    | zod (Task 9) | `PROFILE_LIMITS` in `apps/web/src/lib/profile/schema.ts` | `schema.test.ts` |
+    | Python (Task 3) | `PROFILE_LIMITS` in `backend/src/autoapplier/domain/profile.py`; normalization truncates to them | `test_profile_draft.py` |
+
+    A value that one side accepts and another rejects is a bug.
 - **Enumerations (identical in SQL, Python and TS):**
   - `years_experience ∈ {lt_1, 1_2, 3_5, 6_10, 10_plus}`
   - `work_authorization ∈ {authorized, sponsorship, other}`
@@ -230,7 +240,9 @@ create table public.candidate_profiles (
 -- RLS pattern O for authenticated: select/insert/update where user_id = (select auth.uid()); no delete policy.
 -- Grants: revoke all from anon; grant select, insert, update to authenticated.
 -- internal.touch_candidate_profile(): before insert or update — on update: version = old.version + 1, updated_at = now(),
---   user_id immutable; on both: if source_resume_id is not null and it is not a resume of new.user_id → raise 23503/42501.
+--   user_id immutable; on both: if source_resume_id is not null and it is not a resume of new.user_id → raise 23503/42501;
+--   on both: any target_titles item > 100 chars, skills item > 60, experience title/company > 200 or description > 2000,
+--   education institution/degree/field > 200, languages name > 100 → raise check_violation (23514) naming the field.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('resumes', 'resumes', false, 5242880, array['application/pdf',
@@ -257,25 +269,27 @@ async def admin_create_user(http, base_url, secret, *, locale: str = "en") -> Te
 async def password_sign_in(http, base_url, secret, email, password) -> httpx.Response  # POST /auth/v1/token?grant_type=password
 async def admin_delete_user(http, base_url, secret, user_id) -> None                 # 404 ignored
 async def wait_for_email(http, mailpit_url, to: str, *, timeout_s: float = 10) -> dict # polls /api/v1/search?query=to:"…", returns /api/v1/message/{ID}
+async def recovery_token_hash(pool, user_id: UUID) -> str | None   # auth.one_time_tokens.token_hash where token_type = 'recovery_token'
+async def verify_recovery(http, base_url, secret, token_hash: str) -> httpx.Response  # POST /auth/v1/verify {"type":"recovery","token_hash":…}
 ```
 Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and deletes them on teardown.
 
 - [ ] **Step 1: Write the failing tests**
-  - `m1_accounts.test.sql` (pgTAP; `begin … rollback`; users inserted into `auth.users` as `postgres` with fresh uuids; `set local role authenticated` + `set_config('request.jwt.claims', json_build_object('sub', <uuid>, 'role','authenticated')::text, true)` to act as a user):
+  - `m1_accounts.test.sql` (pgTAP, **`select plan(21)`**: §1 = 2, §2 = 2, §3 = 1, §4 = 1, §5 = 1, §6 = 5, §7 = 6, §8 = 3; update N if an assertion is split; `begin … rollback`; users inserted into `auth.users` as `postgres` with fresh uuids; `set local role authenticated` + `set_config('request.jwt.claims', json_build_object('sub', <uuid>, 'role','authenticated')::text, true)` to act as a user):
     1. inserting a user with `raw_user_meta_data = {"locale":"ru"}` creates `profiles.ui_locale = 'ru'`; `{"locale":"de"}` gives `'en'`;
     2. exactly one `credit_ledger` row `(20, 'signup_grant', 'auth_user', id)` per new user; `credit_balances.balance = 20`;
     3. `update auth.users set last_sign_in_at = now()` (sign-in) adds no ledger row;
     4. inserting an `auth.identities` row for an existing user (Google linking) adds no ledger row;
     5. a manual duplicate `signup_grant` insert raises `unique_violation`;
     6. as user A: `select` from `credit_ledger`/`credit_balances` returns only A's rows; `insert`/`update`/`delete` on `credit_ledger` raise `42501`;
-    7. as user A: `update profiles set ui_locale='ru'` succeeds and mirrors `auth.users.raw_user_meta_data->>'locale' = 'ru'`; updating another user's profile affects 0 rows; `update profiles set id = …` raises `42501`;
+    7. as user A: `update profiles set ui_locale='ru'` succeeds and mirrors `auth.users.raw_user_meta_data->>'locale' = 'ru'`; updating another user's profile affects 0 rows; `update profiles set id = …` raises `42501`; as user A, `insert into profiles` raises `42501` (the trigger is the only writer), and `delete from profiles` raises `42501` (no delete grant);
     8. `anon` gets `42501` or no rows on `profiles`, `credit_ledger`, `credit_balances`.
-  - `m1_profiles_resumes.test.sql`:
+  - `m1_profiles_resumes.test.sql` (pgTAP, **`select plan(45)`**: §1 = 4, §2 = 14, §3 = 11, §4 = 1, §5 = 9, §6 = 5, §7 = 1). If an assertion is split, update N; pg_prove fails on a mismatch.
     1. `is_complete` is false for an empty row, true with the five fields set, false when `skills = '{}'`, false when `full_name = '  '`;
-    2. check violations: `salary_max < salary_min`; `contact_email = 'nope'`; `years_experience = 'x'`; 11 `target_titles`; `experience = '{}'::jsonb`;
-    3. as user A: insert and update own `candidate_profiles`; insert with `user_id = B` → RLS violation; select of B's row → 0 rows; `version` increments and `updated_at` changes on update;
+    2. check violations (`throws_ok … '23514'`): `salary_max < salary_min`; `contact_email = 'nope'`; `years_experience = 'x'`; 11 `target_titles`; `experience = '{}'::jsonb`. Length limits at N+1: `full_name` 201, `headline` 301, `phone` 51, `location` 201, `contact_email` 321 (valid shape), `work_authorization_other` 201, one `skills` item of 61, one `target_titles` item of 101, one experience `description` of 2001;
+    3. as user A: insert and update own `candidate_profiles`; insert with `user_id = B` → RLS violation; select of B's row → 0 rows; `version` increments and `updated_at` changes on update; **owner** `delete from candidate_profiles where user_id = A` raises `42501` (no delete grant or policy); as `anon`, `select` returns 0 rows or raises `42501`, and `insert`/`update`/`delete` raise `42501`;
     4. `source_resume_id` pointing to B's resume → error;
-    5. as user A: `insert`/`update`/`delete` on `resumes` → `42501`; select → own rows only; a second `is_current` row for the same user → `unique_violation`;
+    5. as user A: `insert`/`update`/`delete` on `resumes` → `42501`; select → own rows only; a second `is_current` row for the same user → `unique_violation`; as `anon`, `select` returns 0 rows or raises `42501`, and `insert`/`update`/`delete` raise `42501`;
     6. bucket `resumes` exists, `public = false`, `file_size_limit = 5242880`, exactly the two MIME types; `pg_policies` on `storage.objects` has **no** policy whose `qual`/`with_check` mentions `'resumes'` for roles `anon`/`authenticated`/`public`;
     7. every foreign key from a `public` table to `auth.users` has `confdeltype = 'c'` (cascade).
   - `test_auth_gotrue.py` (integration, real GoTrue and Mailpit):
@@ -285,6 +299,18 @@ Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and d
     - `test_duplicate_signup_creates_no_second_user`: the second sign-up → error code `user_already_exists`, and `count(*)` of users with that email = 1.
     - `test_recovery_email_english_by_default`: `POST /auth/v1/recover` → the Mailpit message HTML contains `/auth/confirm?token_hash=`, `type=recovery` and "Reset your password".
     - `test_recovery_email_russian_after_locale_switch`: set `profiles.ui_locale = 'ru'` (the trigger mirrors it) → the message contains "Восстановление пароля" and not the EN heading.
+    - Recovery-link validity (S-001 AC5). Background, verified against the local GoTrue v2.197 on 2026-09-27:
+      - expiry is checked against **`auth.users.recovery_sent_at`** plus `[auth.email] otp_expiry` (3600 s);
+      - backdating `auth.one_time_tokens.created_at` has **no** effect;
+      - expired, reused and unknown tokens all return 403 `error_code: "otp_expired"`, so each case asserts its precondition to prove which path it hit.
+
+      Each case uses its own `make_user` user and `POST /auth/v1/recover`, then reads the hash with `recovery_token_hash` and calls `verify_recovery`:
+      - `test_recovery_token_fresh_verifies` (control): the token row exists; verify → 200 with `access_token`.
+      - `test_recovery_token_expired_is_rejected`: `update auth.users set recovery_sent_at = now() - interval '2 hours' where id = <user>` through the `pool` fixture (as postgres). Precondition: the token row still exists, so the token was never consumed. Verify → 403 `otp_expired`; the password is unchanged (a password sign-in with the old password still succeeds).
+      - `test_recovery_token_reused_is_rejected`: the first verify → 200; the token row is gone; the second verify → 403 `otp_expired`.
+      - `test_recovery_token_unknown_is_rejected`: a random 56-hex hash → 403 `otp_expired`.
+
+      The shared Auth config (`otp_expiry`) is never changed for this; only the test user's own row is backdated. If a future GoTrue checks a different column, the fresh-token control and the expired precondition make the test fail loudly instead of passing for the wrong reason (record it in `docs/solutions/`).
 - [ ] **Step 2: Run the tests and confirm they fail.** `npm run -s test:db` → FAIL (tables missing). `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q` → FAIL.
 - [ ] **Step 3: Implement** the migrations, config, template and helpers. Apply them:
   ```bash
@@ -447,6 +473,7 @@ def configure_logging(settings: Settings) -> None   # JSON lines; redacts values
 ```python
 # domain/profile.py  (pydantic v2; limits and enums from Global Constraints)
 YearsExperience = Literal["lt_1", "1_2", "3_5", "6_10", "10_plus"]
+PROFILE_LIMITS: Final[Mapping[str, int]]   # same keys/values as the TS PROFILE_LIMITS (Global Constraints)
 LanguageLevel = Literal["native", "fluent", "advanced", "intermediate", "basic"]
 class ExperienceEntry(BaseModel): title: str; company: str | None; start: str | None; end: str | None; current: bool = False; description: str | None
     # start/end "YYYY-MM" or None
@@ -505,6 +532,7 @@ class AnthropicProvider:  # implements LLMProvider (ADR-0006)
     - `test_invalid_email_and_url_dropped`
     - `test_titles_and_skills_deduped_case_insensitive`
     - `test_lists_truncated_to_limits`
+    - `test_strings_truncated_to_profile_limits` (every `PROFILE_LIMITS` string field: N kept, N+1 truncated to N)
     - `test_wrong_shapes_default_without_raising`
     - `test_json_schema_is_strict` (every object has `additionalProperties: false` and full `required`)
   - `test_resume_files.py`:
@@ -1114,7 +1142,12 @@ export type ProfileInput = {
   salaryMin: number | null; salaryMax: number | null; salaryCurrency: string | null; salaryPeriod: "month" | "year" | null;
   sourceResumeId: string | null;
 };
-export const profileFormatSchema: z.ZodType<ProfileInput>;   // format-only rules (D1): email, URL, limits, salaryRange (max ≥ min)
+export const PROFILE_LIMITS: { readonly fullName: 200; readonly contactEmail: 320; readonly phone: 50; readonly location: 200;
+  readonly headline: 300; readonly url: 500; readonly workAuthorizationOther: 200; readonly titleItem: 100; readonly titlesMax: 10;
+  readonly skillItem: 60; readonly skillsMax: 100; readonly entryText: 200; readonly languageName: 100; readonly description: 2000;
+  readonly experienceMax: 50; readonly educationMax: 20; readonly languagesMax: 20 };   // = Global Constraints = SQL = Python
+export const profileFormatSchema: z.ZodType<ProfileInput>;   // format-only rules (D1): email, URL, PROFILE_LIMITS (issue "maxLength" / "maxItems"
+                                                              // on the exact dotted path, e.g. "skills.3"), salaryRange (max ≥ min)
 export function emptyProfile(accountEmail: string): ProfileInput;   // contactEmail defaults to the account email
 export function toDbRow(p: ProfileInput): TablesInsert<"candidate_profiles">;   // "" → null; trims
 export function fromDbRow(r: Tables<"candidate_profiles"> | null, accountEmail: string): ProfileInput;
@@ -1169,10 +1202,18 @@ Behavior:
     - `max == min ok`
     - `max without min ok`
     - `11 titles → maxItems`
+    - `maxLength per field family` (table-driven, `it.each`). Each field passes at N and gets exactly `maxLength` on its own path at N+1. It is never a generic error, and never `save_failed`:
+      - `fullName` 200, `headline` 300, `phone` 50, `location` 200;
+      - `contactEmail` 320 (a valid-shaped address), `workAuthorizationOther` 200, `links.linkedin` and `links.portfolio` 500 (valid URL shape);
+      - `targetTitles.0` 100, `skills.0` 60;
+      - `experience.0.title` / `experience.0.company` 200, `experience.0.description` 2000;
+      - `education.0.institution` / `.degree` / `.field` 200, `languages.0.name` 100.
     - `missing required fields are NOT format errors`
     - `toDbRow/fromDbRow round-trip keeps application answers and phone` (S-004 AC3)
   - `actions.test.ts`:
     - `format error → fieldErrors and no upsert` (AC2)
+    - `over-long fullName → fieldErrors.fullName === "maxLength", no upsert, not save_failed` (AC2)
+    - `DB check_violation (23514) → save_failed` (defense in depth if SQL is stricter than zod; the parity tests make this unreachable)
     - `missing required only → upsert called, ok with isComplete false and missing list` (AC2/AC4)
     - `complete → ok isComplete true` (AC1)
     - `db error → save_failed`
@@ -1483,7 +1524,7 @@ Expected merge hotspots and how the lead resolves them:
 | S-001 · 2 duplicate email → no 2nd account, neutral message | 1, 8, 12 | `test_duplicate_signup_creates_no_second_user` (int); `errors.test.ts`, `actions.test.ts::signUp duplicate…`, `sign-up-form.test.tsx::duplicate alert…` (unit); `sign-up.spec.ts::duplicate email…` (e2e) | same as above |
 | S-001 · 3 malformed email / < 8 chars → field errors, no account | 1, 8, 12 | `test_password_shorter_than_8_is_rejected` (int); `schemas.test.ts`, `actions.test.ts::signUp invalid…` (unit); `sign-up.spec.ts::malformed…` (e2e) | same as above |
 | S-001 · 4 same generic error for wrong password and unknown email | 8, 12 | `errors.test.ts`, `actions.test.ts::signIn wrong password and unknown email…`, `sign-in-form.test.tsx` (unit); `sign-in.spec.ts::wrong password and unknown email…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-in.spec.ts` |
-| S-001 · 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default` (int); `confirm/route.test.ts`, `actions.test.ts::updatePassword…`, `reset-password-form.test.tsx` (unit); `password-reset.spec.ts` ×3 (e2e, Mailpit) | `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npx playwright test tests/e2e/auth/password-reset.spec.ts` |
+| S-001 · 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default`, `test_recovery_token_fresh_verifies`, `test_recovery_token_expired_is_rejected` (real expiry via `auth.users.recovery_sent_at`), `test_recovery_token_reused_is_rejected`, `test_recovery_token_unknown_is_rejected` (int); `confirm/route.test.ts`, `actions.test.ts::updatePassword…`, `reset-password-form.test.tsx` (unit); `password-reset.spec.ts` ×3 (e2e, Mailpit) | `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npx playwright test tests/e2e/auth/password-reset.spec.ts` |
 | S-001 · 6 sign out → protected pages redirect | 4, 8, 12 | `redirects.test.ts::decideProxyRedirect…`, `app-shell.test.tsx::account menu…` (unit); `sign-out.spec.ts` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-out.spec.ts` |
 | S-001 · 7 exactly one sign-up bonus; re-sign-in never grants | 1, 5, 12 | `m1_accounts.test.sql` 2–6 (pgTAP); `test_repeated_sign_in_never_grants_again` (int); `m1-ledger.test.ts` (black-box RLS); `sign-in.spec.ts::signing in again never adds credits` (e2e) | `npm run -s test:db`; `npx vitest run --config vitest.config.ts tests/integration/rls/m1-ledger.test.ts`; `npx playwright test tests/e2e/auth/sign-in.spec.ts` |
 | S-002 · 1 Google creates or links account; bonus once for new | 1, 8 (+ human live check, D4) | `m1_accounts.test.sql` 3–4 (pgTAP: sign-in and identity linking add no grant); `actions.test.ts::startGoogle…`, `::exchangeOAuthCode new account adds welcome`, `oauth.test.ts::isNewAccount` (unit) | `npm run -s test:db`; `npm run test:unit -w @autoapplier/web`; manual: README live-check item (MR, TD-006) |
@@ -1493,9 +1534,9 @@ Expected merge hotspots and how the lead resolves them:
 | S-003 · 2 other type or > 5 MB rejected, nothing stored | 3, 6, 11, 13 | `test_resume_files.py`, `test_resume_service.py::test_png_as_pdf…/::test_one_byte_over…` (unit); `test_resumes_api.py::test_content_length_over_limit…` (unit); `test_resume_pipeline.py::test_rejected_upload_stores_nothing` (int); `validate.test.ts`, `route.test.ts::oversized…`, `dropzone.test.tsx` (unit); `failure.spec.ts::png and too-large…` (e2e) | `uv run --directory backend pytest tests/unit -q -k resume`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/resume/failure.spec.ts` |
 | S-003 · 3 unreadable file or AI failure → message, manual fill, file stays | 3, 6, 11, 13 | `test_document_text_extractor.py::test_scanned…/::test_corrupt…`, `test_resume_extraction.py` (unreadable/ai_failed cases), `test_llm_fake_markers.py` (unit); `test_resume_pipeline.py::test_scanned_pdf_ends_unreadable_with_file_kept` (int); `extraction-failed.test.tsx`, `status.test.ts::resolves failed…` (unit); `failure.spec.ts` scanned + ai-fail (e2e) | same as above |
 | S-003 · 4 re-upload replaces file; profile overwritten only after per-field confirm | 6, 11, 13 | `test_resume_service.py::test_replace_removes_previous_object_and_row`, `test_resume_repository.py::test_insert_current_demotes_previous` (unit/int); `merge.test.ts`, `review-changes-dialog.test.tsx` (unit); `replace.spec.ts` (e2e) | `npm run -s test:integration:py`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/resume/replace.spec.ts` |
-| S-003 · 5 other user / anonymous cannot get the file | 1, 5, 6 | `m1_profiles_resumes.test.sql` 5–6 (pgTAP: bucket private, no user policies); `m1-storage.test.ts` (black-box as real users); `test_resumes_api.py::test_retry_other_users_resume_is_404`, `test_resume_repository.py::test_get_for_user_hides_other_users_rows` | `npm run -s test:db`; `npx vitest run --config vitest.config.ts tests/integration/rls/m1-storage.test.ts`; `npm run -s test:integration:py` |
+| S-003 · 5 other user / anonymous cannot get the file | 1, 5, 6 | `m1_profiles_resumes.test.sql` 3, 5–6 (pgTAP: `anon` select/insert/update/delete denied on `resumes` and `candidate_profiles`, owner delete denied on `candidate_profiles`, bucket private, no user policies); `m1-storage.test.ts` (black-box as real users); `test_resumes_api.py::test_retry_other_users_resume_is_404`, `test_resume_repository.py::test_get_for_user_hides_other_users_rows` | `npm run -s test:db`; `npx vitest run --config vitest.config.ts tests/integration/rls/m1-storage.test.ts`; `npm run -s test:integration:py` |
 | S-004 · 1 required fields → saved, checklist complete | 1, 9, 13 | `m1_profiles_resumes.test.sql` 1 (pgTAP `is_complete`); `completeness.test.ts`, `actions.test.ts::complete…`, `checklist.test.tsx::complete…` (unit); `manual.spec.ts::filling the five…` (e2e) | `npm run -s test:db`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/profile/manual.spec.ts` |
-| S-004 · 2 missing/invalid → highlighted, stays incomplete | 1, 9, 13 | `m1_profiles_resumes.test.sql` 2 (check constraints); `schema.test.ts`, `actions.test.ts::format error…/::missing required only…`, `profile-editor.test.tsx::saving with missing fields…` (unit); `manual.spec.ts::saving with missing fields…` (e2e) | same as above |
+| S-004 · 2 missing/invalid → highlighted, stays incomplete | 1, 9, 13 | `m1_profiles_resumes.test.sql` 2 (check constraints incl. length limits at N+1); `schema.test.ts` (incl. `maxLength per field family`), `actions.test.ts::format error…/::over-long fullName…/::missing required only…`, `profile-editor.test.tsx::saving with missing fields…` (unit); `manual.spec.ts::saving with missing fields…` (e2e) | same as above |
 | S-004 · 3 edits incl. application answers persist after reload | 1, 5, 9, 13 | `m1-profiles.test.ts::user upserts and reads own … application answers` (black-box); `schema.test.ts::toDbRow/fromDbRow round-trip…` (unit); `manual.spec.ts::application answers and phone persist…` (e2e) | `npx vitest run --config vitest.config.ts tests/integration/rls/m1-profiles.test.ts`; `npx playwright test tests/e2e/profile/manual.spec.ts` |
 | S-004 · 4 checklist lists exactly what is missing | 9, 13 | `completeness.test.ts`, `checklist.test.tsx::partial shows exactly…`/`RU partial…` (unit); `manual.spec.ts::checklist lists exactly…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/profile/manual.spec.ts` |
 | S-005 · 1 browser prefers Russian → RU, else EN | 4, 12 | `negotiate.test.ts` (unit); `locale.spec.ts::Accept-Language ru-RU…`/`de-DE…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/i18n/locale.spec.ts` |
