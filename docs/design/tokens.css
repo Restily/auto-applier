@@ -55,7 +55,12 @@
   --credit-subtle: #FBF1DE;
   --on-credit: #FFFFFF;          /* 5.9:1 on credit */
 
-  /* Semantic status */
+  /* Semantic status. NOTE on the *-subtle tints below: they are fills only.
+     Body text placed on top of one is always --foreground (15-16:1 on any
+     of the five below), never the raw semantic color — e.g. --success on
+     --success-subtle is only 4.49:1 and fails AA. The semantic color stays
+     on the icon / a short bold lead-in (3:1 minimum, comfortably cleared).
+     Full table and rule: MASTER.md §2.4. */
   --success: #157F3C;
   --success-subtle: #E4F5EA;
   --on-success: #FFFFFF;         /* 5.1:1 on success */

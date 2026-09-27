@@ -55,8 +55,11 @@ Implementation: `docs/design/tokens.css`. Every pair below is computed (WCAG 2.2
 | `--credit-subtle` | `#FBF1DE` | Credit callouts, low-balance banner bg | — | — | — |
 | `--on-credit` | `#FFFFFF` | Text on credit fill | on credit | 5.9:1 | AA |
 | `--success` | `#157F3C` | Connected, sent, match ≥80, positive | on surface | 5.1:1 | AA |
+| `--success-subtle` | `#E4F5EA` | Success/info Alert & banner tint background | — | — | — |
 | `--warning` | `#B45309` | Needs attention, match 50–79, low balance | on surface | 5.0:1 | AA |
+| `--warning-subtle` | `#FDF1E3` | Warning Alert tint background | — | — | — |
 | `--danger` | `#C0233C` | Errors, disconnected/restricted, destructive | on surface | 5.9:1 | AA |
+| `--danger-subtle` | `#FBE7EA` | Danger Alert tint background | — | — | — |
 | `--ring` | `#0B6E8F` | Focus ring (2px, 2px offset) | on surface | 5.8:1 | AA |
 
 Never use raw hex in component code — reference the CSS variable so a future palette pass is a one-file change. `--success` / `--warning` / `--danger` are also the only colors that carry state; every place they appear, state is *also* carried by an icon and/or text label (color is never the sole signal — WCAG 1.4.1).
@@ -71,6 +74,21 @@ Full token list in `tokens.css` under `.dark`. Same bar: e.g. `--foreground` (`#
 2. Interactive boundaries (input borders, unfilled icon-button outlines, focus rings) ≥ 3:1 against the adjacent surface.
 3. Decorative-only borders (a divider between two rows of the same background) are exempt — don't force contrast onto them, it just adds visual noise.
 4. Compute, don't eyeball. Any WCAG contrast calculator is fine; record the ratio in the PR/spec like the tables above.
+
+### 2.4 Text on tinted (`-subtle`) fills
+
+Alert/Banner and any other tint-filled surface (`--danger-subtle`, `--success-subtle`, `--warning-subtle`, `--primary-subtle`, `--credit-subtle`) needs its own check — the ratios in §2.1 are against `--surface`/`--background`, and computing the tint pairs exposes a real trap: the raw semantic color is **not** reliably 4.5:1 against its own tint —
+
+| Pair | Ratio | AA (4.5:1 text) |
+|---|---|---|
+| `--success` on `--success-subtle` | 4.49:1 | **fails** |
+| `--warning` on `--warning-subtle` | 4.51:1 | passes, no margin |
+| `--danger` on `--danger-subtle` | 5.00:1 | passes |
+| `--primary` on `--primary-subtle` | 4.99:1 | passes |
+| `--credit` on `--credit-subtle` | 5.29:1 | passes |
+| `--foreground` on any of the five tints above | 15.2–16.2:1 | passes, large margin |
+
+**Rule: body text inside a tinted Alert/Banner/callout is always `--foreground`**, never the raw semantic color — the table is exactly why "it's already a design token" isn't a safe enough check on its own. The semantic color stays on the icon and/or a short bold lead-in, where it only needs the 3:1 non-text/graphical-object minimum (SC 1.4.11), which every pair above clears. This generalizes what S-002's neutral cancel alert already does (`--foreground` text on `--surface-sunken`) into the default for every tinted surface, instead of a per-screen judgment call.
 
 ---
 
@@ -203,7 +221,7 @@ All components are `shadcn/ui` primitives unless marked **custom**. "States" lis
 | Tabs | `Tabs` | — | Profile sections, Settings sections. |
 | Card | `Card` | — | Border only, `--shadow-none` by default (§3.6); used for the Profile Editor's field groups and the onboarding checklist steps. |
 | Badge | `Badge` | `default` (primary-subtle), `success`, `warning`, `danger`, `neutral` | Status pills: connection status, match-score band, plan tier. Always paired with an icon or text, never color-only. |
-| Alert / Banner | `Alert` | `info`, `success`, `warning`, `danger` | Page-level (e.g. "Your session will expire") and inline (e.g. above a form). |
+| Alert / Banner | `Alert` | `info`, `success`, `warning`, `danger` | Page-level (e.g. "Your session will expire") and inline (e.g. above a form). Body text is always `--foreground` on the tint fill, never the raw semantic color (§2.4) — the semantic color stays on the icon and/or a short bold lead-in. |
 | Toast | `Sonner` | success/info/error | Transient confirms: "Profile saved," "Signed out." Auto-dismiss ≥5s, also closable, also announced via `aria-live="polite"`. |
 | Dialog | `Dialog` | — | Non-destructive confirmations, "replace resume?" |
 | Alert Dialog | `AlertDialog` | — | Destructive, hard-to-reverse actions: delete account (typed-confirmation, §S-006). |
@@ -481,3 +499,4 @@ This section is the checklist a screen spec's "Accessibility" section should be 
 
 ## Change log
 - 2026-09-27 — Initial version (T-002): tokens, type scale + RU-fit rules, spacing/radii/shadow/motion, breakpoints, component inventory, voice & tone + EN/RU glossary, empty/error/loading patterns, app shell (desktop + mobile, focus + full).
+- 2026-09-27 — T-002 completion pass (continuing the session above, same day): added §2.4 (text-on-tinted-fill contrast rule — computing it caught `--success` on `--success-subtle` failing AA at 4.49:1), added the three light-theme `-subtle` rows to §2.1's table, corrected S-001.md/S-003.md accessibility sections that had cited the wrong (passing-looking) ratio for alerts actually rendered on a tint, refreshed the stale S-001 prototype screenshots and removed an undocumented hardcoded color from S-001.html.
