@@ -1,4 +1,4 @@
-# Project: <product name>
+# Project: AutoApplier
 
 This product is built by an AI team. Team rules (roles, pipeline, models, prohibitions):
 

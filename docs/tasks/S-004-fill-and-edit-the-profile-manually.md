@@ -1,0 +1,33 @@
+---
+id: S-004
+type: story
+title: Fill and edit the profile manually
+status: todo
+milestone: M1
+owner: frontend-dev
+priority: P0
+depends_on: [S-001]
+needs_human: false
+created: 2026-09-27
+updated: 2026-09-27
+---
+
+## Description
+
+As a <user>, I want <action>, so that <value>.
+
+## Acceptance criteria
+
+- [ ] Given a user without a resume, When they fill the required fields (full name, contact email, target title, at least one skill, years of experience), Then the profile is saved and the onboarding checklist marks it complete
+- [ ] Given required fields are missing or an email/URL is invalid, When the user saves, Then the invalid fields are highlighted and the profile stays incomplete
+- [ ] Given a saved profile, When the user edits it (including application answers: work authorization, relocation readiness, notice period, expected salary, phone) and reloads the page, Then the changes persist
+- [ ] Given the profile is incomplete, Then the onboarding checklist lists exactly what is missing
+
+## Notes
+
+- Design: docs/design/screens/<id>.md
+- Plan: (set by architect)
+
+## Log
+
+- 2026-09-27 12:11 created (team-lead)
