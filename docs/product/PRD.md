@@ -162,3 +162,10 @@ Acceptance criteria rules: Given/When/Then, observable in the UI or API, include
   - risks accepted with protections;
   - Python backend, a UI component library, a pluggable LLM provider.
 - 2026-09-27 — Human decision (M0 planning): background jobs use **Celery with Redis** as broker/result backend (Valkey, the BSD-licensed Redis-compatible server, runs locally; any managed Redis/Valkey in production), replacing the Postgres-based PgQueuer choice. Long delays (pacing, next-day sends) are scheduled in the database and enqueued by Celery Beat, not via long ETA tasks.
+- 2026-09-27 — M1 planning decisions (architect, accepted by the lead within PRD/AUTONOMY):
+  - D1: the profile editor saves partial profiles, so S-004 AC4 (the checklist lists what's missing) stays reachable. Saving is blocked only by format errors (invalid email/URL). Incomplete profiles show a "saved, still incomplete" notice; the designer confirms the copy.
+  - D2/D3: operator roles (`user_roles`/`is_operator`) move to M2, where the back office needs them. The OpenAI/OpenRouter LLM adapters also move to M2: M1 ships the Claude adapter and the fake behind the pluggable registry (TD-004).
+  - D4: the Google sign-in success path can't be exercised locally. It is covered by unit and DB tests plus a human live check before launch (TD-006).
+  - D5: open, needs the human. Re-registering with the same email after deleting an account would grant the 20-credit sign-up bonus again.
+  - LCP budget verification moves to MR (TD-005).
+

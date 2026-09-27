@@ -57,15 +57,16 @@ Quality attributes that drive the design:
 | Web validation | zod | 4.x | 0001 |
 | Supabase clients | @supabase/ssr, @supabase/supabase-js | 0.12.x, 2.x | 0004 |
 | Web → API client | openapi-typescript + openapi-fetch | 7.x, 0.17.x | 0001 |
-| i18n | next-intl (no locale routing) — wired in M1 | 4.x | 0010 |
+| i18n | next-intl (no locale routing), catalogs `messages/<locale>/<namespace>.json`, profile-first locale when signed in — M1 | 4.x | 0010, 0015 |
 | Backend | Python, FastAPI, uvicorn, pydantic v2, pydantic-settings | 3.11, 0.141.x, 0.54.x, 2.13.x, 2.15.x | 0002 |
 | DB driver | asyncpg (psycopg is LGPL → excluded) | 0.31.x | 0002 |
 | Queue / scheduler | Celery (`celery[redis]`) + Celery Beat; `redis` client | 5.6.x; 6.4.x (kombu pins `<6.5`) | 0012 |
 | Broker / cache server | Valkey (BSD-3, Redis-compatible) — `valkey/valkey:8.1-alpine` locally | 8.1 | 0012 |
 | Auth tokens | PyJWT | 2.x | 0004 |
 | Encryption | cryptography (AES-256-GCM) | 50.x | 0008 |
+| Resume parsing | pypdf (BSD-3), python-docx (MIT) — PyMuPDF is AGPL, excluded | 6.x, 1.2.x | 0014 |
 | Telegram MTProto | Telethon (MIT) | 1.45.x | 0007 |
-| LLM SDKs | anthropic (default), openai (OpenAI/OpenRouter) — added in M1 | — | 0006 |
+| LLM SDKs | anthropic (default, M1); openai (OpenAI/OpenRouter) — M2 (TD-004) | 1.x | 0006 |
 | Extension | WXT, Manifest V3, TypeScript (M4) | 0.21.x | 0005 |
 | Database / Auth / Storage | Supabase CLI local stack | CLI 2.x | 0011 |
 | Lint | ESLint 9 flat + eslint-config-next; ruff; import-linter | 9.39.x; 0.16.x; 2.x | 0001, 0002 |
@@ -125,10 +126,10 @@ RLS patterns:
 
 | Table (milestone) | Key columns | RLS |
 |---|---|---|
-| `profiles` (M1) | id = auth.users.id, display_name, ui_locale, onboarding state | O |
-| `user_roles` (M1) | user_id, role (`operator`) | R (read own) |
-| `resumes` (M1) | user_id, storage_path (private bucket `resumes/<user_id>/…`), parsed_at | O |
-| `candidate_profiles` (M1) | user_id, titles, skills, experience jsonb, languages, location, salary, links, version | O |
+| `profiles` (M1) | id = auth.users.id, ui_locale (mirrored to `auth.users.raw_user_meta_data.locale` for Auth emails); created by the `auth.users` trigger (ADR-0013) | O (select own, update `ui_locale` only) |
+| `user_roles` (M2, moved from M1 — needs an `internal` schema grant design) | user_id, role (`operator`) | R (read own) |
+| `resumes` (M1) | user_id, storage_path (private bucket `resumes`, object `<user_id>/<resume_id>.<ext>`, no user storage policies), status processing/ready/failed, error_code, extracted draft jsonb, is_current (one per user) (ADR-0014) | R |
+| `candidate_profiles` (M1) | user_id, contacts, target_titles[], skills[], years_experience, experience/education/languages jsonb, links, application answers, salary, source_resume_id, version, generated `is_complete` | O (no delete) |
 | `saved_searches` (M2) | user_id, filters jsonb, threshold (default 70), mode review/autopilot, channel_order | O |
 | `sources`, `telegram_channels` (M2) | kind, url/username, enabled, added_by | C |
 | `source_fetches` (M2) | source_id, started_at, status, error, items | B (operator read via API) |
@@ -140,17 +141,18 @@ RLS patterns:
 | `private.user_secrets` (M3) | user_id, connection_id, kind, key_id, nonce, ciphertext | B (private schema) |
 | `recruiter_contacts` (M3) | user_id, contact_hash, last_contacted_at (14-day rule) | B |
 | `extension_devices`, `extension_pairings`, `extension_tasks` (M4) | token_hash, scopes, lease | R / B |
-| `credit_ledger`, view `credit_balances` (M1 grant, M3 spend, M5) | user_id, delta, reason, ref UNIQUE | R |
+| `credit_ledger`, view `credit_balances` (`security_invoker`) (M1 grant via `auth.users` trigger — ADR-0013; M3 spend, M5) | user_id, delta, reason, ref UNIQUE | R |
 | `plans`, `subscriptions`, `payment_events` (M5) | provider refs UNIQUE | C / R / B |
 
 Redis keyspace (disposable, prefix `REDIS_KEY_PREFIX`, default `aa:`): `aa:heartbeat:worker` (M0, TTL 30 s), later `aa:rl:<user>:<channel>:<date>` (daily counters), `aa:lock:send:<application_id>`, `aa:llm:<fingerprint>` (cache). Celery's own keys (broker queues, results) live in the same DB. Schedules for delayed work are Postgres columns (`scheduled_at`), never Redis/ETA (ADR-0012).
 
-Deletion: every user-owned table references `auth.users(id) on delete cascade`; storage objects and secrets are deleted by the account-deletion job (M1 S-006, extended in M3/M4).
+Deletion: every user-owned table references `auth.users(id) on delete cascade`; storage objects and secrets are removed by `AccountPurgeStep`s before the Auth user is deleted (M1 S-006, extended in M3/M4). Integration tests enumerate every FK to `auth.users` and fail if a table is not cascaded, exported (or explicitly excluded) and emptied by deletion (ADR-0016).
 
 ## Auth and authorization
 - Supabase Auth: email/password (M1), Google OAuth (M1, local stack with a fake/disabled provider in tests), sessions in cookies via `@supabase/ssr`; `proxy.ts` refreshes the session.
 - Python API verifies the Supabase JWT (PyJWT, JWKS, `aud=authenticated`) and executes user-scoped SQL as role `authenticated` with the JWT claims set, so RLS applies to the backend as well (ADR-0004).
-- Operator: `user_roles` + `internal.is_operator()`; operator routes are `/v1/operator/*` and additionally check the role in the API.
+- Operator (M2): `user_roles` + `internal.is_operator()`; operator routes are `/v1/operator/*` and additionally check the role in the API.
+- M1 API surface: `GET /v1/me`, `POST /v1/resumes` (multipart), `POST /v1/resumes/{id}/extraction`, `GET /v1/account/export`, `POST /v1/account/deletion`. JWTs are ES256 via the local JWKS (HS256 fallback only with `SUPABASE_JWT_SECRET`).
 - Extension: scoped hashed token on `/ext/v1/*` (ADR-0005). Webhooks: provider signatures (ADR-0009).
 
 ## API style and error handling
