@@ -21,6 +21,8 @@
     "dev:worker": "uv run --directory backend celery -A autoapplier.worker.celery_app worker --loglevel INFO --concurrency 2 --queues default",
     "dev:beat": "uv run --directory backend celery -A autoapplier.worker.celery_app beat --loglevel INFO --schedule .celerybeat-schedule",
     "gen:openapi": "uv run --directory backend python -m autoapplier.api.export_openapi --out openapi.json",
+    "gen:api-types": "npm run gen:openapi && npm run gen:api-types -w @autoapplier/web",
+    "check:openapi": "node scripts/check-openapi-types.mjs",
     "build": "npm run build:web && npm run build:py",
     "build:py": "uv lock --directory backend --check",
     "dev:web": "npm run dev -w @autoapplier/web",

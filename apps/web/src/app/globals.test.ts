@@ -40,7 +40,10 @@ describe("globals.css", () => {
   it("has no color literals", () => {
     // src/lib/design-system-review or similar future .css files are covered
     // too: walk every .css file under apps/web/src, not just globals.css.
-    const srcDir = path.resolve(dirname, "../..");
+    // (dirname is apps/web/src/app, so one level up is apps/web/src — two
+    // levels up would be apps/web and pick up build output like
+    // .next-build/**/*.css, which is generated and out of scope here.)
+    const srcDir = path.resolve(dirname, "..");
     const colorLiteral = /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|oklch\(/;
     const offenders = listCssFiles(srcDir).filter((file) => colorLiteral.test(fs.readFileSync(file, "utf8")));
 
