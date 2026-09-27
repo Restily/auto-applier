@@ -8,3 +8,4 @@
 - `server-only` must be aliased to an empty module in Vitest.
 - context7 monthly quota ran out on 2026-09-27; fall back to PyPI/npm READMEs and vendor sites via curl. GitHub API is not reachable from the VM; Docker Hub is (actionlint via docker works).
 - team/config.sh guards CHECK_* on root package.json existence ($ROOT is defined by both consumers before sourcing).
+- 2026-09-27 human decision: Celery + Redis protocol (Valkey `valkey/valkey:8.1-alpine` locally; Docker Hub pull works) + Celery Beat, replacing PgQueuer (ADR-0012 supersedes ADR-0003). kombu[redis] pins redis-py <6.5. No ETA/countdown for business delays (visibility_timeout redelivery) -> scheduled_at in Postgres + Beat dispatcher. Heartbeat = Redis key aa:heartbeat:worker (worker_ready + Beat task every 10s, TTL 30s). Async bridge = AsyncRuntime (per-process loop + container).

@@ -10,7 +10,7 @@ Quality attributes that drive the design:
 - **Reliability:** idempotent sends and webhooks; one failing source never blocks others; AI outages delay, never lose data.
 - **Safety rules as server-side logic:** daily limits, pacing, de-duplication, 14-day recruiter cooldown.
 - **Testability without real accounts or money:** every third party behind a port with a fake and recorded fixtures.
-- **Minimal local infra:** Supabase is the only container stack; everything starts with `bash team/bin/app.sh start`.
+- **Minimal local infra:** the Supabase stack plus one Valkey (Redis-compatible) container; everything starts with `bash team/bin/app.sh start`.
 - Performance budgets: API p95 < 300 ms reads, feed first page < 1 s at 10k vacancies, LCP < 2.5 s.
 
 ## Components and boundaries
@@ -28,15 +28,20 @@ Quality attributes that drive the design:
              ┌───────▼───────────────────────┐    │ services · domain · ports        │    Telegram bot
              │ Supabase local                │◀───┤ adapters (LLM, mail, Telegram,   │
              │ Postgres (RLS) · Auth ·       │    │ payments, sources) — fakes in dev│
-             │ Storage (private resumes) ·   │◀───┤ worker (PgQueuer: schedules,     │
-             │ mail catcher                  │    │ ingestion, AI, sending)          │
-             └───────────────────────────────┘    └──────────────────────────────────┘
+             │ Storage (private resumes) ·   │◀───┤ Celery worker + Celery Beat      │
+             │ mail catcher                  │    │ (ingestion, AI, sending)         │
+             └───────────────────────────────┘    └──────────────┬───────────────────┘
+                                                                 │ broker · results · limits · locks · LLM cache
+                                                  ┌──────────────▼───────────────────┐
+                                                  │ Valkey (Redis protocol, :6379)   │
+                                                  └──────────────────────────────────┘
 ```
 | Component | Responsibility | Talks to | ADR |
 |---|---|---|---|
 | **Web app** `apps/web` | UI (EN/RU), auth screens and session (Supabase Auth via `@supabase/ssr`), plain user-owned CRUD through RLS, server-side calls to the API | Supabase (user session), Python API (`/v1`, server-side only) | 0001, 0004, 0010 |
 | **Python API** `backend/…/api` | Business commands: resume extraction, matching, applications, credits, connections, payments, operator tools, extension endpoints, webhooks, `/health` | Postgres (asyncpg), queue, adapters | 0002, 0004 |
-| **Worker** `backend/…/worker` | Scheduled ingestion (aggregators, Telegram channels), AI structuring/scoring, preparing and sending applications with limits/pacing, payment event processing, credit expiry | Postgres, adapters | 0003 |
+| **Worker** `backend/…/worker` | Celery worker + Celery Beat: scheduled ingestion (aggregators, Telegram channels), AI structuring/scoring, dispatching due applications (`scheduled_at` in Postgres) and sending them with limits/pacing, payment event processing, credit expiry | Postgres, Redis, adapters | 0012 |
+| **Valkey (Redis)** local container | Celery broker and result backend, worker heartbeat, rate-limit counters, send locks, LLM response cache (all disposable; nothing authoritative) | — | 0012 |
 | **Supabase (local)** | Postgres with RLS, Auth (email/password, Google), Storage (private `resumes` bucket), mail catcher | — | 0004, 0011 |
 | **Chrome extension** `apps/extension` (M4) | LinkedIn Jobs/posts collection and Easy Apply in the user's browser; paired with a scoped token | Python API `/ext/v1` only | 0005 |
 | **LLM layer** `backend/…/ports/llm.py` + `adapters/llm` | Provider-agnostic completion with tiers; Claude default; deterministic fake in tests | Anthropic / OpenAI / OpenRouter / fake | 0006 |
@@ -55,7 +60,8 @@ Quality attributes that drive the design:
 | i18n | next-intl (no locale routing) — wired in M1 | 4.x | 0010 |
 | Backend | Python, FastAPI, uvicorn, pydantic v2, pydantic-settings | 3.11, 0.141.x, 0.54.x, 2.13.x, 2.15.x | 0002 |
 | DB driver | asyncpg (psycopg is LGPL → excluded) | 0.31.x | 0002 |
-| Queue / scheduler | PgQueuer (asyncpg driver) | 1.4.x | 0003 |
+| Queue / scheduler | Celery (`celery[redis]`) + Celery Beat; `redis` client | 5.6.x; 6.4.x (kombu pins `<6.5`) | 0012 |
+| Broker / cache server | Valkey (BSD-3, Redis-compatible) — `valkey/valkey:8.1-alpine` locally | 8.1 | 0012 |
 | Auth tokens | PyJWT | 2.x | 0004 |
 | Encryption | cryptography (AES-256-GCM) | 50.x | 0008 |
 | Telegram MTProto | Telethon (MIT) | 1.45.x | 0007 |
@@ -74,21 +80,22 @@ Quality attributes that drive the design:
 |---|---|---|
 | `domain` | Pure business rules and value objects (health aggregation, later: matching score rules, limits, credits math). No IO. | stdlib, pydantic |
 | `ports` | Protocols + DTOs for everything outside the process (`LLMProvider`, `JobQueue`, `HealthProbe`, later `MailSender`, `TelegramUserClient`, `PaymentGateway`, `VacancySource`) | `domain` |
-| `services` | Use cases; orchestrate repositories and ports | `domain`, `ports`, `db`, `config` |
+| `services` | Use cases; orchestrate repositories and ports | `domain`, `ports`, `db`, `kv`, `config` |
 | `db` | asyncpg pool, repositories (SQL), DB-backed probes | `domain`, `ports`, `config` |
-| `adapters/<port>/` | Real and fake implementations of ports | `domain`, `ports`, `config`, third-party SDKs |
+| `kv` | Redis clients (async + sync), key naming with `REDIS_KEY_PREFIX`, worker heartbeat read/write, Redis-backed probes | `domain`, `ports`, `config`, `redis` |
+| `adapters/<port>/` | Real and fake implementations of ports (incl. `adapters/queue/celery_factory.py` + `CeleryJobQueue`) | `domain`, `ports`, `config`, `kv`, third-party SDKs |
 | `security` | Secret encryption (ADR-0008), token hashing | stdlib, `cryptography`, `config` |
 | `wiring` | Composition root: builds pool, adapters, services from `Settings` | everything below entry points |
 | `api` | FastAPI app, routers, request/response schemas, problem+json errors | `services`, `ports`, `domain`, `wiring`, `config` |
-| `worker` | PgQueuer entrypoints, schedules, heartbeat, process main | `services`, `ports`, `domain`, `wiring`, `db`, `config`, `pgqueuer` |
+| `worker` | Celery app module, thin sync tasks, Beat schedule, signals (heartbeat), `runtime.run_async` bridge (per-process loop + container) | `services`, `ports`, `domain`, `wiring`, `kv`, `config`, `celery` |
 | `config` | `Settings` (pydantic-settings) | stdlib, pydantic |
 
 **Enforcement:** import-linter contracts in `backend/pyproject.toml` (run by `npm run lint`). Contract names are the fix instructions, e.g.:
 - "domain is pure — move IO into adapters/db and depend on a port from autoapplier.ports"
 - "ports declare interfaces only — no services/adapters/db/api/worker imports"
 - "services depend on ports, not adapters — inject implementations via autoapplier.wiring"
-- "adapters never import services or entry points — return data, let the service decide"
-- "api must not import adapters or pgqueuer — enqueue through ports.queue.JobQueue from wiring"
+- "adapters, db and kv never import services or entry points — return data, let the service decide"
+- "api must not import adapters or celery — enqueue through ports.queue.JobQueue from wiring"
 - "adapters are independent of each other"
 
 ### Web (`apps/web/src/`)
@@ -118,8 +125,6 @@ RLS patterns:
 
 | Table (milestone) | Key columns | RLS |
 |---|---|---|
-| `worker_heartbeats` (M0) | worker_id PK, started_at, last_seen_at, version | B |
-| PgQueuer tables `pgqueuer*` (M0) | per PgQueuer schema | B |
 | `profiles` (M1) | id = auth.users.id, display_name, ui_locale, onboarding state | O |
 | `user_roles` (M1) | user_id, role (`operator`) | R (read own) |
 | `resumes` (M1) | user_id, storage_path (private bucket `resumes/<user_id>/…`), parsed_at | O |
@@ -137,6 +142,8 @@ RLS patterns:
 | `extension_devices`, `extension_pairings`, `extension_tasks` (M4) | token_hash, scopes, lease | R / B |
 | `credit_ledger`, view `credit_balances` (M1 grant, M3 spend, M5) | user_id, delta, reason, ref UNIQUE | R |
 | `plans`, `subscriptions`, `payment_events` (M5) | provider refs UNIQUE | C / R / B |
+
+Redis keyspace (disposable, prefix `REDIS_KEY_PREFIX`, default `aa:`): `aa:heartbeat:worker` (M0, TTL 30 s), later `aa:rl:<user>:<channel>:<date>` (daily counters), `aa:lock:send:<application_id>`, `aa:llm:<fingerprint>` (cache). Celery's own keys (broker queues, results) live in the same DB. Schedules for delayed work are Postgres columns (`scheduled_at`), never Redis/ETA (ADR-0012).
 
 Deletion: every user-owned table references `auth.users(id) on delete cascade`; storage objects and secrets are deleted by the account-deletion job (M1 S-006, extended in M3/M4).
 
@@ -157,7 +164,7 @@ Deletion: every user-owned table references `auth.users(id) on delete cascade`; 
 ## Configuration and environments
 Local only (plus CI). Environments: `APP_ENV = local | test | ci`.
 - Committed templates: `backend/.env.example`, `apps/web/.env.example`. Generated, git-ignored: `backend/.env`, `apps/web/.env.local` (by `python3 scripts/sync_env.py`, run by `npm run dev`, filling values from `supabase status -o env`).
-- Backend variables: `APP_ENV`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET` (M1), `API_HOST`, `API_PORT`, `WEB_ORIGIN`, `LLM_PROVIDER` (`fake` default), `LLM_MODEL_FAST`, `LLM_MODEL_SMART`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `WORKER_HEARTBEAT_INTERVAL_S` (10), `QUEUE_HEARTBEAT_MAX_AGE_S` (30), `HEALTH_PROBE_TIMEOUT_S` (2), `APP_ENCRYPTION_KEYS` (M3).
+- Backend variables: `APP_ENV`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET` (M1), `API_HOST`, `API_PORT`, `WEB_ORIGIN`, `LLM_PROVIDER` (`fake` default), `LLM_MODEL_FAST`, `LLM_MODEL_SMART`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_URL` (`redis://127.0.0.1:6379/0`, broker + results), `REDIS_KEY_PREFIX` (`aa:`), `WORKER_HEARTBEAT_INTERVAL_S` (10), `QUEUE_HEARTBEAT_MAX_AGE_S` (30), `HEALTH_PROBE_TIMEOUT_S` (2), `APP_ENCRYPTION_KEYS` (M3).
 - Web variables: `API_URL` (server-only, `http://127.0.0.1:8000`), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - `APP_ENV=test` forces fake providers (settings validation). Cloud Supabase and real third-party keys are never configured by the team.
 
@@ -166,7 +173,7 @@ Strategy and pyramid: `docs/qa/TEST-STRATEGY.md` (qa-automation, M0 T-004).
 | Level | Tooling | Location | Owner |
 |---|---|---|---|
 | Python unit (domain, services with fakes, adapters vs fixtures) | pytest | `backend/tests/unit/` | backend-dev |
-| Python integration (repositories, probes, queue round-trip, API against local DB) | pytest + local Supabase | `backend/tests/integration/` | backend-dev (TDD), qa-automation extends |
+| Python integration (repositories, probes, Celery round-trip, API against local DB and Valkey) | pytest + local Supabase + local Valkey (unique key prefixes/queues, never FLUSHALL) | `backend/tests/integration/` | backend-dev (TDD), qa-automation extends |
 | Contract tests per port (fake vs real-on-fixtures) | pytest | `backend/tests/contract/` | backend-dev |
 | DB/RLS | pgTAP via `supabase test db`; supabase-js as real users | `supabase/tests/`, `tests/integration/` | backend-dev (migration TDD), qa-automation |
 | Web unit/component | Vitest + Testing Library + jsdom | `apps/web/src/**/*.test.ts(x)` | frontend-dev |
@@ -181,10 +188,10 @@ Strategy and pyramid: `docs/qa/TEST-STRATEGY.md` (qa-automation, M0 T-004).
 apps/web/                  Next.js app (src/app, src/components, src/lib, messages/ from M1), .env.example
 apps/extension/            (M4) WXT MV3 extension
 backend/                   pyproject.toml, uv.lock, .env.example, openapi.json (generated)
-  src/autoapplier/         config.py, wiring.py, domain/, ports/, services/, db/, adapters/, security/, api/, worker/
+  src/autoapplier/         config.py, wiring.py, domain/, ports/, services/, db/, kv/, adapters/, security/, api/, worker/
   tests/                   unit/, integration/, contract/, fixtures/
 supabase/                  config.toml, migrations/, seed.sql, tests/ (pgTAP)
-scripts/                   sync_env.py, db_types.py, supabase.sh
+scripts/                   sync_env.py, db_types.py, supabase.sh, valkey.sh
 tests/                     integration/ (Vitest black-box), e2e/ (Playwright), fixtures/ (static fixture sites), tsconfig.json
 docs/                      product, architecture, design, qa, security, tasks, superpowers
 team/                      AI team control plane (config.sh is the architect's)
@@ -194,11 +201,11 @@ team/                      AI team control plane (config.sh is the architect's)
 Root `package.json` scripts (mirrored in `team/config.sh`; per-package parts are `:py`, `:web`, later `:ext`):
 | Script | Does |
 |---|---|
-| `dev` | `sync_env.py` + `concurrently` api/worker/web (the `app.sh` start command) |
+| `dev` | `sync_env.py` + `scripts/valkey.sh start` + `concurrently` api/worker/beat/web (the `app.sh` start command) |
 | `lint` | ruff check + ruff format --check + lint-imports (backend); ESLint (all npm workspaces) |
 | `typecheck` | mypy --strict (backend); `next typegen && tsc --noEmit` (web); `tsc -p tests` (test code) |
 | `test:unit` | pytest `tests/unit` (backend); Vitest (web workspace) |
-| `test:integration` | `app.sh start`, pytest `tests/integration`, `supabase test db` (pgTAP), Vitest black-box `tests/integration`, generated-types drift checks |
+| `test:integration` | `app.sh start` (Supabase, Valkey, app), pytest `tests/integration`, `supabase test db` (pgTAP), Vitest black-box `tests/integration`, generated-types drift checks |
 | `build` | `next build` (to `.next-build`), `uv lock --check` (backend); extension build from M4 |
 | `test:e2e` | `app.sh start` + Playwright (`tests/e2e`) |
 | `gen:db-types` / `gen:api-types` | regenerate `database.types.ts` / `openapi.json` + `schema.gen.ts` |

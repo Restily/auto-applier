@@ -11,7 +11,8 @@
 #                    + typecheck:tests (tsc -p tests)
 #   test:unit        = test:unit:py (uv run --directory backend pytest tests/unit)
 #                    + test:unit:web (npm run test:unit --workspaces --if-present → vitest run)
-#   test:integration = app.sh start + test:integration:py (pytest tests/integration) + test:db (supabase test db, pgTAP)
+#   test:integration = app.sh start (Supabase + Valkey + app) + test:integration:py (pytest tests/integration; needs Valkey)
+#                    + test:db (supabase test db, pgTAP)
 #                    + test:integration:web (vitest run -c vitest.config.ts, tests/integration) + check:db-types + check:openapi
 #   build            = build:web (npm run build --workspaces --if-present → next build to .next-build) + build:py (uv lock --check)
 #   test:e2e         = app.sh start + playwright test (tests/e2e, Chromium 1194 at /opt/pw-browsers, @playwright/test 1.56.1)
@@ -30,7 +31,8 @@ else
   CHECK_LINT="" CHECK_TYPECHECK="" CHECK_UNIT="" CHECK_INTEGRATION="" CHECK_E2E="" CHECK_BUILD=""
 fi
 
-# app.sh: `npm run dev` = scripts/sync_env.py + concurrently (api :8000, worker, web :3000).
+# app.sh: `npm run dev` = scripts/sync_env.py + scripts/valkey.sh start (container autoapplier-valkey, 127.0.0.1:6379;
+# Docker is up because app.sh ensured Supabase first) + concurrently (api :8000, celery worker, celery beat, web :3000). ADR-0012.
 # Ready only when web → API → DB + queue are healthy (web route handler proxies GET /health of the API).
 APP_START_CMD="npm run dev"
 APP_URL="http://localhost:3000"

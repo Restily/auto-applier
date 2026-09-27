@@ -1,6 +1,6 @@
-# ADR-0003: Job queue and scheduler on Postgres (PgQueuer)
+# ADR-0003: Job queue and scheduler on Postgres (PgQueuer) — SUPERSEDED by ADR-0012
 
-- Status: accepted
+- Status: superseded by ADR-0012 (2026-09-27, human decision: Celery + Redis/Valkey)
 - Date: 2026-09-27
 - Deciders: architect
 
