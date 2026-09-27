@@ -19,3 +19,14 @@ node_modules/
 .env.*
 !.env.example
 __pycache__/
+
+# Build artifacts and tool caches
+.venv/
+.next/
+.next-build/
+*.tsbuildinfo
+next-env.d.ts
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+backend/.celerybeat-schedule*

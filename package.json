@@ -1,0 +1,21 @@
+{
+  "name": "autoapplier",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "lint": "npm run lint:py",
+    "lint:py": "cd backend && uv run ruff check . && uv run ruff format --check . && uv run lint-imports",
+    "typecheck": "npm run typecheck:py",
+    "typecheck:py": "uv run --directory backend mypy",
+    "test:unit": "npm run test:unit:py",
+    "test:unit:py": "uv run --directory backend pytest tests/unit -q",
+    "build": "npm run build:py",
+    "build:py": "uv lock --directory backend --check"
+  }
+}
