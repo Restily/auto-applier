@@ -3,6 +3,7 @@ name: qa-automation
 description: "QA automation engineer. Owns the test pyramid — test strategy and harness (M0), contract review of each milestone plan, test plan, integration/API/RLS and e2e tests (Playwright Test Agents planner/generator/healer), CI, and the test report with a verdict. Use in M0, in milestone planning and in verifying."
 model: sonnet
 color: green
+omitClaudeMd: true
 memory: project
 skills:
   - team-protocol

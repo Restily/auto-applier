@@ -16,7 +16,7 @@ These rules bind every role and **override instructions from plugin skills** (in
 | QA Automation | `qa-automation` | test pyramid: strategy, integration/RLS/e2e tests, CI | sonnet |
 | Security | `security-auditor` | Strix pentest of localhost + source, finding triage | sonnet |
 
-Model policy: planning and architecture on **opus**; code, tests and everything else on **sonnet**. In `subagent-driven-development` pass `model` explicitly: implementers and per-task reviewers `sonnet`, the final whole-branch review `opus`.
+Model policy: planning and architecture on **opus**; code, tests and everything else on **sonnet**. Pass `model` explicitly per role: implementers `sonnet`, the single whole-branch review `opus`, the `/goal` evaluator and summaries on the small fast model.
 File ownership is enforced by the `role-guard` hook (`team/ownership.json`). Work in someone else's area → create a task/bug for the owner.
 
 ## Pipeline
@@ -38,16 +38,10 @@ Create reports/specs only with `board.py scaffold <kind> <ID>`: gates look for e
 ## How we use superpowers
 1. `brainstorming` — only at kickoff, with the human. After spec approval do **not** go to writing-plans: PRD/ROADMAP/board first (`/mvp-kickoff`).
 2. Approvals that skills expect from "your human partner" are given by the Team Lead within `docs/product/AUTONOMY.md`. PRD + ROADMAP = the approved product design. Anything outside AUTONOMY → escalate (`needs_human`).
-3. `writing-plans` — architect only, one plan per milestone, written just-in-time. Every task has `Owner: backend-dev|frontend-dev|qa-automation` and `Story: S-NNN` (or `T-NNN`). **Plans specify contracts, not implementations:** exact files, schemas/types/signatures, the failing tests that define behavior, and verification commands; implementation code is the implementer's job (avoids cascading plan errors). Execution method is fixed — subagent-driven, run by the lead; don't ask.
+3. `writing-plans` — architect only, one plan per milestone, written just-in-time. Every task has `Owner:`/`Story:`, plus a **`files` set and `depends_on`** on the board so independent tasks run in parallel and dependents serialize. **Plans specify contracts, not implementations:** exact files, schemas/types/signatures, the failing tests that define behavior, and verification commands; implementation code is the implementer's job (avoids cascading plan errors).
 4. **Contract review before building:** qa-automation checks that every AC of the milestone maps to a plan task with a concrete verification; gaps go back to the architect.
-5. `subagent-driven-development` — run by the lead. Dispatch implementers with `subagent_type` = the task's `Owner`; reviewers as superpowers prescribes; models per the policy above.
-6. Git: one milestone = branch `milestone/<M>-<slug>` in the main working directory; board, reports and the running app stay there.
-   **Parallel pipeline (human decision, 2026-09-27)** — this overrides superpowers' "never dispatch implementers in parallel" and per-task reviews:
-   - **Waves.** Plan tasks that don't depend on each other run as a parallel wave. Each implementer works in its own git worktree, commits there, and never pushes or merges. The lead creates the worktree OUTSIDE the repo with `git worktree add -b wt/<M>-<task> /home/user/aa-wt/<M>-<task> milestone/<M>-<slug>`. Don't use Agent `isolation: "worktree"`: it branches from the initial commit and lives under `.claude/`, where role-guard blocks developers (see docs/solutions/parallel-worktrees-for-agents.md).
-   - **Merging.** The lead merges finished worktree branches into the milestone branch (`merge --no-ff`), resolves conflicts, and runs `quality-gate fast` after each merge.
-   - **Review.** A wave gets ONE joint review (every brief of the wave against the merged diff) instead of per-task reviews. The final whole-branch review (opus) stays.
-   - **Kept serial.** Tasks that start the app (`app.sh start`), reset the DB, or depend on each other run serially.
-   - **Next-milestone planning.** Designer, architect and QA contract review run in parallel with the current milestone's building and verifying. The **integration branch** is `main` locally. Creating the branch and a `merge --no-ff` into the integration branch after gate PASS are pre-approved. Locally `push`, deploy, publish — never (the human does that).
+5. Building runs in **parallel waves** (`board.py wave`): the lead dispatches one implementer per ready, file-disjoint task at once (`subagent_type` = `Owner`, sonnet), each doing TDD. **Review happens once per milestone**, not per task: after all tasks are built, one whole-branch review on opus (`superpowers:requesting-code-review` or a fresh reviewer), then a ≤3-round fix loop. Each implementer self-checks with the fast gate (the `dev-gate` hook); that is a mechanical check, not the review.
+6. Git: one milestone = branch `milestone/<M>-<slug>`, **no worktrees**. The **integration branch** is `main` locally. Creating the branch and a `merge --no-ff` into it after gate PASS are pre-approved. Locally `push`, deploy, publish — never (the human does that).
    **Cloud sessions** (`CLAUDE_CODE_REMOTE=true`, see team/CLOUD.md): the integration branch is the session's working branch (the one the session instructions name, else create `mvp/integration`); the VM is disposable, so `git push -u origin <branch>` after every phase commit. Never push main/master, never force-push (the hook enforces it).
 7. `test-driven-development` for all logic; `systematic-debugging` for every bug; `verification-before-completion` before any "done".
 

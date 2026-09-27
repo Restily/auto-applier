@@ -16,6 +16,7 @@ Cheat sheet:
   board.py move S-001 in_progress --by backend-dev [--note "…"]
   board.py set S-001 plan=docs/superpowers/plans/x.md owner=backend-dev
   board.py next [--owner backend-dev]             what to work on next
+  board.py wave [--milestone M1] [--max 4] [--json] next parallel-safe batch (deps closed, disjoint files)
   board.py gate M1 [--run-checks]                 milestone Definition of Done
   board.py status | brief | next-step             overview / session context / pipeline position
   board.py scaffold qa M1                         create a report from a template with the exact name
@@ -56,11 +57,11 @@ SEVERITIES = ["critical", "high", "medium", "low"]
 BLOCKING_SEVERITIES = {"critical", "high"}
 KEY_ORDER = [
     "id", "type", "title", "status", "milestone", "owner", "priority", "severity",
-    "depends_on", "plan", "ui", "release", "needs_human", "created", "updated",
+    "depends_on", "files", "plan", "ui", "release", "needs_human", "created", "updated",
 ]
 BOOL_KEYS = {"ui", "release", "needs_human"}
-LIST_KEYS = {"depends_on"}
-SETTABLE = {"title", "owner", "priority", "severity", "depends_on", "plan", "milestone", "needs_human", "release", "ui"}
+LIST_KEYS = {"depends_on", "files"}
+SETTABLE = {"title", "owner", "priority", "severity", "depends_on", "files", "plan", "milestone", "needs_human", "release", "ui"}
 LOG = "## Log"
 SKIP_FILES = {"BOARD.md", "README.md"}
 
@@ -469,6 +470,9 @@ def cmd_new(args) -> None:
         meta["severity"] = args.severity or "medium"
     if deps:
         meta["depends_on"] = deps
+    files = [f.strip() for f in (args.files or "").split(",") if f.strip()]
+    if files:
+        meta["files"] = files
     if args.plan:
         meta["plan"] = args.plan
     if kind == "milestone":
@@ -660,6 +664,85 @@ def cmd_next(args) -> None:
         print(f"{i.id} [{i.type}/{i.status}/{i.meta.get('priority')}] owner={i.meta.get('owner')} → {rel(i.path)}\n   {i.title}")
 
 
+def _static_prefix(glob: str):
+    """Path segments before the first wildcard segment: 'src/app/api/**' → ['src','app','api']."""
+    segs = []
+    for s in glob.strip().strip("/").replace("\\", "/").split("/"):
+        if any(c in s for c in "*?["):
+            break
+        segs.append(s)
+    return segs
+
+
+def glob_overlap(a, b) -> bool:
+    """True if two file-glob sets can touch the same path. Two globs can overlap only when one's
+    static prefix is a path-prefix of the other's, so tasks in different directories run in parallel
+    while any pair that might collide (or an undeclared set) is kept in separate waves."""
+    if not a or not b:
+        return True  # an undeclared file set is treated as touching everything → runs alone
+    for x in a:
+        for y in b:
+            px, py = _static_prefix(x), _static_prefix(y)
+            n = min(len(px), len(py))
+            if px[:n] == py[:n]:  # one prefix contains the other → possible collision
+                return True
+    return False
+
+
+def cmd_wave(args) -> None:
+    """Next batch of build tasks that can run in parallel: dependencies closed and
+    declared file sets disjoint. The lead dispatches one implementer per item concurrently."""
+    items = load_items()
+    cur = current_milestone(items)
+    ms = (args.milestone or "").upper() or (cur.id if cur else "")
+
+    def ready(i):
+        return all(d in items and items[d].status in CLOSED for d in (i.meta.get("depends_on") or []))
+
+    def rank(i):
+        stage = {"in_progress": 0, "todo": 1}.get(i.status, 9)
+        has_files = 0 if (i.meta.get("files")) else 1  # items with declared files batch first
+        pri = PRIORITIES.index(i.meta["priority"]) if i.meta.get("priority") in PRIORITIES else 9
+        return (has_files, stage, pri, item_key(i))
+
+    pool = [i for i in items.values() if i.type in ("story", "task", "bug")
+            and (not ms or i.meta.get("milestone") == ms)
+            and i.status in {"todo", "in_progress"} and ready(i)]
+    if args.owner:
+        pool = [i for i in pool if i.meta.get("owner") == args.owner]
+    pool.sort(key=rank)
+
+    wave, files_in_wave = [], []
+    for i in pool:
+        f = i.meta.get("files") or []
+        if not f:
+            # undeclared files → must run alone; only when nothing else is already batched
+            if not wave:
+                wave.append(i)
+            break
+        if any(glob_overlap(f, g) for g in files_in_wave):
+            continue
+        wave.append(i)
+        files_in_wave.append(f)
+        if len(wave) >= args.max:
+            break
+
+    if args.json:
+        print(json.dumps([{"id": i.id, "owner": i.meta.get("owner"), "files": i.meta.get("files") or [],
+                           "plan": i.meta.get("plan"), "title": i.title, "path": rel(i.path)} for i in wave],
+                         ensure_ascii=False, indent=2))
+        return
+    if not wave:
+        blocked = [i for i in items.values() if i.type in ("story", "task", "bug")
+                   and (not ms or i.meta.get("milestone") == ms) and i.status in {"todo", "in_progress"}]
+        print(f"(no ready tasks{' in ' + ms if ms else ''}" + (f"; {len(blocked)} blocked by dependencies)" if blocked else ")"))
+        return
+    solo = " (run alone: no files declared)" if len(wave) == 1 and not (wave[0].meta.get("files")) else ""
+    print(f"Wave of {len(wave)} — dispatch these implementers in parallel (one message, one Agent call each){solo}:")
+    for i in wave:
+        print(f"  {i.id} owner={i.meta.get('owner')} files={i.meta.get('files') or ['<none declared>']} plan={i.meta.get('plan') or '—'}\n     {i.title}")
+
+
 def milestone_line(items: dict, m: Item) -> str:
     members = members_of(items, m.id)
     stories = [i for i in members if i.type == "story"]
@@ -833,6 +916,7 @@ def main(argv=None) -> None:
     s.add_argument("--priority", default="P1", choices=PRIORITIES)
     s.add_argument("--severity", choices=SEVERITIES)
     s.add_argument("--depends", help="comma separated: S-001,S-002")
+    s.add_argument("--files", help="comma-separated file globs the task owns, for parallel-wave batching: src/api/**,supabase/migrations/**")
     s.add_argument("--ac", action="append", help="acceptance criterion (repeatable)")
     s.add_argument("--body")
     s.add_argument("--body-file", help="file with the description, or '-' for stdin")
@@ -890,6 +974,13 @@ def main(argv=None) -> None:
         s.add_argument(flag)
     s.add_argument("--all", action="store_true")
     s.set_defaults(fn=cmd_next)
+
+    s = sub.add_parser("wave")
+    s.add_argument("--milestone")
+    s.add_argument("--owner")
+    s.add_argument("--max", type=int, default=int(os.environ.get("TEAM_WAVE_MAX", "4")), help="max parallel implementers (default 4; cloud VM ≈ 4 vCPU)")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_wave)
 
     sub.add_parser("status").set_defaults(fn=cmd_status)
     sub.add_parser("brief").set_defaults(fn=cmd_brief)

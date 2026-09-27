@@ -10,7 +10,7 @@ flowchart LR
   K --> A["/mvp-autopilot<br/>built-in /goal"]
   A --> M["/mvp-milestone M0…Mn"]
   M --> P[planning<br/>designer → architect plan → QA contract review]
-  P --> B[building<br/>superpowers subagent-driven-development<br/>backend-dev / frontend-dev + reviewers]
+  P --> B[building<br/>parallel waves: backend-dev ∥ frontend-dev<br/>then ONE whole-branch review]
   B --> V[verifying<br/>qa-automation ∥ qa-manual ∥ designer review → bugs → fix loop]
   V --> G{board.py gate}
   G -->|FAIL| V
@@ -42,13 +42,15 @@ claude
 
 Step by step instead of autopilot: `/mvp-milestone M0`, `/mvp-milestone M1`, …, `/mvp-release`. Progress any time: `/mvp-status`.
 
+**Free / local models:** run the whole team on a local model (Ollama) plus optional free API tiers — no Claude subscription: [team/LOCAL-FREE.md](team/LOCAL-FREE.md).
+
 **Cloud sessions** (claude.ai/code, mobile, `claude --cloud`): the team runs there too — with the laptop closed. One-time environment setup (setup script for plugins, network allowlist, env vars) is in [team/CLOUD.md](team/CLOUD.md).
 
 ## The team
 
 | Role | Agent | Model | Key tools |
 |---|---|---|---|
-| Team Lead | main session / `claude --agent team-lead` | opus | `/mvp-*` skills, superpowers (brainstorming, subagent-driven-development), board.py |
+| Team Lead | main session / `claude --agent team-lead` | opus | `/mvp-*` skills, superpowers (brainstorming, code-review), `board.py wave`, board.py |
 | Architect | `architect` | opus | superpowers:writing-plans, context7, ADRs, Supabase schema design |
 | Designer | `designer` | sonnet | ui-ux-pro-max, frontend-design, playwright-cli screenshots |
 | Backend | `backend-dev` | sonnet | superpowers TDD, Supabase local + MCP, context7, supabase skills |
@@ -89,7 +91,7 @@ Details, alternatives and add-ons per role: [team/ROLES.md](team/ROLES.md).
 3. Handover: push, deploy, production Supabase, secrets — the team never does these.
 
 ## Cost and expectations
-Multi-agent runs are token-heavy: Anthropic reports ~15× chat tokens for multi-agent systems, and $125–200 / 4–6 hours for a full-stack app built by a planner-generator-evaluator harness. Expect more for a multi-milestone MVP with per-task reviews. Levers: model routing (opus only for planning), fewer milestones, turning off optional evaluators — see [team/OPERATIONS.md](team/OPERATIONS.md). Run a pilot on a small idea first.
+Multi-agent runs are token-heavy: Anthropic reports ~15× chat tokens for multi-agent systems, and $125–200 / 4–6 hours for a full-stack app built by a planner-generator-evaluator harness. This template keeps it lean: **one review per milestone** (not per task), workers skip re-loading CLAUDE.md (`omitClaudeMd`; hooks still enforce the rules), per-role best practices load **on demand** from `team/practices/`, opus only for planning + final review, and roles delegate wide reads to `Explore`. Further levers (fewer milestones, optional evaluators off) — see [team/OPERATIONS.md](team/OPERATIONS.md). Run a pilot on a small idea first.
 
 ## Repository map
 ```
@@ -100,10 +102,11 @@ CLAUDE.md                 project notes + @team/CONSTITUTION.md
 .claude/settings.json     permissions, hooks, plugins, MCP
 .mcp.json                 supabase-local (http://127.0.0.1:54321/mcp)
 team/CONSTITUTION.md      rules every role follows
-team/bin/                 board.py, quality-gate.sh, app.sh, autopilot.sh, setup.sh, doctor.sh, install.py
+team/practices/           per-role best practices (what/how/where), read on demand
+team/bin/                 board.py, quality-gate.sh, app.sh, autopilot.sh, setup.sh, doctor.sh, install.py, llm-check.sh
 team/templates/           PRD, roadmap, autonomy, ADR, reports with verdicts, specs
 team/ownership.json       who may write where
 docs/                     the product's system of record (filled by the team)
 ```
 
-Further reading: [team/SETUP.md](team/SETUP.md) · [team/CLOUD.md](team/CLOUD.md) · [team/OPERATIONS.md](team/OPERATIONS.md) · [team/ROLES.md](team/ROLES.md) · [team/RATIONALE.md](team/RATIONALE.md)
+Further reading: [team/SETUP.md](team/SETUP.md) · [team/LOCAL-FREE.md](team/LOCAL-FREE.md) · [team/CLOUD.md](team/CLOUD.md) · [team/OPERATIONS.md](team/OPERATIONS.md) · [team/ROLES.md](team/ROLES.md) · [team/RATIONALE.md](team/RATIONALE.md)

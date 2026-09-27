@@ -1,6 +1,6 @@
 ---
 name: mvp-milestone
-description: "Team Lead protocol for one milestone (M0…Mn) — planning → contract review → building (superpowers subagent-driven-development) → verifying (QA, design review) → gate → merge. Use to run or resume a milestone; the autopilot calls it in order."
+description: "Team Lead protocol for one milestone (M0…Mn) — planning → contract review → parallel building in dependency waves → one whole-branch review → verifying (QA, design) → gate → merge. Use to run or resume a milestone; the autopilot calls it in order."
 argument-hint: "<milestone id, e.g. M1>"
 ---
 
@@ -26,7 +26,7 @@ REPORT: constitution report format
 
 ## 1. Planning — `board.py move $0 planning`
 1. **Designer** (if the milestone has UI or is M0): M0 → design system; otherwise screen specs for every UI story (+ prototypes where useful).
-2. **Architect** (after the designer): M0 → ARCHITECTURE, ADRs, config; always → ONE plan via superpowers:writing-plans with `Owner:`/`Story:` per task, contracts + tests (not implementations), traceability table; `board.py set <S-id> plan=<path>`.
+2. **Architect** (after the designer): M0 → ARCHITECTURE, ADRs, config; always → ONE plan via superpowers:writing-plans with `Owner:`/`Story:` per task, contracts + tests (not implementations), traceability table; `board.py set <S-id> plan=<path>`. **For parallel waves:** give every build task a `files` set and `depends_on` (`board.py new task … --files "src/api/**,supabase/migrations/**" --depends T-001`, or `board.py set`), so independent tasks batch and dependents serialize. Contracts before consumers (migrations/types/API before UI).
    In M0 the architect and designer check the AC of their own `T-` items once the artifacts exist and move them to `done`.
 3. **qa-automation — contract review + test plan**: check the plan against every AC of $0 (each AC → task + concrete verification), write `docs/qa/plans/$0-test-plan.md` (M0: `docs/qa/TEST-STRATEGY.md`). Gaps → send back to the architect (resume via SendMessage) until the review passes.
 4. Your review (5 minutes, not a rewrite): scope matches PRD/ROADMAP, no gold-plating, tasks small, contracts before consumers, every task has an Owner. Then `git add docs && git commit -m "docs($0): plan, design, test plan"`.
@@ -34,12 +34,19 @@ REPORT: constitution report format
 ## 2. Pre-building
 `board.py move $0 building`; move the milestone's open stories/tasks that the plan implements to `in_progress` (`--by team-lead`).
 
-## 3. Building — superpowers:subagent-driven-development
-Run it on the plan file with these constitution overrides:
-- implementer `subagent_type` = the task's `Owner` (`backend-dev` | `frontend-dev` | `qa-automation`); `model: sonnet` for implementers and per-task reviewers; final whole-branch review `model: opus`;
-- work on the current milestone branch, no worktree; don't ask the human for approvals covered by AUTONOMY;
-- implementer `BLOCKED`/`NEEDS_CONTEXT` on a product question → decide within the PRD and note it in the story (`board.py note`); beyond AUTONOMY → `needs_human` and continue with other tasks.
-After the final review is clean: `bash team/bin/quality-gate.sh fast` must pass; move the implemented stories/tasks to `qa` with a note (commits). Commit.
+## 3. Building — parallel waves (TDD per implementer; one review at the end, not per task)
+Loop until `python3 team/bin/board.py wave --milestone $0` reports none left:
+1. `board.py wave --milestone $0 --json` → the next batch: tasks whose dependencies are closed and whose declared `files` don't overlap. They are safe to run at once.
+2. Dispatch **one implementer per task in a single message** (parallel Agent calls). `subagent_type` = the task's `Owner`; `model: sonnet`. Brief each (team-lead format): task id + its plan section, the exact `files` it owns ("touch only these"), "TDD; do **not** commit — the lead commits the wave", the report format. Keep a wave ≤4 (cloud VM ≈ 4 vCPU).
+3. When the wave returns: `bash team/bin/quality-gate.sh fast` once (authoritative). Red → send the failing files back to their owner. Green → `git add -A && git commit`; cloud: `git push`.
+4. `BLOCKED`/`NEEDS_CONTEXT` on a product question → decide within the PRD, `board.py note` it; beyond AUTONOMY → `needs_human`, drop that task from the wave, keep going.
+No per-task reviewer: each implementer self-checks with the fast gate (the `dev-gate` hook enforces it); the review is a single pass below.
+
+## 3b. Code review — once, whole branch
+After the last wave:
+1. One reviewer over the whole milestone diff: `superpowers:requesting-code-review`, or a fresh reviewer subagent (`model: opus`) that sees only the diff + the plan. Check: plan/AC compliance, correctness, security, no scope creep. Report gaps that affect correctness or requirements — not style.
+2. Fix loop (≤3 rounds): dispatch each finding to its owning role (parallel when files are disjoint), regression test first, re-run the fast gate, re-review only the changed diff.
+3. Green review + `quality-gate fast` pass → move the implemented stories/tasks to `qa` with a note; commit (cloud: push).
 
 ## 4. Verifying — `board.py move $0 verifying`
 1. `bash team/bin/app.sh start` (note the URL).

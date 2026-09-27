@@ -1,0 +1,56 @@
+# LiteLLM gateway for the AI team on free API tiers + a local model (profiles B and C in team/LOCAL-FREE.md).
+# Claude Code talks to it on /v1/messages; the team's aliases map to three tiers:
+#   opus   -> team-plan  (lead, architect, final review: few calls, needs the strongest model)
+#   sonnet -> team-work  (implementers, QA, designer, security: most calls)
+#   haiku  -> team-fast  (/goal evaluator, summaries, WebFetch digests)
+#
+# Start:  litellm --config team/examples/litellm.free.yaml --host 127.0.0.1 --port 4000
+# Keys are read from the environment - never commit them.
+# Free-tier model IDs rotate: check the provider lists linked in team/LOCAL-FREE.md and edit before use.
+# Delete any deployment whose key you don't have.
+
+model_list:
+  # ---------- team-plan: a pool of free cloud models; a 429 cools one down and the next is used ----------
+  - model_name: team-plan
+    litellm_params:
+      model: openrouter/qwen/qwen3-coder:free          # any tool-capable model from openrouter.ai/collections/free-models
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: team-plan
+    litellm_params:
+      model: nvidia_nim/qwen/qwen3-coder-480b-a35b-instruct   # build.nvidia.com catalog
+      api_key: os.environ/NVIDIA_NIM_API_KEY
+  - model_name: team-plan
+    litellm_params:
+      model: gemini/gemini-flash-latest                # Google AI Studio free tier
+      api_key: os.environ/GEMINI_API_KEY
+
+  # ---------- team-work: local model (unlimited, private) ----------
+  - model_name: team-work
+    litellm_params:
+      model: ollama_chat/qwen3-coder:30b
+      api_base: http://localhost:11434
+  # Profile C (no GPU): replace the local entry with cloud deployments, e.g.
+  # - model_name: team-work
+  #   litellm_params:
+  #     model: nvidia_nim/qwen/qwen3-coder-480b-a35b-instruct
+  #     api_key: os.environ/NVIDIA_NIM_API_KEY
+
+  # ---------- team-fast: same local model (avoids loading a second model into VRAM) ----------
+  - model_name: team-fast
+    litellm_params:
+      model: ollama_chat/qwen3-coder:30b
+      api_base: http://localhost:11434
+
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 2
+  allowed_fails: 1        # after a failure/429 the deployment is cooled down ...
+  cooldown_time: 120      # ... for this many seconds, and the pool moves on
+  fallbacks: [{"team-plan": ["team-work"]}]   # whole free pool exhausted -> degrade to the local model, don't stop
+
+litellm_settings:
+  drop_params: true       # drop Anthropic-only params a provider doesn't support
+  request_timeout: 600    # local models are slow on long prompts
+
+general_settings:
+  master_key: sk-team-local   # localhost-only token; must match ANTHROPIC_AUTH_TOKEN in settings.local.json

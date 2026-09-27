@@ -47,6 +47,9 @@ Strix saves config to `~/.strix/`; results go to `strix_runs/` (git-ignored). Th
 2. Copy `team/examples/omniroute.settings.local.json` into `.claude/settings.local.json` and fill in: `ANTHROPIC_BASE_URL` (gateway root, no `/v1`), `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, `ANTHROPIC_DEFAULT_HAIKU_MODEL` (the `/goal` evaluator and summaries). Or use `omniroute launch`.
 3. Agents declare `model: opus` / `model: sonnet`, so the aliases route every role. Keep Claude models on the planning tier; non-Claude models on reviewer/lead roles tend to break the protocols.
 
+## Free / local models
+No budget for Claude? Run every role on a local model (Ollama) plus optional free API tiers — setup, free-provider research, hardware and caveats: [team/LOCAL-FREE.md](LOCAL-FREE.md). Check any backend with `bash team/bin/llm-check.sh`.
+
 ## Existing project
 ```bash
 python3 team/bin/install.py /path/to/repo      # copies team files, merges settings/.mcp.json, imports the constitution in CLAUDE.md
@@ -57,4 +60,4 @@ The architect then documents the existing architecture in M0 instead of choosing
 Plugins declared in `.claude/settings.json` are not installed in cloud sessions — use the environment setup script: [team/CLOUD.md](CLOUD.md).
 
 ## Optional settings
-`team/examples/` — status line, Agent Teams mode, OmniRoute.
+`team/examples/` — status line, Agent Teams mode, OmniRoute, free/local model profiles.

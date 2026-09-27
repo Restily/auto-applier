@@ -7,7 +7,7 @@ user-invocable: false
 # Security gate
 
 ## 0. Preconditions
-- `strix --version`, Docker running, and `LLM_API_KEY` set. The model is preset to Claude Sonnet (`STRIX_LLM` in `.claude/settings.json`), so the key is the only thing to supply; set it once and Strix caches it in `~/.strix/cli-config.json`. Missing key → do the manual checks (§2), `board.py set <MR> needs_human=true`, `board.py note <MR> "Strix not configured: LLM_API_KEY not set"`.
+- `strix --version`, Docker running, and `LLM_API_KEY` set. The model is preset to Claude Sonnet (`STRIX_LLM` in `.claude/settings.json`), so the key is the only thing to supply; set it once and Strix caches it in `~/.strix/cli-config.json`. On a local/free backend (team/LOCAL-FREE.md) the settings profile sets `STRIX_LLM`/`LLM_API_BASE` and a placeholder key — that counts as configured. Missing key → do the manual checks (§2), `board.py set <MR> needs_human=true`, `board.py note <MR> "Strix not configured: LLM_API_KEY not set"`.
 - App running: `bash team/bin/app.sh start`; URL from `app.sh url`; Supabase API at http://127.0.0.1:54321.
 - Scope file (first run): `docs/security/scope.md` — in scope: `./` source, the app URL, the local Supabase API; out of scope: everything else; test accounts and roles; rules: no DoS, no data exfiltration outside the machine.
 

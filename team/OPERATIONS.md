@@ -35,13 +35,28 @@ Every component encodes an assumption about what the model can't do alone — st
 |---|---|---|
 | Independent QA (manual + automation) | yes — builders grade themselves leniently | keep |
 | Gates + board.py | yes — prevents premature "done" | keep |
-| superpowers per-task review | high value, high cost | switch execution to superpowers "Native" mode for simple milestones (one final review) |
+| Whole-branch review (once per milestone) | yes — catches what builders miss | already one pass, not per task; can't cut without losing the independent check |
 | Design review gate | valuable for UI products | create milestones without `--ui` for internal tools |
 | dev-gate hook | cheap insurance | `TEAM_DEV_GATE=off` |
 | role-guard hook | cheap insurance | `TEAM_ROLE_GUARD=off` (not recommended on autopilot) |
 | Security (Strix) | release only | skip for throwaway prototypes (mark MR without `--release`) |
 
-Other levers: fewer, bigger milestones; opus only for planning (default); OmniRoute routing for the work tier; `CLAUDE_CODE_SUBAGENT_MODEL` for a global override.
+Other levers: fewer, bigger milestones; opus only for planning (default); OmniRoute routing for the work tier; `CLAUDE_CODE_SUBAGENT_MODEL` for a global override; **$0 runs** on a local model + free API tiers — [LOCAL-FREE.md](LOCAL-FREE.md).
+
+## Parallel building
+Building runs in dependency waves. The architect gives each build task a `files` set and `depends_on`; `board.py wave --milestone <M>` returns the next batch of ready, file-disjoint tasks and the lead dispatches one implementer per task in a single message.
+- **Wave size:** default ≤4 (cloud VM ≈ 4 vCPU). Tune with `TEAM_WAVE_MAX` or `board.py wave --max N`.
+- **What parallelizes:** tasks touching disjoint files. If waves keep coming back size 1, the plan didn't declare disjoint `files`/deps — fix the plan, don't fall back to serial.
+- **Review is once per milestone** (whole-branch, opus), not per task — the main saving over classic subagent-driven-development.
+- Implementers don't commit; the lead runs the fast gate once per wave and commits. During heavy parallel building you may set `TEAM_DEV_GATE=off` to skip the per-implementer gate and rely on the wave-join gate + final review (slightly faster/cheaper, slightly less immediate feedback).
+
+## Token optimization (on by default)
+- **One review per milestone**, not per task.
+- **Workers skip re-loading CLAUDE.md** (`omitClaudeMd` on the six worker agents): the hard rules are enforced by hooks and carried in the preloaded `team-protocol`, so the full constitution isn't re-injected into every parallel spawn.
+- **Best practices load on demand** from `team/practices/<role>.md` (read once per task), not preloaded into every spawn.
+- **opus only** for the lead, architect and the final review; sonnet for all workers; the `/goal` evaluator and summaries on the small fast model.
+- Roles delegate wide reading to `Explore`, read only named files, and never paste large output back (see team-protocol → Token discipline).
+Quality is unchanged: the gates, independent QA/design/security evaluators, and the whole-branch review are all still there — only redundant context and duplicate reviews were removed.
 
 ## Agent Teams (experimental, optional)
 Default orchestration uses subagents (stable, cheaper, resumable). Agent Teams help where peers must talk: M0 foundations (architect ∥ designer ∥ qa-automation), the verifying phase (QA ∥ devs fixing), competing-hypothesis debugging. Enable with `team/examples/agent-teams.settings.local.json`. Caveats: higher token cost, teammates don't apply the `skills` field (they invoke skills themselves), permission prompts bubble to the lead, no resume of in-process teammates, one team per session. Keep file ownership disjoint.
@@ -55,4 +70,5 @@ Default orchestration uses subagents (stable, cheaper, resumable). Agent Teams h
 | Agent says "role-guard denied" | intended: the work belongs to another role — create a task/bug for the owner |
 | Dev loops on dev-gate | run `bash team/bin/quality-gate.sh fast` yourself; fix the baseline; `TEAM_DEV_GATE_RETRIES` |
 | `playwright init-agents` removed MCP servers | `python3 team/bin/mcp_merge.py .team/state/mcp.backup.json .mcp.json` |
+| Custom/local model does nothing or derails | `bash team/bin/llm-check.sh`; see LOCAL-FREE.md → Troubleshooting |
 | Autopilot stops early | `board.py next-step` tells why; stall = no tool use for several turns → give guidance and re-run `/goal` |

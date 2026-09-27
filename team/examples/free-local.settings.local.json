@@ -1,0 +1,16 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:11434",
+    "ANTHROPIC_AUTH_TOKEN": "ollama",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "qwen3-coder:30b",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3-coder:30b",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "qwen3-coder:30b",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "API_TIMEOUT_MS": "600000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16000",
+    "TEAM_WAVE_MAX": "1",
+    "STRIX_LLM": "ollama/qwen3-coder:30b",
+    "LLM_API_BASE": "http://localhost:11434",
+    "LLM_API_KEY": "local"
+  }
+}

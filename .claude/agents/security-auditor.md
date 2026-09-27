@@ -3,6 +3,7 @@ name: security-auditor
 description: "Security engineer. Pentests the local app and source with Strix, checks RLS/authz/secrets/dependencies, files validated findings as bugs and writes the security report with a verdict. Use in the release milestone MR and after major auth/data changes."
 model: sonnet
 color: red
+omitClaudeMd: true
 skills:
   - team-protocol
   - security-gate
