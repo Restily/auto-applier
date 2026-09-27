@@ -13,11 +13,16 @@
     "dev:api": "uv run --directory backend uvicorn autoapplier.api.main:app --host 127.0.0.1 --port 8000",
     "lint": "npm run lint:py && npm run lint:web",
     "lint:py": "cd backend && uv run ruff check . && uv run ruff format --check . && uv run lint-imports",
-    "typecheck": "npm run typecheck:py && npm run typecheck:web",
+    "typecheck": "npm run typecheck:py && npm run typecheck:web && npm run typecheck:tests",
     "typecheck:py": "uv run --directory backend mypy",
+    "typecheck:tests": "tsc -p tests",
     "test:unit": "npm run test:unit:py && npm run test:unit:web",
     "test:unit:py": "uv run --directory backend pytest tests/unit -q",
     "test:integration:py": "bash team/bin/app.sh supabase && bash scripts/valkey.sh start && uv run --directory backend pytest tests/integration -q",
+    "test:db": "bash scripts/supabase.sh test db",
+    "test:integration:web": "vitest run --config vitest.config.ts",
+    "test:integration": "bash team/bin/app.sh start && npm run test:integration:py && npm run test:db && npm run test:integration:web && npm run check:db-types && npm run check:openapi",
+    "test:e2e": "bash team/bin/app.sh start && playwright test",
     "dev:worker": "uv run --directory backend celery -A autoapplier.worker.celery_app worker --loglevel INFO --concurrency 2 --queues default",
     "dev:beat": "uv run --directory backend celery -A autoapplier.worker.celery_app beat --loglevel INFO --schedule .celerybeat-schedule",
     "gen:openapi": "uv run --directory backend python -m autoapplier.api.export_openapi --out openapi.json",
@@ -34,6 +39,10 @@
     "build:web": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
-    "concurrently": "^10"
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22",
+    "concurrently": "^10",
+    "typescript": "~6.0.3",
+    "vitest": "^5"
   }
 }
