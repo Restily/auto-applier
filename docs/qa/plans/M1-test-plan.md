@@ -4,9 +4,11 @@ _Owner: QA Automation · 2026-09-27 · Plan: docs/superpowers/plans/2026-09-27-M
 
 Third-party policy (verified against the plan): no live Google, no live LLM, no real email in any automated test. `APP_ENV=test` forces `LLM_PROVIDER=fake` (ADR-0006); Auth emails go only to Mailpit (`http://127.0.0.1:54324`); Google's real consent screen cannot be automated locally (ADR-0013 D4) — only button-visibility, redirect-start, callback-cancel/error mapping and the one-grant DB trigger are automated, the real round trip is a human pre-launch check (TD-006).
 
+**Re-check, 2026-09-27 (same day):** the architect closed all 3 gaps below in `docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md` (commit `831df11`, board task T-005, `done`). Verified independently against the plan diff, not just T-005's self-report. **Verdict: PASS** — all 25 ACs now have a plan task with a concrete, runnable verification including the negative/edge cases this review asked for. The gap entries below are kept, marked resolved, for the audit trail.
+
 ## Contract review
 
-Full gap list and rationale: see `board.py show M1` note / the lead's report. Summary (✓ = plan task + concrete verification exists for this AC; ⚠ = gap, numbered below):
+All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "closed" below) were fixed same-day — see the resolved list after the table.
 
 | Story | AC | Plan task(s) | Verification in plan | OK? |
 |---|---|---|---|---|
@@ -14,7 +16,7 @@ Full gap list and rationale: see `board.py show M1` note / the lead's report. Su
 | S-001 | 2 duplicate email → no 2nd account, neutral message | 1, 8, 12 | `test_duplicate_signup_creates_no_second_user`; `errors.test.ts`, `actions.test.ts`, `sign-up-form.test.tsx`; `sign-up.spec.ts` | ✓ |
 | S-001 | 3 malformed email / <8 chars → field errors, no account | 1, 8, 12 | `test_password_shorter_than_8_is_rejected`; `schemas.test.ts`, `actions.test.ts`; `sign-up.spec.ts` | ✓ |
 | S-001 | 4 same generic error, wrong password / unknown email | 8, 12 | `errors.test.ts`, `actions.test.ts`, `sign-in-form.test.tsx`; `sign-in.spec.ts` | ✓ |
-| S-001 | 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default`; `confirm/route.test.ts`, `actions.test.ts`; `password-reset.spec.ts` (reused link, tampered `token_hash`) | ⚠ **Gap 1** |
+| S-001 | 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default`, `test_recovery_token_fresh_verifies`, `test_recovery_token_expired_is_rejected` (backdates `auth.users.recovery_sent_at`, verified live against GoTrue v2.197), `test_recovery_token_reused_is_rejected`, `test_recovery_token_unknown_is_rejected`; `confirm/route.test.ts`, `actions.test.ts`; `password-reset.spec.ts` | ✓ (Gap 1 closed) |
 | S-001 | 6 sign out → protected pages redirect | 4, 8, 12 | `redirects.test.ts`, `app-shell.test.tsx`; `sign-out.spec.ts` | ✓ |
 | S-001 | 7 exactly one sign-up bonus; re-sign-in never grants | 1, 5, 12 | pgTAP `m1_accounts.test.sql` 2–6; `test_repeated_sign_in_never_grants_again`; `m1-ledger.test.ts`; `sign-in.spec.ts` | ✓ |
 | S-002 | 1 Google creates/links account; bonus once for new | 1, 8 (+ human live check, D4/TD-006) | pgTAP `m1_accounts.test.sql` 3–4; `actions.test.ts`, `oauth.test.ts::isNewAccount` | ✓ (manual-only for the real consent round trip, justified by D4) |
@@ -24,9 +26,9 @@ Full gap list and rationale: see `board.py show M1` note / the lead's report. Su
 | S-003 | 2 other type / >5MB rejected, nothing stored | 3, 6, 11, 13 | `test_resume_files.py`, `test_resume_service.py`, `test_resumes_api.py`; `test_resume_pipeline.py::test_rejected_upload_stores_nothing`; `validate.test.ts`, `route.test.ts`, `dropzone.test.tsx`; `failure.spec.ts` | ✓ |
 | S-003 | 3 unreadable / AI failure → message, manual fill, file stays | 3, 6, 11, 13 | `test_document_text_extractor.py`, `test_resume_extraction.py`, `test_llm_fake_markers.py`; `test_resume_pipeline.py::test_scanned_pdf_ends_unreadable_with_file_kept`; `extraction-failed.test.tsx`, `status.test.ts`; `failure.spec.ts` (scanned + ai-fail) | ✓ |
 | S-003 | 4 re-upload replaces file; profile overwritten only after per-field confirm | 6, 11, 13 | `test_resume_service.py::test_replace_removes_previous_object_and_row`, `test_resume_repository.py::test_insert_current_demotes_previous`; `merge.test.ts`, `review-changes-dialog.test.tsx`; `replace.spec.ts` | ✓ |
-| S-003 | 5 other user / anon cannot get the file | 1, 5, 6 | pgTAP `m1_profiles_resumes.test.sql` 5–6; `m1-storage.test.ts`; `test_resumes_api.py::test_retry_other_users_resume_is_404`, `test_resume_repository.py::test_get_for_user_hides_other_users_rows` (no e2e — by design, S-003 spec: no UI path can expose another user's file) | ⚠ **Gap 3** (anon cell of the RLS matrix) |
+| S-003 | 5 other user / anon cannot get the file | 1, 5, 6 | pgTAP `m1_profiles_resumes.test.sql` 3, 5–6 (now incl. `anon` select/insert/update/delete denied on `resumes` and `candidate_profiles`); `m1-storage.test.ts`; `test_resumes_api.py::test_retry_other_users_resume_is_404`, `test_resume_repository.py::test_get_for_user_hides_other_users_rows` (no e2e — by design, S-003 spec: no UI path can expose another user's file) | ✓ (Gap 3 closed) |
 | S-004 | 1 required fields → saved, checklist complete | 1, 9, 13 | pgTAP `m1_profiles_resumes.test.sql` 1; `completeness.test.ts`, `actions.test.ts`, `checklist.test.tsx`; `manual.spec.ts` | ✓ |
-| S-004 | 2 missing/invalid → highlighted, stays incomplete | 1, 9, 13 | pgTAP `m1_profiles_resumes.test.sql` 2; `schema.test.ts`, `actions.test.ts`, `profile-editor.test.tsx`; `manual.spec.ts` | ⚠ **Gap 2** (string-length ceilings not in the listed `schema.test.ts` cases) |
+| S-004 | 2 missing/invalid → highlighted, stays incomplete | 1, 9, 13 | pgTAP `m1_profiles_resumes.test.sql` 2 (now incl. length limits at N+1, shared `PROFILE_LIMITS`); `schema.test.ts` (table-driven `maxLength per field family`), `actions.test.ts` (incl. over-long fullName → `maxLength`, not `save_failed`), `profile-editor.test.tsx`; `manual.spec.ts` | ✓ (Gap 2 closed) |
 | S-004 | 3 edits incl. application answers persist after reload | 1, 5, 9, 13 | `m1-profiles.test.ts`; `schema.test.ts::toDbRow/fromDbRow round-trip`; `manual.spec.ts` | ✓ |
 | S-004 | 4 checklist lists exactly what is missing | 9, 13 | `completeness.test.ts`, `checklist.test.tsx`; `manual.spec.ts` | ✓ |
 | S-005 | 1 browser prefers Russian → RU, else EN | 4, 12 | `negotiate.test.ts`; `locale.spec.ts` | ✓ |
@@ -36,11 +38,11 @@ Full gap list and rationale: see `board.py show M1` note / the lead's report. Su
 | S-006 | 2 typed-email confirm → full deletion, signed out, old creds fail | 1, 7, 10, 13 | pgTAP `m1_profiles_resumes.test.sql` 7 (cascades); `test_account_deletion_service.py`, `test_account_deletion.py`; `delete-account-dialog.test.tsx`; `delete.spec.ts` | ✓ |
 | S-006 | 3 cancel → nothing deleted | 7, 10, 13 | `test_account_deletion_service.py::test_mismatch_calls_nothing`, `test_account_deletion.py::test_mismatch_keeps_account`; `delete-account-dialog.test.tsx`; `delete.spec.ts` | ✓ |
 
-**Gaps sent to architect (3) — plan section / problem / proposed fix:**
+**Gaps sent to architect (3, all now RESOLVED — closed same-day in commit `831df11`, board task T-005 `done`):**
 
-1. **§Task 1, Step 1, `test_auth_gotrue.py` list (S-001 AC5).** The AC requires "an expired **or** reused link is rejected" as two distinct failure modes. The listed tests cover reused (`password-reset.spec.ts`: same link twice) and tampered `token_hash`, plus a unit test (`confirm/route.test.ts`) that treats any `verifyOtp` error generically — but nothing produces a genuinely time-expired recovery token against real GoTrue. Fix: add an integration test to Task 1 that creates a recovery token via `admin_create_user`/`password_sign_in`-style helpers, backdates its expiry through the service DB connection (or uses GoTrue's own short-TTL test setting if one exists), and asserts `/auth/v1/verify` itself rejects it — or explicitly record in the M1 test report why "reused + tampered" is an accepted proxy for "expired" (same `link_invalid` code path) and accept the residual risk.
-2. **§Task 9, Step 1, `schema.test.ts` (S-004 AC2, D1 "format errors").** D1 names exactly three save-blocking format-error categories: invalid email/URL, `salaryMax < salaryMin`, and **over-limit sizes**. The `maxLength` `ValidationKey` already exists (Task 4 `lib/validation/messages.ts`), and Global Constraints promises the same limits in DB, zod and backend — but the listed `schema.test.ts` cases only exercise `maxItems` (11 titles), never a string-length ceiling (`full_name` ≤200, `headline` ≤300, `phone` ≤50, `location` ≤200, skill/title item ≤60/100 chars). Manual profile writes go straight from the web to Supabase (no Python API layer), so zod is the *only* pre-DB gate for these fields; an untested ceiling means an over-length value reaches the DB CHECK constraint and surfaces as the generic `save_failed` error instead of the field-level message the design specifies — a UX regression, not a data-integrity risk (the DB constraint still holds). Fix: add one `schema.test.ts` case per length-limited field family to Task 9 Step 1 (e.g. `"201-char full name → maxLength"`).
-3. **§Task 1, Step 1, `m1_profiles_resumes.test.sql` items 3 and 5 (S-003 AC5 + general RLS completeness).** `m1_accounts.test.sql` item 8 explicitly tests `anon` denial on `profiles`/`credit_ledger`/`credit_balances`, but `m1_profiles_resumes.test.sql`'s items 3 and 5 list only "as user A" (owner) and cross-user cases for `candidate_profiles` and `resumes` — no `anon` sub-case for either table, and no DELETE-denial sub-case for `candidate_profiles` (which has no delete policy or grant at all, per the schema contract). The M0 `rls_default` invariant proves RLS is *enabled*, not that a specific policy doesn't accidentally admit `anon` or omit a delete check. Fix: add to Task 1 Step 1 an `anon` sub-case to items 3 and 5 (expect 0 rows / `42501`), and an `as user A: delete own candidate_profiles row → 42501` sub-case to item 3. Full detail: see the RLS matrix below.
+1. ~~**§Task 1, Step 1, `test_auth_gotrue.py` list (S-001 AC5).**~~ Was: nothing produced a genuinely time-expired recovery token against real GoTrue (only reused + tampered were tested). **Closed:** `test_recovery_token_expired_is_rejected` backdates `auth.users.recovery_sent_at` (empirically verified as the field GoTrue v2.197 actually checks — `one_time_tokens.created_at` has no effect, recorded so a future GoTrue version fails loudly instead of silently), with a precondition proving the token row wasn't merely consumed, plus fresh/reused/unknown controls (`test_recovery_token_fresh_verifies`, `::reused`, `::unknown`).
+2. ~~**§Task 9, Step 1, `schema.test.ts` (S-004 AC2, D1 "format errors").**~~ Was: no test for the string-length ceilings D1 names as a save-blocking format-error category. **Closed:** a shared `PROFILE_LIMITS` constant now exists in all three layers (SQL Task 1, zod Task 9, Python Task 3), each independently tested (`m1_profiles_resumes.test.sql` §2 at N+1, `schema.test.ts`'s table-driven `maxLength per field family`, `test_profile_draft.py::test_strings_truncated_to_profile_limits`), plus `actions.test.ts::over-long fullName → fieldErrors.fullName === "maxLength", no upsert, not save_failed` closing the exact UX-regression risk this gap named. Global Constraints now states explicitly: "A value that one side accepts and another rejects is a bug."
+3. ~~**§Task 1, Step 1, `m1_profiles_resumes.test.sql` items 3 and 5 (S-003 AC5 + general RLS completeness).**~~ Was: no `anon` sub-case for `candidate_profiles`/`resumes`, no delete-denial case for `candidate_profiles`. **Closed:** item 3 gained `anon` (select/insert/update/delete denied) and an owner-delete-denied sub-case; item 5 gained the same `anon` sub-case for `resumes`; `m1_accounts.test.sql` item 7 additionally gained owner insert/delete-denied on `profiles` (a matrix cell this review had also flagged in the RLS matrix below, beyond the prose summary). `plan()` counts updated (`m1_accounts` 21, `m1_profiles_resumes` 45) so `pg_prove` fails loudly on any future mismatch.
 
 No other gaps found. TDD ordering, data isolation (Postgres/Redis/Storage), the fakes-only third-party policy, and wave file/DB-state independence were all checked explicitly (see below) and are sound.
 
@@ -70,7 +72,8 @@ Level legend: **Unit** = Vitest/pytest with fakes/mocks · **Int** = pytest/Vite
 | S-001·4 | e2e | `sign-in.spec.ts::wrong password and unknown email show the same "Invalid email or password"` |
 | S-001·5 | Int | `test_auth_gotrue.py::test_recovery_email_english_by_default` |
 | S-001·5 | Unit | `confirm/route.test.ts` (valid token, `verifyOtp` error → `link_invalid`, unsafe `next`); `actions.test.ts::updatePassword signs out globally and redirects with notice`; `reset-password-form.test.tsx` |
-| S-001·5 | e2e | `password-reset.spec.ts` ×3 (new password works / old fails, same link twice → expired panel, tampered `token_hash` → expired panel) — **Gap 1: no genuine time-expiry case** |
+| S-001·5 | e2e | `password-reset.spec.ts` ×3 (new password works / old fails, same link twice → expired panel, tampered `token_hash` → expired panel) |
+| S-001·5 | Int (added) | `test_recovery_token_expired_is_rejected` (real time-based expiry via `auth.users.recovery_sent_at`), `::fresh_verifies`, `::reused_is_rejected`, `::unknown_is_rejected` — **Gap 1 closed** |
 | S-001·6 | Unit | `redirects.test.ts::decideProxyRedirect…`; `app-shell.test.tsx::account menu has Settings and Sign out` |
 | S-001·6 | e2e | `sign-out.spec.ts::after sign-out /profile, /settings and /onboarding redirect to /sign-in?next=…` |
 | S-001·7 | DB | `m1_accounts.test.sql` §2–6 (grant uniqueness, sign-in/identity-linking add no row, cross-user RLS on `credit_ledger`) |
@@ -97,7 +100,7 @@ Level legend: **Unit** = Vitest/pytest with fakes/mocks · **Int** = pytest/Vite
 | S-003·4 | Unit | `test_resume_service.py::test_replace_removes_previous_object_and_row`; `merge.test.ts`, `review-changes-dialog.test.tsx` |
 | S-003·4 | Int | `test_resume_repository.py::test_insert_current_demotes_previous` |
 | S-003·4 | e2e | `replace.spec.ts` (Review changes, Keep-current default, Apply with one field changed) |
-| S-003·5 | DB | `m1_profiles_resumes.test.sql` §5 (own-only, 42501 on writes), §6 (no storage policy for the bucket) — **Gap 3: no explicit `anon` sub-case** |
+| S-003·5 | DB | `m1_profiles_resumes.test.sql` §3, §5 (own-only, 42501 on writes; `anon` select/insert/update/delete denied — **Gap 3 closed**), §6 (no storage policy for the bucket) |
 | S-003·5 | RLS | `m1-storage.test.ts` (owner/other/anon download denied, no public URL) |
 | S-003·5 | Int | `test_resumes_api.py::test_retry_other_users_resume_is_404`, `test_resume_repository.py::test_get_for_user_hides_other_users_rows` |
 | S-003·5 | e2e | none — by design (S-003 spec: no UI path can expose another user's file) |
@@ -105,7 +108,7 @@ Level legend: **Unit** = Vitest/pytest with fakes/mocks · **Int** = pytest/Vite
 | S-004·1 | Unit | `completeness.test.ts`; `actions.test.ts::complete → ok isComplete true`; `checklist.test.tsx::complete shows Done…` |
 | S-004·1 | e2e | `manual.spec.ts::filling the five required fields saves and the checklist shows Done` |
 | S-004·2 | DB | `m1_profiles_resumes.test.sql` §2 (check-constraint violations) |
-| S-004·2 | Unit | `schema.test.ts` (email/URL/salaryRange/maxItems) — **Gap 2: no length-ceiling case**; `actions.test.ts::format error → fieldErrors and no upsert`; `profile-editor.test.tsx::saving with missing fields shows every missing error and focuses the first` |
+| S-004·2 | Unit | `schema.test.ts` (email/URL/salaryRange/maxItems, table-driven `maxLength per field family` — **Gap 2 closed**); `actions.test.ts::format error → fieldErrors and no upsert`, `::over-long fullName → maxLength, not save_failed`; `profile-editor.test.tsx::saving with missing fields shows every missing error and focuses the first` |
 | S-004·2 | e2e | `manual.spec.ts::saving with missing fields and an invalid email highlights them and the profile stays incomplete` |
 | S-004·3 | RLS | `m1-profiles.test.ts::user upserts and reads own candidate_profiles incl. application answers` |
 | S-004·3 | Unit | `schema.test.ts::toDbRow/fromDbRow round-trip keeps application answers and phone` |
@@ -152,14 +155,14 @@ Wave 5, against the merged, restarted app (`app.sh stop && start`), Chromium des
 
 ## RLS matrix
 
-Legend: ✓ tested & allowed · ✗ tested & denied (evidence cited) · — no policy/grant exists by design, not independently exercised as its own case · ⚠ no listed test exercises this cell.
+Legend: ✓ tested & allowed · ✗ tested & denied (evidence cited) · — no policy/grant exists by design, not independently exercised as its own case. (All cells previously marked ⚠ were closed same-day by the architect — see Contract review gap 3.)
 
 | Table / bucket | anon | owner (self) | other authenticated user |
 |---|---|---|---|
-| `profiles` | select ✗ (`m1_accounts.test.sql` §8) · insert/update/delete — (revoked) | select ✓ · update `ui_locale` ✓, other columns ✗ `42501` (`m1_accounts.test.sql` §7, `m1-profiles.test.ts`) · insert ⚠ (**Gap 3**) · delete ⚠ (**Gap 3**) | update → 0 rows ✗ (`m1_accounts.test.sql` §7) · select/insert/delete — |
+| `profiles` | select ✗ (`m1_accounts.test.sql` §8) · insert/update/delete — (revoked) | select ✓ · update `ui_locale` ✓, other columns ✗ `42501` (`m1_accounts.test.sql` §7, `m1-profiles.test.ts`) · insert ✗ `42501` · delete ✗ `42501` (`m1_accounts.test.sql` §7, added — **Gap 3 closed**) | update → 0 rows ✗ (`m1_accounts.test.sql` §7) · select/insert/delete — |
 | `credit_ledger` / `credit_balances` | select ✗ (`m1_accounts.test.sql` §8) · insert/update/delete — | select ✓ (balance 20) · insert/update/delete ✗ `42501` (`m1_accounts.test.sql` §6, `m1-ledger.test.ts`) | select → 0 rows ✗ (`m1_accounts.test.sql` §6, `m1-ledger.test.ts`) · writes — |
-| `resumes` | select ⚠ (**Gap 3**) · insert/update/delete — | select ✓ · insert/update/delete ✗ `42501`, backend-only (`m1_profiles_resumes.test.sql` §5) | select → 0 rows ✗ (`test_resume_repository.py`, `m1_profiles_resumes.test.sql` §5) |
-| `candidate_profiles` | select ⚠ (**Gap 3**) · insert/update/delete — | select ✓ · insert ✓ · update ✓ (version++/`updated_at`) · delete ⚠ (**Gap 3**, no delete policy/grant exists) | select → 0 rows ✗ · insert with `user_id=B` → RLS violation ✗ (`m1_profiles_resumes.test.sql` §3) |
+| `resumes` | select ✗ · insert/update/delete ✗ `42501` (`m1_profiles_resumes.test.sql` §5, added — **Gap 3 closed**) | select ✓ · insert/update/delete ✗ `42501`, backend-only (`m1_profiles_resumes.test.sql` §5) | select → 0 rows ✗ (`test_resume_repository.py`, `m1_profiles_resumes.test.sql` §5) |
+| `candidate_profiles` | select ✗ · insert/update/delete ✗ `42501` (`m1_profiles_resumes.test.sql` §3, added — **Gap 3 closed**) | select ✓ · insert ✓ · update ✓ (version++/`updated_at`) · delete ✗ `42501` (`m1_profiles_resumes.test.sql` §3, added, no delete policy/grant exists — **Gap 3 closed**) | select → 0 rows ✗ · insert with `user_id=B` → RLS violation ✗ (`m1_profiles_resumes.test.sql` §3) |
 | Storage bucket `resumes` | download/list/upload ✗, public URL doesn't serve ✗ (`m1-storage.test.ts`) | download/upload/list ✗ — **no user policy exists at all**, backend secret key only (`m1_profiles_resumes.test.sql` §6, `m1-storage.test.ts`) | download ✗ (`m1-storage.test.ts`) |
 
 ## Negative / edge cases
@@ -171,10 +174,10 @@ From the plan's own Review Focus (already covered, cited by task):
 - **Open redirect via `?next=`** — `//evil.test`, `https://evil.test`, `/\evil.test`, `javascript:…`. Task 4 (`redirects.test.ts`), Task 8 (`confirm/route.test.ts`).
 - **Forged/expired/algorithm-confused JWTs** — `alg: none`, HS256-with-public-key, wrong `aud`/`iss`, past `exp`, unknown `kid`; token never echoed in body/logs. Task 2.
 
-Additional cases this review is adding to the plan (tie to the 3 gaps above — architect to fold into Task 1/9):
-- A recovery token whose expiry has actually elapsed (not just reused/tampered) is rejected by real GoTrue. (Gap 1)
-- Each string-length ceiling in Global Constraints' Data limits table (`full_name`, `headline`, `phone`, `location`, skill/title item length) is format-blocked by `profileFormatSchema` with `maxLength`, not just caught later by the DB. (Gap 2)
-- `anon` gets 0 rows/denied on `candidate_profiles` and `resumes` directly (not only inferred from the bucket/backend-only design). An owner cannot `delete` their own `candidate_profiles` row. (Gap 3)
+Cases this review flagged as missing, now in the plan (closed same-day, commit `831df11`):
+- A recovery token whose expiry has actually elapsed (not just reused/tampered) is rejected by real GoTrue — `test_recovery_token_expired_is_rejected`. (Gap 1)
+- Each string-length ceiling in Global Constraints' Data limits table (`full_name`, `headline`, `phone`, `location`, skill/title item length, entry text, `work_authorization_other`) is format-blocked by `profileFormatSchema` with `maxLength`, not just caught later by the DB — `schema.test.ts`'s table-driven case. (Gap 2)
+- `anon` gets 0 rows/denied on `candidate_profiles` and `resumes` directly, and an owner cannot `delete` their own `candidate_profiles` row (nor `profiles`) — `m1_profiles_resumes.test.sql` §3/§5, `m1_accounts.test.sql` §7. (Gap 3)
 
 ## Test data
 
