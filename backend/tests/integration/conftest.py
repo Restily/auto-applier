@@ -1,4 +1,4 @@
-"""Fixtures for integration tests against the real local Valkey (ADR-0012).
+"""Fixtures for integration tests against the real local Valkey and Postgres (ADR-0012).
 
 Every test gets its own `aa:test:<uuid>:` key prefix and cleans up only the
 keys under it via `SCAN MATCH <prefix>*` — this suite never runs
@@ -6,14 +6,30 @@ keys under it via `SCAN MATCH <prefix>*` — this suite never runs
 app or another test run.
 """
 
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from uuid import uuid4
 
+import asyncpg
 import pytest
 import redis
 
 from autoapplier.config import Settings
+from autoapplier.db.pool import create_pool
 from autoapplier.kv.client import create_sync_redis
+
+
+@pytest.fixture
+async def pool() -> AsyncIterator[asyncpg.Pool]:
+    """A live pool against local Supabase Postgres; fails fast with a fix-it hint if unreachable."""
+    settings = Settings(_env_file=None)
+    db_pool = await create_pool(settings.database_url)
+    try:
+        await db_pool.fetchval("select 1")
+    except Exception:
+        await db_pool.close()
+        pytest.fail("Local Supabase is not running: bash team/bin/app.sh supabase")
+    yield db_pool
+    await db_pool.close()
 
 
 @pytest.fixture

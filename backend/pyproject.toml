@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "AutoApplier backend: domain logic, API and worker"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+    "asyncpg>=0.31",
     "celery[redis]>=5.6,<6",
     "pydantic>=2.13",
     "pydantic-settings>=2.15",
@@ -53,6 +54,10 @@ module = ["celery", "celery.*", "kombu", "kombu.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 # celery.shared_task/Celery.task ship no stubs (see the override above), so mypy
 # sees them as untyped decorators; `strict`'s disallow_untyped_decorators would
 # otherwise erase every task function's own type annotations. Scoped to task
@@ -81,6 +86,7 @@ forbidden_modules = [
     "autoapplier.config",
     "celery",
     "redis",
+    "asyncpg",
 ]
 
 [[tool.importlinter.contracts]]
@@ -97,6 +103,7 @@ forbidden_modules = [
     "autoapplier.wiring",
     "celery",
     "redis",
+    "asyncpg",
 ]
 
 [[tool.importlinter.contracts]]
