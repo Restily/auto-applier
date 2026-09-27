@@ -6,6 +6,7 @@ status: todo
 milestone: M0
 owner: qa-automation
 priority: P0
+plan: docs/superpowers/plans/2026-09-27-M0-foundations.md
 needs_human: false
 created: 2026-09-27
 updated: 2026-09-27
@@ -24,3 +25,4 @@ updated: 2026-09-27
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 12:38 set plan=docs/superpowers/plans/2026-09-27-M0-foundations.md (team-lead)

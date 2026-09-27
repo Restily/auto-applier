@@ -1,0 +1,232 @@
+/*
+  AutoApplier — Design tokens (implementation reference)
+  Source of truth: docs/design/design-system/autoapplier/MASTER.md
+  Owner: designer · generated 2026-09-27
+
+  HOW TO WIRE THIS IN (Next.js + Tailwind + shadcn/ui, per the architect's ADR):
+  - Values below are plain hex/px custom properties — the authoritative numbers.
+  - Tailwind v4 (shadcn "new-york" default as of 2025+): import this file, then in
+    your `@theme inline` block reference the variables directly, e.g.
+      --color-primary: var(--primary);
+    hex works natively as a Tailwind v4 color value — no conversion needed.
+  - Tailwind v3 (older shadcn init): shadcn's config multiplies colors through
+    `hsl(var(--x))` and expects "H S% L%" triplets, not hex. If the ADR picks v3,
+    convert each `--primary`-family value below to an HSL triplet (any hex→hsl
+    tool) and drop the `#`, e.g. `#0B6E8F` -> `198 82% 30%`, then reference as
+    `hsl(var(--primary))` in tailwind.config. Do this once at setup; don't hand-edit
+    hex and HSL copies in parallel or they will drift.
+  - Component-level radius/shadow/duration classes should read these variables
+    rather than hardcoding new values — that is what keeps Craft review passing.
+
+  Every text/background and UI-boundary pair here is contrast-checked against
+  WCAG 2.2 AA (4.5:1 text, 3:1 UI component boundaries) — see MASTER.md
+  "Color tokens" for the full ratio table. Do not swap a value without
+  recomputing its ratio.
+*/
+
+:root {
+  /* ---------------------------------------------------------------------
+     COLOR — light theme (default; required)
+     --------------------------------------------------------------------- */
+
+  /* Canvas & surfaces */
+  --background: #F5F7F9;         /* app canvas */
+  --surface: #FFFFFF;            /* cards, panels, header, sidebar */
+  --surface-sunken: #EEF1F4;     /* inset wells: code/log blocks, avatar bg, inactive tab track */
+  --foreground: #10171F;         /* primary text — 18.0:1 on surface, 16.8:1 on background */
+  --muted-foreground: #4B5563;   /* secondary text, descriptions — 7.6:1 on surface */
+  --subtle-foreground: #5B6572;  /* meta text: timestamps, counters, helper text — 5.9:1 on surface */
+  --disabled-foreground: #8A94A0;/* disabled control text/icon (exempt from AA; kept legible) */
+
+  --border: #E2E5EA;             /* decorative dividers, card edges, table rules */
+  --input-border: #7C8797;       /* form control boundaries — 3.6:1 on surface (WCAG 1.4.11) */
+
+  /* Brand / primary action — "signal teal": calm, precise, not the generic indigo/terracotta defaults */
+  --primary: #0B6E8F;
+  --primary-hover: #085572;
+  --primary-active: #063F54;
+  --primary-subtle: #E3F1F5;     /* tinted bg: selected nav item, info banner, selected chip */
+  --on-primary: #FFFFFF;         /* 5.8:1 on primary */
+
+  /* Credits — a distinct token family used ONLY for credit balance / plans / pricing,
+     never for ordinary UI actions, so "this is about your credits" stays legible at a glance */
+  --credit: #8A5A00;
+  --credit-hover: #714A00;
+  --credit-subtle: #FBF1DE;
+  --on-credit: #FFFFFF;          /* 5.9:1 on credit */
+
+  /* Semantic status */
+  --success: #157F3C;
+  --success-subtle: #E4F5EA;
+  --on-success: #FFFFFF;         /* 5.1:1 on success */
+
+  --warning: #B45309;
+  --warning-subtle: #FDF1E3;
+  --on-warning: #FFFFFF;         /* 5.0:1 on warning */
+
+  --danger: #C0233C;
+  --danger-hover: #9E1C31;
+  --danger-subtle: #FBE7EA;
+  --on-danger: #FFFFFF;          /* 5.9:1 on danger */
+
+  --ring: #0B6E8F;               /* focus ring — always paired with 2px offset, see MASTER a11y */
+
+  /* Channel / connection status dots (reuse semantic hues; named for call sites) */
+  --status-connected: var(--success);
+  --status-attention: var(--warning);   /* e.g. reconnect soon, approaching limit */
+  --status-disconnected: var(--disabled-foreground);
+  --status-restricted: var(--danger);   /* platform paused the channel */
+
+  /* Match-score bands (feed, M2+) — reuse semantic hues, do not invent new colors */
+  --score-high: var(--success);         /* >= 80 */
+  --score-medium: var(--warning);       /* 50-79 */
+  --score-low: var(--muted-foreground); /* < 50, neutral not alarming */
+
+  /* ---------------------------------------------------------------------
+     TYPOGRAPHY
+     --------------------------------------------------------------------- */
+  --font-sans: 'Golos Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif; /* one of the few families with
+               equal-weight Latin+Cyrillic design — chosen because EN/RU parity is a
+               product requirement, not a generic Inter default */
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+               /* numerals only: credit ledger amounts, timestamps in tables — never
+                  for labels or decoration */
+
+  --text-display-size: 2rem;      --text-display-line: 2.5rem;   --text-display-weight: 700; --text-display-tracking: -0.01em;
+  --text-h1-size: 1.625rem;       --text-h1-line: 2.125rem;      --text-h1-weight: 700;
+  --text-h2-size: 1.3125rem;      --text-h2-line: 1.75rem;       --text-h2-weight: 600;
+  --text-h3-size: 1.0625rem;      --text-h3-line: 1.5rem;        --text-h3-weight: 600;
+  --text-body-size: 1rem;         --text-body-line: 1.625rem;    --text-body-weight: 400;
+  --text-ui-size: 0.9375rem;      --text-ui-line: 1.375rem;      --text-ui-weight: 400; /* buttons/labels use 500 */
+  --text-small-size: 0.8125rem;   --text-small-line: 1.25rem;    --text-small-weight: 500;
+  --text-tiny-size: 0.75rem;      --text-tiny-line: 1rem;        --text-tiny-weight: 500; /* floor — meta only */
+
+  /* ---------------------------------------------------------------------
+     SPACING — 4px base unit. Prefer Tailwind's default numeric scale
+     (p-4 = 16px, gap-6 = 24px, …) for everything except these product-specific
+     shell/layout constants, which are named because they are structural, not
+     incidental spacing.
+     --------------------------------------------------------------------- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-12: 48px; --space-16: 64px; --space-20: 80px; --space-24: 96px;
+
+  --shell-header-height: 60px;
+  --shell-sidebar-width: 248px;
+  --shell-sidebar-rail-width: 72px;   /* collapsed desktop sidebar */
+  --shell-bottom-nav-height: 60px;    /* mobile only */
+  --shell-content-max-width: 1120px;
+  --shell-gutter-mobile: 16px;
+  --shell-gutter-tablet: 24px;
+  --shell-gutter-desktop: 32px;
+
+  /* ---------------------------------------------------------------------
+     RADII — deliberately not one radius on everything: controls read
+     crisper/instrument-like, larger surfaces read softer.
+     --------------------------------------------------------------------- */
+  --radius-sm: 6px;    /* buttons, inputs, checkboxes, badges, chips */
+  --radius-md: 10px;   /* cards, panels, popovers, dropdown menus */
+  --radius-lg: 14px;   /* dialogs, sheets */
+  --radius-full: 999px;/* avatars, switches, status dots, pill badges */
+  --radius: 0.625rem;  /* shadcn base alias == --radius-md, for `calc(var(--radius) - 2px)` etc. */
+
+  /* ---------------------------------------------------------------------
+     SHADOWS — flat-first. Default cards/list rows use border only, no
+     shadow. Shadows are reserved for things that float above content.
+     --------------------------------------------------------------------- */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(16, 23, 31, 0.06);            /* hovered interactive card */
+  --shadow-md: 0 4px 16px rgba(16, 23, 31, 0.10);           /* dropdown, popover, toast */
+  --shadow-lg: 0 16px 40px rgba(16, 23, 31, 0.18);          /* dialog, sheet, command palette */
+
+  /* ---------------------------------------------------------------------
+     MOTION — subtle by design dial (3/10). One orchestrated moment at a
+     time; never stagger/fade every card on load. Always gated by
+     prefers-reduced-motion (see MASTER.md "Motion").
+     --------------------------------------------------------------------- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(0.32, 0, 0.15, 1);
+
+  /* ---------------------------------------------------------------------
+     BREAKPOINTS — reference widths tested at 375 / 768 / 1280; product
+     supports down to 360 and up to 1440 (NFR). Maps onto Tailwind's
+     default sm/md/lg/xl/2xl scale (640/768/1024/1280/1536).
+     --------------------------------------------------------------------- */
+  --bp-mobile: 375px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1280px;
+}
+
+/* ===========================================================================
+   COLOR — dark theme (optional; provided for completeness).
+   Activated by a `.dark` class on <html>, matching shadcn/ui's convention
+   (next-themes or equivalent). Same contrast bar: every pair below is
+   checked against WCAG 2.2 AA — see MASTER.md.
+   =========================================================================== */
+.dark {
+  --background: #0F1720;
+  --surface: #16202B;
+  --surface-sunken: #0B121A;
+  --foreground: #E7ECF1;          /* 15.2:1 on background, 13.9:1 on surface */
+  --muted-foreground: #A7B0BB;    /* 7.5:1 on surface */
+  --subtle-foreground: #96A0AC;   /* 6.2:1 on surface */
+  --disabled-foreground: #7A889B;
+
+  --border: #263241;
+  --input-border: #63748A;        /* 3.5:1 on surface */
+
+  --primary: #5FB8D6;
+  --primary-hover: #79C6E0;
+  --primary-active: #4AA3C2;
+  --primary-subtle: #113847;
+  --on-primary: #062430;          /* 7.2:1 on primary */
+
+  --credit: #E3A138;
+  --credit-hover: #EDB35A;
+  --credit-subtle: #2E2103;
+  --on-credit: #3A2400;           /* 6.6:1 on credit */
+
+  --success: #4ADE80;
+  --success-subtle: #0B2A16;
+  --on-success: #052E12;          /* 8.6:1 on success */
+
+  --warning: #FB923C;
+  --warning-subtle: #2E1503;
+  --on-warning: #3A1400;          /* 7.3:1 on warning */
+
+  --danger: #F87171;
+  --danger-hover: #FA8B8B;
+  --danger-subtle: #2E0B0B;
+  --on-danger: #450A0A;           /* 5.8:1 on danger */
+
+  --ring: #5FB8D6;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ===========================================================================
+   shadcn/ui canonical aliases — component code generated by `shadcn add`
+   reads these names. Point them at the semantic tokens above so there is
+   exactly one place (the block above) that ever changes.
+   =========================================================================== */
+:root, .dark {
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-sunken);
+  --accent: var(--primary-subtle);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-danger);
+  --input: var(--input-border);
+}
