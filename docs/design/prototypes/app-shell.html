@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoApplier — app shell prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --background:#F5F7F9; --surface:#FFFFFF; --surface-sunken:#EEF1F4;
+    --foreground:#10171F; --muted-foreground:#4B5563; --subtle-foreground:#5B6572;
+    --disabled-foreground:#8A94A0; --border:#E2E5EA; --input-border:#7C8797;
+    --primary:#0B6E8F; --primary-hover:#085572; --primary-subtle:#E3F1F5; --on-primary:#FFFFFF;
+    --credit:#8A5A00; --credit-subtle:#FBF1DE; --on-credit:#FFFFFF;
+    --success:#157F3C; --success-subtle:#E4F5EA;
+    --warning:#B45309; --danger:#C0233C; --ring:#0B6E8F;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-full:999px;
+    --shadow-md:0 4px 16px rgba(16,23,31,0.10);
+    --font-sans:'Golos Text',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --header-h:60px; --sidebar-w:248px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);
+       font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  .skip-link{position:absolute;left:-9999px;top:0;background:var(--primary);color:var(--on-primary);
+    padding:8px 16px;border-radius:0 0 var(--radius-sm) 0;z-index:100;}
+  .skip-link:focus{left:0;}
+
+  /* ---- header ---- */
+  header.shell{
+    position:sticky; top:0; z-index:10; height:var(--header-h);
+    background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px;
+  }
+  .brand{display:flex; align-items:center; gap:8px; font-weight:700; font-size:17px;}
+  .brand .mark{width:24px;height:24px;border-radius:var(--radius-sm);background:var(--primary);
+    display:inline-flex;align-items:center;justify-content:center;color:var(--on-primary);font-size:13px;font-weight:800;}
+  .page-title{font-weight:600; font-size:17px; color:var(--foreground);}
+  .header-right{display:flex; align-items:center; gap:8px;}
+
+  .chip{display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 12px;
+    border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface);
+    font-size:13.5px; font-weight:500; color:var(--foreground); cursor:pointer;}
+  .chip .credit-amount{font-family:var(--font-mono); font-weight:600; color:var(--credit);}
+  .chip .dot{width:6px;height:6px;border-radius:999px;background:var(--muted-foreground);}
+  .chip:hover{border-color:var(--input-border);}
+  .chip:focus-visible, a:focus-visible, button:focus-visible{outline:2px solid var(--ring); outline-offset:2px;}
+
+  .lang-chip{width:56px; justify-content:center; font-weight:600;}
+  .avatar{width:36px;height:36px;border-radius:999px;background:var(--primary-subtle);color:var(--primary);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid var(--border);cursor:pointer;}
+
+  /* ---- layout: sidebar + main ---- */
+  .shell-body{display:flex; min-height:calc(100vh - var(--header-h));}
+  nav.sidebar{
+    width:var(--sidebar-w); flex:0 0 var(--sidebar-w); background:var(--surface);
+    border-right:1px solid var(--border); padding:16px 12px;
+  }
+  .nav-group{display:flex; flex-direction:column; gap:2px;}
+  .nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius-sm);
+    color:var(--muted-foreground); font-size:14.5px; font-weight:500; text-decoration:none; position:relative;}
+  .nav-item .ic{width:18px;height:18px;flex:0 0 18px;border-radius:4px;background:currentColor;opacity:.55;}
+  .nav-item[aria-current="page"]{background:var(--primary-subtle); color:var(--primary); font-weight:600;}
+  .nav-item[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;width:3px;
+    background:var(--primary); border-radius:0 3px 3px 0;}
+  .nav-item[aria-current="page"] .ic{opacity:1;}
+  .nav-item:hover{background:var(--surface-sunken); color:var(--foreground);}
+  .nav-caption{font-size:11.5px; color:var(--disabled-foreground); padding:16px 12px 4px; line-height:1.4;}
+
+  main.content{flex:1; padding:32px; max-width:1120px;}
+  h1.title{font-size:26px; line-height:34px; font-weight:700; margin:0 0 4px;}
+  p.lede{margin:0 0 24px; color:var(--muted-foreground); font-size:16px; line-height:26px;}
+
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+    padding:20px 24px; margin-bottom:16px;}
+  .card h2{font-size:17px; line-height:24px; font-weight:600; margin:0 0 12px;}
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:16px; max-width:420px;}
+  .field label{font-size:13.5px; font-weight:500; color:var(--muted-foreground);}
+  .field input{height:40px; border:1px solid var(--input-border); border-radius:var(--radius-sm);
+    padding:0 12px; font-size:15px; font-family:inherit; color:var(--foreground); background:var(--surface);}
+  .field input:focus-visible{outline:2px solid var(--ring); outline-offset:1px; border-color:var(--primary);}
+
+  .btn{height:40px; padding:0 18px; border-radius:var(--radius-sm); font-size:14.5px; font-weight:600;
+    border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:6px;}
+  .btn-primary{background:var(--primary); color:var(--on-primary);}
+  .btn-primary:hover{background:var(--primary-hover);}
+  .btn-outline{background:var(--surface); color:var(--foreground); border-color:var(--input-border);}
+
+  .status-row{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--foreground);}
+  .status-dot{width:8px;height:8px;border-radius:999px;}
+  .status-dot.connected{background:var(--success);}
+
+  /* ---- mobile <768px: no sidebar, no bottom bar (only 2 destinations in M1 — see MASTER §8) ---- */
+  @media (max-width: 767px){
+    header.shell{padding:0 16px;}
+    .brand .wordmark{display:none;}
+    .page-title{display:none;}
+    .lang-chip{width:auto; padding:0 10px;}
+    .shell-body{display:block;}
+    nav.sidebar{display:none;}
+    main.content{padding:16px; max-width:100%;}
+    .card{padding:16px;}
+    .field{max-width:100%;}
+    .btn{width:100%; justify-content:center;}
+  }
+
+  .annot{position:fixed; bottom:12px; left:16px; right:16px; font-size:12px; color:var(--subtle-foreground);
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px;
+    max-width:640px; z-index:20;}
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="shell">
+    <div class="brand">
+      <span class="mark">A</span>
+      <span class="wordmark">AutoApplier</span>
+      <span class="page-title" style="margin-left:16px;">Profile</span>
+    </div>
+    <div class="header-right">
+      <button class="chip" aria-label="Credit balance: 20 credits">
+        <span class="credit-amount">20</span> credits
+      </button>
+      <button class="chip lang-chip" aria-haspopup="menu" aria-label="Language: English">EN</button>
+      <button class="avatar" aria-haspopup="menu" aria-label="Account menu">AI</button>
+    </div>
+  </header>
+
+  <div class="shell-body">
+    <nav class="sidebar" aria-label="Primary">
+      <div class="nav-group">
+        <a class="nav-item" href="#" aria-current="page"><span class="ic"></span>Profile</a>
+        <a class="nav-item" href="#"><span class="ic"></span>Settings</a>
+      </div>
+      <p class="nav-caption">Feed, Review queue, History, Searches, Connections and Credits &amp; Plans open here as they ship in later milestones — the shell doesn't change shape, only which items are real.</p>
+    </nav>
+
+    <main id="main" class="content">
+      <h1 class="title">Profile</h1>
+      <p class="lede">This is what every signed-in screen sits inside: header, sidebar, and this content column — shown here with placeholder cards, not the real Profile Editor (see S-003/S-004 for that).</p>
+
+      <div class="card">
+        <h2>Contact info</h2>
+        <div class="field">
+          <label for="fn">Full name</label>
+          <input id="fn" type="text" value="Alex Ivanov">
+        </div>
+        <div class="field">
+          <label for="em">Contact email</label>
+          <input id="em" type="email" value="alex@example.com">
+        </div>
+        <button class="btn btn-primary">Save changes</button>
+      </div>
+
+      <div class="card">
+        <h2>Channel connections</h2>
+        <div class="status-row"><span class="status-dot connected"></span> Example channel — Connected</div>
+      </div>
+    </main>
+  </div>
+
+  <div class="annot">Prototype for token/layout review only (radii, spacing, color, type). Resize to 375px and 1280px — sidebar and bottom-bar behavior switch per MASTER §8.3/§8 mobile exception. Not the real Profile Editor.</div>
+</body>
+</html>
