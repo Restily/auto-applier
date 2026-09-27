@@ -52,6 +52,14 @@ plugins = ["pydantic.mypy"]
 module = ["celery", "celery.*", "kombu", "kombu.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# celery.shared_task/Celery.task ship no stubs (see the override above), so mypy
+# sees them as untyped decorators; `strict`'s disallow_untyped_decorators would
+# otherwise erase every task function's own type annotations. Scoped to task
+# modules only — everywhere else stays fully strict.
+module = ["autoapplier.worker.tasks.*"]
+disallow_untyped_decorators = false
+
 [tool.importlinter]
 root_package = "autoapplier"
 include_external_packages = true
