@@ -243,6 +243,29 @@ All components are `shadcn/ui` primitives unless marked **custom**. "States" lis
 | Credit balance | — | — | **custom**: `--font-mono` tabular number + "credits" label in `--credit`, opens a `Popover` with the breakdown link to Credits & Plans. Lives in the header (§8.3). |
 | Language switcher | `DropdownMenu` | — | **custom trigger**: text "EN" / "RU" (current language), not a flag. Full names inside the menu ("English", "Русский"). See §8.3 and S-005. |
 | App sidebar / nav | `Sidebar` (shadcn block) | expanded / rail | Composition described in §8. |
+| Match-score indicator (M2+) | `Progress` + custom label | high / medium / low | **custom composition**, see §5.1. Never color-only. |
+| Channel add/validate row (M2+) | `Input` + `Button` + `Badge` | — | **custom**, see §5.2. Shared by "add a Telegram source" (S-007/S-009) and the operator catalog (S-012). |
+| Data table with health status (M2+) | `Table` | — | **custom composition** over shadcn `Table`, see §5.3. Back office (S-012). |
+
+### 5.1 Match-score indicator (M2+)
+
+Score is never conveyed by color alone (§9). Composition, left to right: a bold `--font-mono` number 0–100 → a short qualitative label (never omitted) → a thin `Progress` bar (`--radius-full`, 4px tall, ~64px wide) filled to `score%`, whose *fill length* is itself the redundant non-color signal. Band cutoffs (PRD: 70 = matched) map to tokens `--score-high`/`--score-medium`/`--score-low`:
+
+| Band | Range | Label EN | Label RU | Token |
+|---|---|---|---|---|
+| High | ≥ 80 | Strong match | Хорошее совпадение | `--score-high` |
+| Medium | 50–79 | Possible match | Возможное совпадение | `--score-medium` |
+| Low | < 50 | Weak match | Слабое совпадение | `--score-low` |
+
+Below the score, up to 3 short reason strings render as a bulleted list (Lucide `CircleCheck` 14px prefix, `--muted-foreground`, not the score color) — reasons are plain text facts ("5+ years React", "Remote, EU timezone"), never restatements of the score itself. Feed only surfaces vacancies ≥ 70 (PRD hard filter), so `--score-low` only appears if a future screen ever shows sub-threshold items; specified here for completeness.
+
+### 5.2 Channel add/validate row (M2+)
+
+One `Input` (placeholder "@channel or t.me/channel" / "@канал или ссылка t.me") + adjacent `Button` ("Add" / "Добавить"), submitting on Enter or click. Result renders as a row below: channel name/handle (left), a `Badge` state on the right — `outline` "Validating…" (with a small spinner, replaces on resolve) → `success`-toned "Added" / "Добавлен(а)" or `danger`-toned rejection reason inline as text (not just the badge). Each added row gets a `ghost` icon-button "Remove" (Lucide `X`, `aria-label` "Remove channel" / "Удалить канал"). Rejected attempts do not create a row — the error surfaces under the input instead (§9 inline-error rule) so the list only ever holds real sources.
+
+### 5.3 Data table with health status (M2+)
+
+Built on shadcn `Table`. A row whose health has degraded (e.g. no successful fetch in the highlighted window) is flagged three redundant ways, never color/tint alone: (1) a leading Lucide `AlertTriangle` 16px icon in `--warning` in the row's first cell, (2) a `Badge` in the Status column with real text ("Needs attention" / "Требует внимания"), (3) the row's left border gets a 2px `--warning` accent bar. Healthy rows show `CheckCircle2` + "Healthy" / "В норме" `Badge` (`--success`), same border treatment in `--border`. Numeric/timestamp cells use `--font-mono`. Sortable column headers are real `button`s with `aria-sort`.
 
 ---
 
@@ -500,3 +523,4 @@ This section is the checklist a screen spec's "Accessibility" section should be 
 ## Change log
 - 2026-09-27 — Initial version (T-002): tokens, type scale + RU-fit rules, spacing/radii/shadow/motion, breakpoints, component inventory, voice & tone + EN/RU glossary, empty/error/loading patterns, app shell (desktop + mobile, focus + full).
 - 2026-09-27 — T-002 completion pass (continuing the session above, same day): added §2.4 (text-on-tinted-fill contrast rule — computing it caught `--success` on `--success-subtle` failing AA at 4.49:1), added the three light-theme `-subtle` rows to §2.1's table, corrected S-001.md/S-003.md accessibility sections that had cited the wrong (passing-looking) ratio for alerts actually rendered on a tint, refreshed the stale S-001 prototype screenshots and removed an undocumented hardcoded color from S-001.html.
+- 2026-09-27 — M2 screen-spec pass (S-007/S-009/S-010/S-011/S-012): added §5.1 match-score indicator (non-color-reliant, reuses existing `--score-*` tokens from tokens.css), §5.2 channel add/validate row (shared by saved-search Telegram sources and the operator catalog), §5.3 data table with health status (back office).

@@ -31,3 +31,4 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 20:30 note (designer): Screen spec completed (audit found prior session left an empty scaffold; written from scratch per format). Sections: purpose, layout, components, states, EN/RU copy, validation, responsive 375/768/1280, a11y, motion.
