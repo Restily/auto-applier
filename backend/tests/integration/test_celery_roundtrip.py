@@ -17,7 +17,7 @@ from celery.result import AsyncResult
 from autoapplier.adapters.queue.celery_factory import create_celery_app
 from autoapplier.adapters.queue.celery_queue import CeleryJobQueue
 from autoapplier.config import Settings, get_settings
-from autoapplier.kv.client import create_async_redis
+from autoapplier.kv.client import create_async_redis, create_sync_redis
 from autoapplier.kv.heartbeat import read_heartbeat
 from autoapplier.worker.jobs import SYSTEM_PING
 from autoapplier.worker.signals import write_ready_heartbeat
@@ -53,15 +53,29 @@ async def test_ping_roundtrip_through_valkey(redis_url: str) -> None:
     # This app (and so the worker started from it) knows only `q` — never "default".
     assert set(test_app.amqp.queues) == {q}
 
-    # Verified against the installed Celery (5.6.3, see docs/solutions/): a worker
-    # built from an app whose task_default_queue/task_queues were set before
-    # start_worker() consumes only app.amqp.queues, so no
-    # worker.app.amqp.queues.select([q]) fallback is needed here.
-    with start_worker(test_app, pool="solo", perform_ping_check=False):
-        task_id = await CeleryJobQueue(test_app).enqueue(SYSTEM_PING, args=[nonce], queue=q)
-        result = AsyncResult(task_id, app=test_app).get(timeout=10)
+    async_result: AsyncResult | None = None
+    try:
+        # Verified against the installed Celery (5.6.3, see docs/solutions/): a worker
+        # built from an app whose task_default_queue/task_queues were set before
+        # start_worker() consumes only app.amqp.queues, so no
+        # worker.app.amqp.queues.select([q]) fallback is needed here.
+        with start_worker(test_app, pool="solo", perform_ping_check=False):
+            task_id = await CeleryJobQueue(test_app).enqueue(SYSTEM_PING, args=[nonce], queue=q)
+            async_result = AsyncResult(task_id, app=test_app)
+            result = async_result.get(timeout=10)
 
-    assert result == nonce
+        assert result == nonce
+    finally:
+        # M6 (M0 final review): this test's own binding key (no TTL) and result-backend
+        # key (`celery-task-meta-<task_id>`) must not leak into the shared Valkey. Never
+        # FLUSH — only this test's own keys are touched.
+        if async_result is not None:
+            async_result.forget()
+        sync_client = create_sync_redis(redis_url)
+        try:
+            sync_client.delete(f"_kombu.binding.{q}")
+        finally:
+            sync_client.close()
 
 
 async def test_heartbeat_task_writes_key(scoped_key_prefix: str, redis_url: str) -> None:
