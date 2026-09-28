@@ -20,6 +20,9 @@ jobs:
           node-version: 22
           cache: npm
       - uses: astral-sh/setup-uv@v6
+        with:
+          # post-job cache prune would wait on uv locks held by the dev app
+          prune-cache: false
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -33,6 +36,9 @@ jobs:
         run: bash scripts/valkey.sh start
       - name: Quality gate (full)
         run: bash team/bin/quality-gate.sh full
+      - name: Stop the app
+        if: always()
+        run: bash team/bin/app.sh stop
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
