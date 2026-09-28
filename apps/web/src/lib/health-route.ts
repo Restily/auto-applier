@@ -1,5 +1,10 @@
-import { type ApiHealthResult, fetchApiHealth, type HealthResponse, toSystemHealthView } from "@/lib/health";
-import type { SystemHealthView } from "@/lib/health";
+import {
+  type ApiHealthResult,
+  fetchApiHealth,
+  type HealthResponse,
+  type SystemHealthView,
+  toSystemHealthView,
+} from "@/lib/health";
 
 /**
  * Next.js route files may only export route fields (GET, dynamic, ...), so
@@ -16,14 +21,19 @@ export function createHealthRouteHandler(
 ): () => Promise<Response> {
   return async function GET(): Promise<Response> {
     let result: ApiHealthResult;
+    let view: SystemHealthView;
     try {
       result = await fetchHealth();
+      // Second safeguard: even if an injected fetchHealth hands back a
+      // malformed "response" result (bypassing fetchApiHealth's own runtime
+      // validation), the mapping below must not crash the route — see I1.
+      view = toSystemHealthView(result, new Date());
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Unknown error";
       result = { kind: "error", message };
+      view = toSystemHealthView(result, new Date());
     }
 
-    const view = toSystemHealthView(result, new Date());
     const body: HealthRouteBody = {
       status: view.overall,
       api: result.kind === "response" ? result.body : null,
