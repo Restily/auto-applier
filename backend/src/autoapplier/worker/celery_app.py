@@ -20,7 +20,7 @@ from autoapplier.worker.schedule import build_beat_schedule
 from autoapplier.worker.signals import write_ready_heartbeat
 from autoapplier.worker.tasks import system  # noqa: F401  (registers system.* tasks on import)
 
-app: Celery = create_celery_app(get_settings())
+app: Celery = create_celery_app(get_settings(), set_as_current=True)
 app.conf.beat_schedule = build_beat_schedule(get_settings())
 
 worker_ready.connect(write_ready_heartbeat)
