@@ -2,7 +2,7 @@
 id: T-011
 type: task
 title: "M1 plan Task 0B: M1 web dependencies, scripts and shadcn primitives"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -24,3 +24,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 09:17 todo → in_progress (team-lead)
