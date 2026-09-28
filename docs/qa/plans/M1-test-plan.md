@@ -1,14 +1,16 @@
 # Test plan M1
 
-_Owner: QA Automation · 2026-09-27 · Plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md · Stories: S-001…S-006_
+_Owner: QA Automation · 2026-09-27, amended 2026-09-28 · Plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md · Stories: S-001…S-006_
 
 Third-party policy (verified against the plan): no live Google, no live LLM, no real email in any automated test. `APP_ENV=test` forces `LLM_PROVIDER=fake` (ADR-0006); Auth emails go only to Mailpit (`http://127.0.0.1:54324`); Google's real consent screen cannot be automated locally (ADR-0013 D4) — only button-visibility, redirect-start, callback-cancel/error mapping and the one-grant DB trigger are automated, the real round trip is a human pre-launch check (TD-006).
 
 **Re-check, 2026-09-27 (same day):** the architect closed all 3 gaps below in `docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md` (commit `831df11`, board task T-005, `done`). Verified independently against the plan diff, not just T-005's self-report. **Verdict: PASS** — all 25 ACs now have a plan task with a concrete, runnable verification including the negative/edge cases this review asked for. The gap entries below are kept, marked resolved, for the audit trail.
 
+**Delta review, 2026-09-28 (D5 + M0 follow-ups T-006…T-009 + Tasks 0A/0B + build items T-010…T-024 with `files`/`depends_on`):** re-checked against the amended plan (`git log -p -3` on the plan file), the amended S-001 AC7 wording (`board.py show S-001`), ADR-0013/ADR-0016 amendments, and `board.py wave --milestone M1`. **Verdict: PASS** — no gaps. S-001 AC7 (amended), S-006 AC2 (D5 fingerprint addendum) and the new Task 0A/0B/14–16 ACs all map to concrete failing-first tests with runnable commands (rows below); every wave's items have disjoint `files` and only Tasks 1/12/13 touch Supabase/the running app, each alone in its wave, matching the plan's own documented shared-hotspot chains (`backend/pyproject.toml` and `package.json`: 0A/0B → 16; `wiring.py`/`api/app.py`: Task 6 → Task 7; `profile/page.tsx`: Task 9 → Task 11). T-007 is confirmed folded into Tasks 2 and 7, not a build item.
+
 ## Contract review
 
-All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "closed" below) were fixed same-day — see the resolved list after the table.
+All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "closed" below) were fixed same-day — see the resolved list after the table. The 2026-09-28 delta added 3 more AC rows (T-006, T-008, T-009) and amended 2 (S-001·7, S-006·2) for D5 — see the delta rows below the table.
 
 | Story | AC | Plan task(s) | Verification in plan | OK? |
 |---|---|---|---|---|
@@ -18,7 +20,7 @@ All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "
 | S-001 | 4 same generic error, wrong password / unknown email | 8, 12 | `errors.test.ts`, `actions.test.ts`, `sign-in-form.test.tsx`; `sign-in.spec.ts` | ✓ |
 | S-001 | 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default`, `test_recovery_token_fresh_verifies`, `test_recovery_token_expired_is_rejected` (backdates `auth.users.recovery_sent_at`, verified live against GoTrue v2.197), `test_recovery_token_reused_is_rejected`, `test_recovery_token_unknown_is_rejected`; `confirm/route.test.ts`, `actions.test.ts`; `password-reset.spec.ts` | ✓ (Gap 1 closed) |
 | S-001 | 6 sign out → protected pages redirect | 4, 8, 12 | `redirects.test.ts`, `app-shell.test.tsx`; `sign-out.spec.ts` | ✓ |
-| S-001 | 7 exactly one sign-up bonus; re-sign-in never grants | 1, 5, 12 | pgTAP `m1_accounts.test.sql` 2–6; `test_repeated_sign_in_never_grants_again`; `m1-ledger.test.ts`; `sign-in.spec.ts` | ✓ |
+| S-001 | 7 (amended, D5) exactly one 20-credit sign-up bonus, except an account re-created with the email of a deleted account, which gets none; re-sign-in never grants | 1, 4, 5, 7, 9, 12, 13 | pgTAP `m1_accounts.test.sql` 2–6, **§9** (fingerprint on delete, normalized match, no grant on re-sign-up, control grant); `test_repeated_sign_in_never_grants_again`, **`test_resignup_after_deletion_gets_no_bonus`**, `test_signup_after_unrelated_deletion_still_gets_bonus`; **`test_account_deletion.py::test_signup_after_deletion_gets_account_without_bonus`**; `m1-ledger.test.ts` (D5 cases); `sign-in.spec.ts`; **`delete.spec.ts::after deletion, signing up again…`** | ✓ |
 | S-002 | 1 Google creates/links account; bonus once for new | 1, 8 (+ human live check, D4/TD-006) | pgTAP `m1_accounts.test.sql` 3–4; `actions.test.ts`, `oauth.test.ts::isNewAccount` | ✓ (manual-only for the real consent round trip, justified by D4) |
 | S-002 | 2 cancel on consent → sign-in, neutral message, no account | 8, 12 | `oauth.test.ts`, `sign-in-form.test.tsx`; `google.spec.ts` | ✓ |
 | S-002 | 3 not configured → button hidden, email works | 1, 8, 12 | `providers.test.ts`, `sign-up-form.test.tsx`; `google.spec.ts` | ✓ |
@@ -35,8 +37,11 @@ All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "
 | S-005 | 2 switch applies to pages/validation/emails; persists across sessions/devices | 1, 4, 8, 10, 12 | pgTAP `m1_accounts.test.sql` 7; `test_recovery_email_russian_after_locale_switch`; `language-switcher.test.tsx`, `language-card.test.tsx`, `actions.test.ts`; `locale.spec.ts` (incl. a fresh browser context after sign-in, proving device-independence) | ✓ |
 | S-005 | 3 no missing translation key in either language | 4, 12 | `messages.test.ts` key-parity; ESLint `i18next/no-literal-string`; `no-missing-keys.spec.ts` (all M1 pages, EN+RU) | ✓ |
 | S-006 | 1 export downloads JSON with profile/searches/applications/ledger | 7, 10, 13 | `test_account_api.py`, `test_account_export.py` ×2; `route.test.ts`, `export-client.test.ts`; `export.spec.ts` | ✓ |
-| S-006 | 2 typed-email confirm → full deletion, signed out, old creds fail | 1, 7, 10, 13 | pgTAP `m1_profiles_resumes.test.sql` 7 (cascades); `test_account_deletion_service.py`, `test_account_deletion.py`; `delete-account-dialog.test.tsx`; `delete.spec.ts` | ✓ |
+| S-006 | 2 (D5 addendum) typed-email confirm → full deletion, signed out, old creds fail; only the email HMAC remains | 1, 7, 10, 13 | pgTAP `m1_profiles_resumes.test.sql` 7 (cascades), `m1_accounts.test.sql` §9.1–9.8/9.14 (fingerprint is the sole retained datum); `test_account_deletion_service.py`, `test_account_deletion.py` incl. **`::test_deletion_keeps_only_email_fingerprint`**, **`::test_failed_deletion_leaves_no_fingerprint`**; `delete-account-dialog.test.tsx` incl. **privacy-link copy**; `delete.spec.ts` | ✓ |
 | S-006 | 3 cancel → nothing deleted | 7, 10, 13 | `test_account_deletion_service.py::test_mismatch_calls_nothing`, `test_account_deletion.py::test_mismatch_keeps_account`; `delete-account-dialog.test.tsx`; `delete.spec.ts` | ✓ |
+| T-006 | CI pins Supabase CLI to 2.118.0, runs the quality job with `APP_ENV=ci` + `LLM_PROVIDER=fake` | 14 (+2) | `ci-workflow.test.ts::pins the Supabase CLI to 2.118.0`, `::runs the quality job with APP_ENV=ci and LLM_PROVIDER=fake` (int, YAML contract, failing-first); `test_config.py::test_ci_env_requires_fake_llm` (unit) | ✓ |
+| T-008 | default Button meets the 44px touch target; `chromium-mobile` project has touch + mobile UA at 360×740 | 15 (+5, 12) | `button.test.tsx` ×4 (unit, failing-first: M0 default is `h-9`); `playwright-config.test.ts` (int, config contract); `auth-and-shell.a11y.spec.ts::primary actions are at least 44×44 on mobile` (e2e, rendered box, `chromium-mobile`) | ✓ |
+| T-009 | `scripts/**` linted/type-checked by the fast gate; `valkey.sh` fails fast (no PING wait) on a Docker error | 16 | `test_valkey_script.py` ×4 (unit, stub Docker on `PATH`, failing-first: M0 script waits for PING after a failed start/run); lint/mypy probe scripts (F401, untyped def) | ✓ |
 
 **Gaps sent to architect (3, all now RESOLVED — closed same-day in commit `831df11`, board task T-005 `done`):**
 
@@ -46,7 +51,15 @@ All 25 ACs verified against the plan; the 3 gaps first found here (rows marked "
 
 No other gaps found. TDD ordering, data isolation (Postgres/Redis/Storage), the fakes-only third-party policy, and wave file/DB-state independence were all checked explicitly (see below) and are sound.
 
-**Waves — file/state independence check:** genuinely disjoint except two config-file hotspots the plan already documents and resolves deterministically: `backend/pyproject.toml` (T2 + T3, wave 2 — union of both sides' deps/import-linter entries) and `backend/src/autoapplier/{wiring.py,api/app.py}` (T6 + T7, wave 3 — keep both sides' container fields/routers). Neither is a test-isolation risk (text-merge conflicts, not shared runtime/DB state); not counted as a gap. No wave task starts the app or resets the DB except Task 1 (alone, wave 1) and Tasks 12→13 (serial, wave 5, per the constitution's "kept serial" rule) — consistent.
+**Delta gaps (2026-09-28, D5 + T-006…T-009 + Tasks 0A/0B/build items): none.** Checked and closed by the plan itself before this review, cited for the audit trail:
+- S-001 AC7's amended wording (D5) has three independent test layers naming the exact rule (DB §9, int `test_resignup_after_deletion_gets_no_bonus` + `test_signup_after_deletion_gets_account_without_bonus`, e2e `delete.spec.ts`), plus a control (`test_signup_after_unrelated_deletion_still_gets_bonus`) proving the fingerprint check doesn't over-fire on unrelated deletions.
+- S-006 AC2's D5 addendum has a positive case (`test_deletion_keeps_only_email_fingerprint`) and a negative one (`test_failed_deletion_leaves_no_fingerprint`, proving a rolled-back delete leaves no fingerprint) — both transactional guarantees from the ADR-0013/0016 amendments are exercised, not just asserted.
+- T-006/T-008/T-009 each have a failing-first step with a command that fails against the pre-change tree (`ci-workflow.test.ts` against the old `"latest"`/missing-env workflow; `button.test.tsx` against M0's `h-9`; `test_valkey_script.py` against the M0 script's PING-wait-after-failure behavior) and a post-change command that passes.
+- Task 0A (manifests) has a failing-first import-linter probe (Step 1) proving the new deps are actually forbidden in domain/ports/services before/after; Task 0B (vendor components only, no new behavior) has no behavior test to write — a legitimate no-test enabler task — but has concrete verify commands (`npm ci`, `node -e "require.resolve(...)"`, file-existence checks, `lint && typecheck && test:unit && build`).
+
+**Waves — file/state independence check (delta, T-010…T-024 with `files`/`depends_on`):** `board.py wave --milestone M1` returns wave 1 as `T-010` (files: `backend/pyproject.toml`, `backend/uv.lock`) and `T-011` (files: `package.json`, `package-lock.json`, `apps/web/package.json`, `apps/web/components.json`, `apps/web/src/components/ui/**`, `apps/web/src/hooks/**`, `apps/web/src/app/globals.css`) — disjoint, matches the plan's documented schedule. Walked the full "Board items: files and dependencies" table (waves 2–8) by hand: every wave's items have disjoint `files` globs; the only two shared hotspots each have one first-owner plus later owners gated by `depends_on` (manifests: T-010/T-011 → T-009/16, per the plan's explicit rule "later tasks that find a missing package stop and report NEEDS_CONTEXT"; `wiring.py`/`api/app.py`/`schema.gen.ts`: T-017/6 (wave 4) → T-018/7 (wave 5), never concurrent). Only T-012 (Task 1) resets Supabase, alone in wave 2 with wave-mates that run lint/typecheck/unit only; only T-023 (Task 12, wave 7) and T-024 (Task 13, wave 8) start the app, each alone in its wave. Consistent with constitution rules 5–6. T-007 confirmed folded into Tasks 2/T-013 and 7/T-018, not a separate build item.
+
+**Waves — file/state independence check (original M0-era note, superseded by the delta above but kept for the audit trail):** genuinely disjoint except two config-file hotspots the plan already documents and resolves deterministically: `backend/pyproject.toml` (T2 + T3, wave 2 — union of both sides' deps/import-linter entries) and `backend/src/autoapplier/{wiring.py,api/app.py}` (T6 + T7, wave 3 — keep both sides' container fields/routers). Neither is a test-isolation risk (text-merge conflicts, not shared runtime/DB state); not counted as a gap. No wave task starts the app or resets the DB except Task 1 (alone, wave 1) and Tasks 12→13 (serial, wave 5, per the constitution's "kept serial" rule) — consistent.
 
 **Data isolation check:** Postgres — unique `be+<uuid>@example.test` / `qa+<uuid>@example.test` per test, teardown deletes owned users, no resets outside Task 1. Redis — M1 tests avoid the real broker almost entirely (`InMemoryJobQueue` fake for unit/integration `resume.extract` tests); only Tasks 12–13's e2e suite exercises the real Celery→Valkey path, isolated by per-test unique resume/user ids rather than key prefixes (acceptable: Valkey here is pure transport, not test-owned data). Storage — object paths are `<user_id>/<resume_id>.<ext>`, inherently isolated by UUID. All sound.
 
@@ -76,10 +89,10 @@ Level legend: **Unit** = Vitest/pytest with fakes/mocks · **Int** = pytest/Vite
 | S-001·5 | Int (added) | `test_recovery_token_expired_is_rejected` (real time-based expiry via `auth.users.recovery_sent_at`), `::fresh_verifies`, `::reused_is_rejected`, `::unknown_is_rejected` — **Gap 1 closed** |
 | S-001·6 | Unit | `redirects.test.ts::decideProxyRedirect…`; `app-shell.test.tsx::account menu has Settings and Sign out` |
 | S-001·6 | e2e | `sign-out.spec.ts::after sign-out /profile, /settings and /onboarding redirect to /sign-in?next=…` |
-| S-001·7 | DB | `m1_accounts.test.sql` §2–6 (grant uniqueness, sign-in/identity-linking add no row, cross-user RLS on `credit_ledger`) |
-| S-001·7 | Int | `test_auth_gotrue.py::test_repeated_sign_in_never_grants_again` |
-| S-001·7 | RLS | `m1-ledger.test.ts` (new user = one grant, balance 20, sign-in again adds no row, no write access, no cross-user read) |
-| S-001·7 | e2e | `sign-in.spec.ts::signing in again never adds credits` |
+| S-001·7 | DB | `m1_accounts.test.sql` §2–6 (grant uniqueness, sign-in/identity-linking add no row, cross-user RLS on `credit_ledger`), **§9** (D5: fingerprint on delete, normalized match, no grant on re-sign-up, control grant) |
+| S-001·7 | Int | `test_auth_gotrue.py::test_repeated_sign_in_never_grants_again`, **`::test_resignup_after_deletion_gets_no_bonus`**, **`::test_signup_after_unrelated_deletion_still_gets_bonus`** (D5); **`test_account_deletion.py::test_signup_after_deletion_gets_account_without_bonus`** (D5, API path) |
+| S-001·7 | RLS | `m1-ledger.test.ts` (new user = one grant, balance 20, sign-in again adds no row, no write access, no cross-user read, **D5 re-sign-up-after-deletion and fingerprint-table-unreachable cases**) |
+| S-001·7 | e2e | `sign-in.spec.ts::signing in again never adds credits`; **`delete.spec.ts::after deletion, signing up again with the same email creates an account with 0 credits and no welcome-credits toast`** (D5) |
 | S-002·1 | DB | `m1_accounts.test.sql` §3 (sign-in adds no row), §4 (identity linking adds no row) |
 | S-002·1 | Unit | `actions.test.ts::startGoogle…`, `::exchangeOAuthCode new account adds welcome`; `oauth.test.ts::isNewAccount boundaries` |
 | S-002·1 | Manual | real Google consent round trip — human pre-launch check (D4, TD-006); not automated by design |
@@ -126,13 +139,20 @@ Level legend: **Unit** = Vitest/pytest with fakes/mocks · **Int** = pytest/Vite
 | S-006·1 | Unit | `test_account_api.py::test_export_headers_and_body_shape`; `route.test.ts`, `export-client.test.ts`, `data-card.test.tsx` |
 | S-006·1 | Int | `test_account_export.py::test_export_contains_only_callers_rows`, `::test_export_covers_every_user_owned_table` |
 | S-006·1 | e2e | `export.spec.ts` (downloaded JSON parsed and checked) |
-| S-006·2 | DB | `m1_profiles_resumes.test.sql` §7 (every FK to `auth.users` cascades) |
-| S-006·2 | Unit | `test_account_deletion_service.py` (order, idempotency, failure handling); `delete-account-dialog.test.tsx` |
-| S-006·2 | Int | `test_account_deletion.py::test_deletion_removes_everything`, `::test_every_user_owned_table_cascades` |
-| S-006·2 | e2e | `delete.spec.ts::typing the email and confirming deletes the account…` |
+| S-006·2 | DB | `m1_profiles_resumes.test.sql` §7 (every FK to `auth.users` cascades); **`m1_accounts.test.sql` §9.1–9.8, 9.14** (D5: fingerprint is the only retained datum) |
+| S-006·2 | Unit | `test_account_deletion_service.py` (order, idempotency, failure handling); `delete-account-dialog.test.tsx` incl. **privacy-link copy**; **`privacy/page.test.tsx`** (D5) |
+| S-006·2 | Int | `test_account_deletion.py::test_deletion_removes_everything`, `::test_every_user_owned_table_cascades`, **`::test_deletion_keeps_only_email_fingerprint`**, **`::test_failed_deletion_leaves_no_fingerprint`** (D5) |
+| S-006·2 | e2e | `delete.spec.ts::typing the email and confirming deletes the account…`, **`::the delete dialog and the deleted page link…`** (D5, privacy copy) |
 | S-006·3 | Unit | `test_account_deletion_service.py::test_mismatch_calls_nothing`; `delete-account-dialog.test.tsx::Cancel…/::Escape…` |
-| S-006·3 | Int | `test_account_deletion.py::test_mismatch_keeps_account` |
+| S-006·3 | Int | `test_account_deletion.py::test_mismatch_keeps_account` (**also asserts no fingerprint written on a cancelled/mismatched delete, D5**) |
 | S-006·3 | e2e | `delete.spec.ts::Cancel and Escape leave the account intact` |
+| T-006·CI | Unit | `test_config.py::test_ci_env_requires_fake_llm` |
+| T-006·CI | Int | `ci-workflow.test.ts::sets up node 22, uv and the supabase CLI` (pinned to `2.118.0`), `::pins the Supabase CLI to 2.118.0`, `::runs the quality job with APP_ENV=ci and LLM_PROVIDER=fake` |
+| T-008·44px | Unit | `button.test.tsx::default size is 44px high (h-11)`, `::icon size is 44×44 (size-11)`, `::lg is 48px high (h-12)`, `::data-size reflects the size prop` |
+| T-008·44px | Int | `playwright-config.test.ts::chromium-mobile uses touch, isMobile and a mobile user agent at 360×740`, `::chromium-desktop is unchanged at 1280×800` |
+| T-008·44px | e2e | `auth-and-shell.a11y.spec.ts::primary actions are at least 44×44 on mobile` (`chromium-mobile`) |
+| T-009·scripts lint | Unit | `test_valkey_script.py::test_start_fails_fast_when_docker_run_fails`, `::test_start_fails_fast_when_docker_start_fails`, `::test_stop_fails_when_docker_stop_fails`, `::test_start_succeeds_when_container_answers_ping` (control) |
+| T-009·scripts lint | Int | `lint:py`/`typecheck:py` probe scripts (F401 unused import, untyped def) over `scripts/*.py` |
 
 ## e2e journeys
 
@@ -151,7 +171,8 @@ Wave 5, against the merged, restarted app (`app.sh stop && start`), Chromium des
 11. **Resume replace with review-before-overwrite** (`resume/replace.spec.ts`).
 12. **Manual profile fill and edit** (`profile/manual.spec.ts`) — required fields, validation, persistence, checklist copy.
 13. **Data export** (`account/export.spec.ts`).
-14. **Account deletion and cancel** (`account/delete.spec.ts`).
+14. **Account deletion and cancel** (`account/delete.spec.ts`, incl. D5: re-sign-up with the same email afterwards gets 0 credits and no welcome toast; the deleted-account page links to the privacy policy).
+15. **44px touch targets on mobile** (`a11y/auth-and-shell.a11y.spec.ts`, T-008, `chromium-mobile` only) — every visible default/icon-size button on `/sign-up`, `/sign-in`, `/onboarding` has a rendered box ≥ 44×44.
 
 ## RLS matrix
 
