@@ -29,6 +29,7 @@ function toNumber(raw: string): number | null {
 /** One fieldset so a screen reader announces the group. Min and Max stay paired; currency and period wrap below at 375px. */
 export function SalaryFields({ id, value, onChange, error }: SalaryFieldsProps): React.JSX.Element {
   const t = useTranslations("profile.salary");
+  const tp = useTranslations("profile");
   const uid = useId();
   const errorId = `${uid}-error`;
   return (
@@ -67,7 +68,7 @@ export function SalaryFields({ id, value, onChange, error }: SalaryFieldsProps):
           <Label htmlFor={`${uid}-currency`}>{t("currency")}</Label>
           <Select value={value.salaryCurrency ?? ""} onValueChange={(v) => onChange({ salaryCurrency: v })}>
             <SelectTrigger id={`${uid}-currency`} className="w-full data-[size=default]:h-11">
-              <SelectValue />
+              <SelectValue placeholder={tp("select")} />
             </SelectTrigger>
             <SelectContent>
               {CURRENCIES.map((c) => (
@@ -85,7 +86,7 @@ export function SalaryFields({ id, value, onChange, error }: SalaryFieldsProps):
             onValueChange={(v) => onChange({ salaryPeriod: SALARY_PERIOD.find((p) => p === v) ?? null })}
           >
             <SelectTrigger id={`${uid}-period`} className="w-full data-[size=default]:h-11">
-              <SelectValue />
+              <SelectValue placeholder={tp("select")} />
             </SelectTrigger>
             <SelectContent>
               {SALARY_PERIOD.map((p) => (
