@@ -1,1 +1,129 @@
-{}
+{
+  "title": "Profile",
+  "filledFromResume": "We filled this from {filename} — check it over.",
+  "dismissBanner": "Dismiss",
+  "savedIncomplete": "Saved. Fill in the highlighted fields to complete your profile.",
+  "saveFailed": "We couldn't save your profile. Try again.",
+  "unsaved": "Unsaved changes",
+  "select": "Select…",
+  "requiredMark": "required",
+  "sections": {
+    "contact": "Contact info",
+    "targetRole": "Target role",
+    "skills": "Skills",
+    "experience": "Experience",
+    "education": "Education",
+    "languages": "Languages",
+    "answers": "Application answers"
+  },
+  "fields": {
+    "fullName": "Full name",
+    "contactEmail": "Contact email",
+    "phone": "Phone",
+    "location": "Location",
+    "links": "Links",
+    "linkedin": "LinkedIn",
+    "portfolio": "Portfolio",
+    "targetTitles": "Target titles",
+    "headline": "Headline",
+    "skills": "Skills",
+    "yearsExperience": "Years of experience"
+  },
+  "years": {
+    "lt_1": "Less than 1 year",
+    "1_2": "1–2 years",
+    "3_5": "3–5 years",
+    "6_10": "6–10 years",
+    "10_plus": "10+ years"
+  },
+  "chips": {
+    "add": "Add",
+    "addOption": "Add “{value}”",
+    "remove": "Remove {value}",
+    "hint": "Type and press Enter to add."
+  },
+  "entries": {
+    "edit": "Edit {name}",
+    "remove": "Remove {name}",
+    "untitled": "Untitled entry",
+    "present": "Present"
+  },
+  "experience": {
+    "add": "+ Add experience",
+    "empty": "No experience added yet.",
+    "dialogAdd": "Add experience",
+    "dialogEdit": "Edit experience",
+    "title": "Job title",
+    "company": "Company",
+    "start": "Start",
+    "end": "End",
+    "current": "I currently work here",
+    "description": "Description"
+  },
+  "education": {
+    "add": "+ Add education",
+    "empty": "No education added yet.",
+    "dialogAdd": "Add education",
+    "dialogEdit": "Edit education",
+    "institution": "Institution",
+    "degree": "Degree",
+    "field": "Field of study",
+    "endYear": "Graduation year"
+  },
+  "languages": {
+    "add": "+ Add language",
+    "empty": "No languages added yet.",
+    "dialogAdd": "Add language",
+    "dialogEdit": "Edit language",
+    "name": "Language",
+    "level": "Level"
+  },
+  "level": {
+    "native": "Native",
+    "fluent": "Fluent",
+    "advanced": "Advanced",
+    "intermediate": "Intermediate",
+    "basic": "Basic"
+  },
+  "dialog": {
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "answers": {
+    "workAuthorization": "Work authorization",
+    "workAuthorizationOther": "Describe your work authorization",
+    "workAuth": {
+      "authorized": "Authorized to work here without sponsorship",
+      "sponsorship": "Would need visa sponsorship",
+      "other": "Other"
+    },
+    "relocation": "Relocation readiness",
+    "relocationOption": {
+      "not_open": "Not open to relocation",
+      "open": "Open to relocation",
+      "relocating": "Already relocating"
+    },
+    "noticePeriod": "Notice period",
+    "noticeOption": {
+      "immediate": "Available immediately",
+      "2_weeks": "2 weeks",
+      "1_month": "1 month",
+      "2_months_plus": "2+ months"
+    }
+  },
+  "salary": {
+    "legend": "Expected salary",
+    "min": "Min",
+    "max": "Max",
+    "currency": "Currency",
+    "period": "Period",
+    "month": "/month",
+    "year": "/year"
+  },
+  "loading": {
+    "label": "Loading your profile"
+  },
+  "error": {
+    "body": "We couldn't load your profile."
+  }
+}

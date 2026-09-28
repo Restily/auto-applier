@@ -9,6 +9,8 @@ import { z } from "zod";
  */
 export const serverEnvSchema = z.object({
   API_URL: z.string().url().default("http://127.0.0.1:8000"),
+  /** The public origin of this app; OAuth redirects are built from it, never from request headers. */
+  APP_ORIGIN: z.string().url().default("http://localhost:3000"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
