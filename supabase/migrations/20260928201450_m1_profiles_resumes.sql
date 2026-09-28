@@ -110,7 +110,7 @@ begin
     raise exception 'skills item exceeds 60 characters' using errcode = '23514';
   end if;
   if exists (
-    select 1 from jsonb_array_elements(new.experience) e
+    select 1 from jsonb_array_elements(case when pg_catalog.jsonb_typeof(new.experience) = 'array' then new.experience else '[]'::jsonb end) e
     where pg_catalog.char_length(e ->> 'title') > 200
        or pg_catalog.char_length(e ->> 'company') > 200
        or pg_catalog.char_length(e ->> 'description') > 2000
@@ -118,7 +118,7 @@ begin
     raise exception 'experience entry text exceeds its limit' using errcode = '23514';
   end if;
   if exists (
-    select 1 from jsonb_array_elements(new.education) e
+    select 1 from jsonb_array_elements(case when pg_catalog.jsonb_typeof(new.education) = 'array' then new.education else '[]'::jsonb end) e
     where pg_catalog.char_length(e ->> 'institution') > 200
        or pg_catalog.char_length(e ->> 'degree') > 200
        or pg_catalog.char_length(e ->> 'field') > 200
@@ -126,7 +126,7 @@ begin
     raise exception 'education entry text exceeds 200 characters' using errcode = '23514';
   end if;
   if exists (
-    select 1 from jsonb_array_elements(new.languages) e where pg_catalog.char_length(e ->> 'name') > 100
+    select 1 from jsonb_array_elements(case when pg_catalog.jsonb_typeof(new.languages) = 'array' then new.languages else '[]'::jsonb end) e where pg_catalog.char_length(e ->> 'name') > 100
   ) then
     raise exception 'languages name exceeds 100 characters' using errcode = '23514';
   end if;

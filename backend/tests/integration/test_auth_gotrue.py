@@ -19,7 +19,7 @@ from .supabase_helpers import (
 )
 
 MakeUser = Callable[..., Awaitable[TestUser]]
-PASSWORD = "correct-horse-battery"
+PASSWORD = "correct-horse-battery"  # noqa: S105 - fake test secret
 
 
 @pytest.fixture
@@ -59,9 +59,10 @@ def _uid(response: httpx.Response) -> UUID:
 
 
 async def _grants(pool: asyncpg.Pool, user_id: UUID) -> list[asyncpg.Record]:
-    return await pool.fetch(
+    rows: list[asyncpg.Record] = await pool.fetch(
         "select delta, reason from public.credit_ledger where user_id = $1", user_id
     )
+    return rows
 
 
 async def test_email_signup_creates_profile_and_single_grant(
@@ -70,7 +71,8 @@ async def test_email_signup_creates_profile_and_single_grant(
     response = await signup(unique_email(), locale="ru")
     assert response.status_code == 200, response.text
     user_id = _uid(response)
-    assert await pool.fetchval("select ui_locale from public.profiles where id = $1", user_id) == "ru"
+    locale = await pool.fetchval("select ui_locale from public.profiles where id = $1", user_id)
+    assert locale == "ru"
     rows = await _grants(pool, user_id)
     assert [(r["delta"], r["reason"]) for r in rows] == [(20, "signup_grant")]
 
@@ -84,7 +86,9 @@ async def test_repeated_sign_in_never_grants_again(
 ) -> None:
     user = await make_user()
     for _ in range(2):
-        response = await password_sign_in(http, supabase_url, supabase_secret, user.email, user.password)
+        response = await password_sign_in(
+            http, supabase_url, supabase_secret, user.email, user.password
+        )
         assert response.status_code == 200
     assert len(await _grants(pool, user.id)) == 1
 
@@ -93,7 +97,7 @@ async def test_password_shorter_than_8_is_rejected(
     pool: asyncpg.Pool, signup: Callable[..., Awaitable[httpx.Response]]
 ) -> None:
     email = unique_email()
-    response = await signup(email, password="1234567")
+    response = await signup(email, password="1234567")  # noqa: S106 - fake, too short on purpose
     assert response.status_code == 422
     assert response.json()["error_code"] == "weak_password"
     assert await pool.fetchval("select count(*) from auth.users where email = $1", email) == 0
@@ -252,7 +256,8 @@ async def test_recovery_token_reused_is_rejected(
 ) -> None:
     user = await make_user()
     token_hash = await _recover_and_hash(pool, http, supabase_url, supabase_publishable_key, user)
-    assert (await verify_recovery(http, supabase_url, supabase_secret, token_hash)).status_code == 200
+    first = await verify_recovery(http, supabase_url, supabase_secret, token_hash)
+    assert first.status_code == 200
     assert await recovery_token_hash(pool, user.id) is None
     second = await verify_recovery(http, supabase_url, supabase_secret, token_hash)
     assert second.status_code == 403
@@ -262,6 +267,7 @@ async def test_recovery_token_reused_is_rejected(
 async def test_recovery_token_unknown_is_rejected(
     http: httpx.AsyncClient, supabase_url: str, supabase_secret: str
 ) -> None:
-    response = await verify_recovery(http, supabase_url, supabase_secret, uuid4().hex + uuid4().hex[:24])
+    unknown = uuid4().hex + uuid4().hex[:24]
+    response = await verify_recovery(http, supabase_url, supabase_secret, unknown)
     assert response.status_code == 403
     assert response.json()["error_code"] == "otp_expired"

@@ -1,7 +1,8 @@
 """Helpers for integration tests against the real local GoTrue and Mailpit.
 
 All calls are async and use `httpx`. Admin calls send the `sb_secret_...` key as both
-`apikey` and `Authorization: Bearer` (see docs/solutions/gotrue-secret-key-and-local-auth-testing.md).
+`apikey` and `Authorization: Bearer`
+(see docs/solutions/gotrue-secret-key-and-local-auth-testing.md).
 """
 
 import asyncio
