@@ -2,7 +2,7 @@
 id: T-019
 type: task
 title: "M1 plan Task 8: Auth screens: sign up, sign in, forgot/reset password, sign out, Google"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -26,3 +26,4 @@ updated: 2026-09-28
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 23:00 note (team-lead): lead: tests/e2e/helpers/auth.ts (T-016) assumes /sign-up and /sign-in with en/ru label regexes; align with the real screens.
+- 2026-09-28 23:00 todo → in_progress (team-lead)

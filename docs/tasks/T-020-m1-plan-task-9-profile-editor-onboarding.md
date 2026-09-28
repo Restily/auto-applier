@@ -2,7 +2,7 @@
 id: T-020
 type: task
 title: "M1 plan Task 9: Profile editor, onboarding checklist, D5-aware welcome toast"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -26,3 +26,4 @@ updated: 2026-09-28
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 23:00 note (team-lead): lead: credit-balance popover copy (shell.credits normal/low/empty) was written by frontend-dev without a spec; designer confirms in M1 design review.
+- 2026-09-28 23:00 todo → in_progress (team-lead)
