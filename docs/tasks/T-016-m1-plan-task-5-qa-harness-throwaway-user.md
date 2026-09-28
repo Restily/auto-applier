@@ -2,7 +2,7 @@
 id: T-016
 type: task
 title: "M1 plan Task 5: QA harness: throwaway users, Mailpit, axe, RLS/Storage/D5 as real users, chromium-mobile touch project"
-status: in_progress
+status: qa
 milestone: M1
 owner: qa-automation
 priority: P0
@@ -20,9 +20,11 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Plan task 5 implemented; its tests pass
+- [x] Plan task 5 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 22:50 todo → in_progress (team-lead)
+- 2026-09-28 22:52 AC 1 ✔ (qa-automation): vitest run tests/integration/rls + playwright-config.test.ts: 21 passed; tsc -p tests clean
+- 2026-09-28 22:52 in_progress → qa (qa-automation): QA harness + RLS/Storage/D5 tests + chromium-mobile Pixel 7; uncommitted

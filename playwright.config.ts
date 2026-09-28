@@ -19,12 +19,9 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
     {
+      // T-008: real touch emulation. Pixel 7 gives isMobile, hasTouch and a mobile Chrome UA.
       name: "chromium-mobile",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 360, height: 740 },
-        isMobile: true,
-      },
+      use: { ...devices["Pixel 7"], viewport: { width: 360, height: 740 } },
     },
   ],
 });

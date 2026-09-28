@@ -1,0 +1,22 @@
+{
+  "title": "Состояние системы",
+  "viewLink": "Открыть состояние системы",
+  "overall": "Общий статус",
+  "checks": "Проверки",
+  "overallState": {
+    "operational": "Работает",
+    "degraded": "Работает с перебоями",
+    "unavailable": "Недоступно"
+  },
+  "state": {
+    "ok": "OK",
+    "down": "Не работает"
+  },
+  "check": {
+    "database": "База данных",
+    "queue": "Очередь"
+  },
+  "apiUnreachable": "API недоступен",
+  "version": "Версия {version}",
+  "checkedAt": "Проверено {time}"
+}

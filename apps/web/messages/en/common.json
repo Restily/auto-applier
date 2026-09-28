@@ -1,0 +1,13 @@
+{
+  "brand": "AutoApplier",
+  "retry": "Try again",
+  "cancel": "Cancel",
+  "save": "Save changes",
+  "saved": "Saved",
+  "edit": "Edit",
+  "remove": "Remove",
+  "loading": "Loading…",
+  "genericError": {
+    "title": "Something went wrong"
+  }
+}

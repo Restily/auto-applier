@@ -1,0 +1,22 @@
+{
+  "title": "System health",
+  "viewLink": "View system health",
+  "overall": "Overall status",
+  "checks": "Checks",
+  "overallState": {
+    "operational": "Operational",
+    "degraded": "Degraded",
+    "unavailable": "Unavailable"
+  },
+  "state": {
+    "ok": "OK",
+    "down": "Down"
+  },
+  "check": {
+    "database": "Database",
+    "queue": "Queue"
+  },
+  "apiUnreachable": "API unreachable",
+  "version": "Version {version}",
+  "checkedAt": "Checked at {time}"
+}
