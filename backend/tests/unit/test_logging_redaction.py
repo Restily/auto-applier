@@ -50,4 +50,5 @@ def test_configure_twice_does_not_duplicate_handlers() -> None:
     configure_logging(Settings(_env_file=None))
     configure_logging(Settings(_env_file=None))
 
-    assert len(logging.getLogger().handlers) == 1
+    ours = [h for h in logging.getLogger().handlers if h.get_name() == "autoapplier-json"]
+    assert len(ours) == 1

@@ -34,9 +34,9 @@ class Settings(BaseSettings):
     supabase_url: str = "http://127.0.0.1:54321"
     supabase_secret_key: SecretStr | None = None
 
-    api_host: str = "127.0.0.1"
-    api_port: int = 8000
-    web_origin: str = "http://localhost:3000"
+    # HS256 fallback only; ES256 tokens are verified via the JWKS (ADR-0004).
+    supabase_jwt_secret: SecretStr | None = None
+    auth_jwks_cache_ttl_s: float = Field(default=600, gt=0)
 
     llm_provider: LLMProviderName = "fake"
     llm_model_fast: str | None = None
@@ -55,9 +55,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _test_env_requires_fake_llm(self) -> Self:
-        if self.app_env == "test" and self.llm_provider != "fake":
+        if self.app_env in ("test", "ci") and self.llm_provider != "fake":
             raise ValueError(
-                "tests must never call a live LLM: set LLM_PROVIDER=fake when APP_ENV=test"
+                "tests must never call a live LLM: "
+                f"set LLM_PROVIDER=fake when APP_ENV={self.app_env}"
             )
         return self
 

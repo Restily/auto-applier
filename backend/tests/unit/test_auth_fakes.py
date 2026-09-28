@@ -5,7 +5,13 @@ from uuid import UUID, uuid4
 import pytest
 
 from autoapplier.adapters.auth.fake import FakeAuthAdmin, FakeTokenVerifier
-from autoapplier.ports.auth import AuthAdmin, AuthAdminError, AuthClaims, InvalidTokenError, TokenVerifier
+from autoapplier.ports.auth import (
+    AuthAdmin,
+    AuthAdminError,
+    AuthClaims,
+    InvalidTokenError,
+    TokenVerifier,
+)
 
 UID = uuid4()
 CLAIMS = AuthClaims(UID, "a@example.test", "authenticated", None, {"sub": str(UID)})

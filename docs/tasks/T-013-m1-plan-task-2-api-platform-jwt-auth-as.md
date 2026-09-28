@@ -2,7 +2,7 @@
 id: T-013
 type: task
 title: "M1 plan Task 2: API platform: JWT auth, as_user, problem details, Storage/Auth-admin adapters, log redaction, settings cleanup"
-status: in_progress
+status: qa
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -20,9 +20,11 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Plan task 2 implemented; its tests pass
+- [x] Plan task 2 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 22:50 todo → in_progress (team-lead)
+- 2026-09-28 22:56 AC 1 ✔ (backend-dev): backend: 191 pytest (unit+integration) pass; ruff, mypy, lint-imports (6 kept) clean; check:openapi exit 0; tests in backend/tests/unit/test_{config,jwt_verifier,api_auth,problem_handlers,logging_redaction,storage_fake,auth_fakes}.py and tests/integration/test_{as_user,jwt_verifier_live,supabase_storage,gotrue_admin}.py
+- 2026-09-28 22:56 in_progress → qa (backend-dev): Plan task 2 implemented, uncommitted (lead commits wave)

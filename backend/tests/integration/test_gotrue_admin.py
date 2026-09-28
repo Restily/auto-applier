@@ -21,7 +21,9 @@ async def test_delete_user_blocks_password_sign_in(
 
     await admin.delete_user(user.id)
 
-    response = await password_sign_in(http, supabase_url, supabase_secret, user.email, user.password)
+    response = await password_sign_in(
+        http, supabase_url, supabase_secret, user.email, user.password
+    )
     assert response.status_code == 400
 
 

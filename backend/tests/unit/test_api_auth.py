@@ -84,7 +84,7 @@ async def test_me_returns_user() -> None:
 
 
 async def test_problem_never_echoes_token() -> None:
-    token = "SUPER-SECRET-TOKEN-VALUE"
+    token = "SUPER-SECRET-TOKEN-VALUE"  # noqa: S105
     async with _client() as client:
         response = await client.get("/v1/me", headers={"Authorization": f"Bearer {token}"})
 

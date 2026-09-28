@@ -81,4 +81,3 @@ def test_env_example_suggests_model_ids() -> None:
     example = (BACKEND_DIR / ".env.example").read_text()
     assert "claude-opus-5" in example
     assert "claude-haiku-4-5" in example
-

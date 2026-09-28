@@ -24,6 +24,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Me */
+        get: operations["get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -51,6 +68,13 @@ export interface components {
             database: components["schemas"]["CheckOut"];
             queue: components["schemas"]["CheckOut"];
         };
+        /** FieldError */
+        FieldError: {
+            /** Loc */
+            loc: (string | number)[];
+            /** Type */
+            type: string;
+        };
         /**
          * HealthResponse
          * @description The `GET /health` response body: never exposes secrets or connection strings.
@@ -64,6 +88,34 @@ export interface components {
             status: "ok" | "degraded";
             /** Version */
             version: string;
+        };
+        /** MeResponse */
+        MeResponse: {
+            /** Email */
+            email: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** Problem */
+        Problem: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail?: string | null;
+            /** Errors */
+            errors?: components["schemas"]["FieldError"][] | null;
+            /** Status */
+            status: number;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @default about:blank
+             */
+            type: string;
         };
     };
     responses: never;
@@ -99,6 +151,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    get_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
         };

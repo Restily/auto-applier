@@ -48,7 +48,9 @@ async def test_rls_limits_rows_to_caller(pool: asyncpg.Pool, make_user: MakeUser
     await _grant(pool, b.id, f"b-{b.id}")
 
     async with as_user(pool, _claims(a)) as conn:
-        owners = {r["user_id"] for r in await conn.fetch("select user_id from public.credit_ledger")}
+        owners = {
+            r["user_id"] for r in await conn.fetch("select user_id from public.credit_ledger")
+        }
 
     assert owners == {a.id}
 
@@ -70,12 +72,17 @@ async def test_role_reset_after_block(pool: asyncpg.Pool, make_user: MakeUser) -
 async def test_exception_rolls_back(pool: asyncpg.Pool, make_user: MakeUser) -> None:
     user = await make_user()
 
-    with pytest.raises(RuntimeError):
+    async def _fail() -> None:
         async with as_user(pool, _claims(user)) as conn:
             await conn.execute("update public.profiles set ui_locale = 'ru' where id = $1", user.id)
             raise RuntimeError("boom")
 
-    assert await pool.fetchval("select ui_locale from public.profiles where id = $1", user.id) == "en"
+    with pytest.raises(RuntimeError):
+        await _fail()
+
+    assert (
+        await pool.fetchval("select ui_locale from public.profiles where id = $1", user.id) == "en"
+    )
 
 
 async def test_cross_user_rows_invisible_and_unwritable(
@@ -92,7 +99,9 @@ async def test_cross_user_rows_invisible_and_unwritable(
         ):
             rows = await conn.fetch(f"select 1 from {table} where {col} = $1", a.id)  # noqa: S608
             assert rows == []
-        status = await conn.execute("update public.profiles set ui_locale = 'ru' where id = $1", a.id)
+        status = await conn.execute(
+            "update public.profiles set ui_locale = 'ru' where id = $1", a.id
+        )
 
     assert status == "UPDATE 0"
     assert await pool.fetchval("select ui_locale from public.profiles where id = $1", a.id) == "en"

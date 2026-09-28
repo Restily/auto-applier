@@ -8,13 +8,16 @@ from dataclasses import dataclass
 from typing import cast
 
 import asyncpg
+import httpx
 import pytest
 import redis
 from celery import Celery
 
 from autoapplier.config import Settings
+from autoapplier.ports.auth import AuthAdmin, TokenVerifier
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
+from autoapplier.ports.storage import FileStorage
 from autoapplier.services.health import HealthService
 from autoapplier.wiring import Container, close_container
 
@@ -39,6 +42,14 @@ class _FakeRedis:
 
 
 @dataclass
+class _FakeHttp:
+    closed: bool = False
+
+    async def aclose(self) -> None:
+        self.closed = True
+
+
+@dataclass
 class _FakeCeleryApp:
     closed: bool = False
 
@@ -56,6 +67,10 @@ def _container(pool: _FakePool, redis_client: _FakeRedis, celery_app: _FakeCeler
         llm=cast(LLMProvider, None),
         queue=cast(JobQueue, None),
         celery_app=cast(Celery, celery_app),
+        http=cast(httpx.AsyncClient, _FakeHttp()),
+        tokens=cast(TokenVerifier, None),
+        auth_admin=cast(AuthAdmin, None),
+        storage=cast(FileStorage, None),
     )
 
 

@@ -129,7 +129,7 @@ async def test_wrong_role_and_missing_sub_rejected(
 @respx.mock
 async def test_alg_none_rejected(http: httpx.AsyncClient, key: ec.EllipticCurvePrivateKey) -> None:
     respx.get(JWKS_URL).respond(json=_jwks(key))
-    token = jwt.encode(_claims(), None, algorithm="none", headers={"kid": KID})
+    token = jwt.encode(_claims(), None, algorithm="none", headers={"kid": KID})  # type: ignore[arg-type]
 
     with pytest.raises(InvalidTokenError):
         await _verifier(http, hs256_secret=SecretStr("x" * 32)).verify(token)
@@ -137,7 +137,7 @@ async def test_alg_none_rejected(http: httpx.AsyncClient, key: ec.EllipticCurveP
 
 @respx.mock
 async def test_hs256_rejected_without_secret(http: httpx.AsyncClient) -> None:
-    secret = "a-shared-secret-of-at-least-32-bytes!"
+    secret = "a-shared-secret-of-at-least-32-bytes!"  # noqa: S105
     token = jwt.encode(_claims(), secret, algorithm="HS256")
 
     with pytest.raises(InvalidTokenError):
@@ -146,7 +146,7 @@ async def test_hs256_rejected_without_secret(http: httpx.AsyncClient) -> None:
 
 @respx.mock
 async def test_hs256_accepted_with_secret(http: httpx.AsyncClient) -> None:
-    secret = "a-shared-secret-of-at-least-32-bytes!"
+    secret = "a-shared-secret-of-at-least-32-bytes!"  # noqa: S105
     token = jwt.encode(_claims(), secret, algorithm="HS256")
 
     claims = await _verifier(http, hs256_secret=SecretStr(secret)).verify(token)
