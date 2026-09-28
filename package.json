@@ -18,6 +18,7 @@
     "typecheck:tests": "tsc -p tests",
     "test:unit": "npm run test:unit:py && npm run test:unit:web",
     "test:unit:py": "uv run --directory backend pytest tests/unit -q",
+    "test:coverage:py": "uv run --directory backend pytest tests/unit --cov=autoapplier.domain --cov=autoapplier.services --cov-report=term-missing -q",
     "test:integration:py": "bash team/bin/app.sh supabase && bash scripts/valkey.sh start && uv run --directory backend pytest tests/integration -q",
     "test:db": "bash scripts/supabase.sh test db",
     "test:integration:web": "vitest run --config vitest.config.ts",
@@ -39,7 +40,9 @@
     "build:web": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13",
     "@playwright/test": "1.56.1",
+    "@supabase/supabase-js": "^2",
     "@types/node": "^22",
     "concurrently": "^10",
     "typescript": "~6.0.3",
