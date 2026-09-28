@@ -2,7 +2,7 @@
 id: T-009
 type: task
 title: "Tech debt: scripts/ under ruff+mypy; per-queue worker heartbeats; valkey.sh checks docker exit status"
-status: qa
+status: done
 milestone: M1
 owner: backend-dev
 priority: P2
@@ -30,3 +30,4 @@ updated: 2026-09-28
 - 2026-09-28 22:50 todo → in_progress (team-lead)
 - 2026-09-28 22:52 AC 1 ✔ (backend-dev): test_valkey_script.py 4 pass; probes (F401, untyped def) exit 1; lint:py/typecheck:py cover scripts/*.py; TD-007 in TECH-DEBT.md
 - 2026-09-28 22:52 in_progress → qa (backend-dev): scripts under ruff+mypy, valkey.sh fail-fast; uncommitted
+- 2026-09-28 23:00 qa → done (team-lead)

@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 23:00 note (team-lead): lead: tests/e2e/helpers/auth.ts (T-016) assumes /sign-up and /sign-in with en/ru label regexes; align with the real screens.

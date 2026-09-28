@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 23:00 note (team-lead): lead: credit-balance popover copy (shell.credits normal/low/empty) was written by frontend-dev without a spec; designer confirms in M1 design review.

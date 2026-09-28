@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 23:00 note (team-lead): lead: apps/web/messages/*/settings.json already holds language.saveFailed (T-015); extend the file, do not overwrite.
