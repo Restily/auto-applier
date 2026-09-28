@@ -9,6 +9,7 @@ from autoapplier import __version__
 from autoapplier.api.errors import install_problem_handlers
 from autoapplier.api.routes.health import router as health_router
 from autoapplier.api.routes.me import router as me_router
+from autoapplier.api.routes.resumes import router as resumes_router
 from autoapplier.config import Settings, get_settings
 from autoapplier.wiring import Container, build_container, close_container
 
@@ -41,4 +42,5 @@ def create_app(settings: Settings | None = None, *, container: Container | None 
     install_problem_handlers(app)
     app.include_router(health_router)
     app.include_router(me_router)
+    app.include_router(resumes_router)
     return app

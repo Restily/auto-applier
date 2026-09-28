@@ -37,3 +37,6 @@ def _shutdown_runtime(**_: object) -> None:
 
 worker_process_shutdown.connect(_shutdown_runtime)
 worker_shutdown.connect(_shutdown_runtime)
+
+# Imported last: the task module reads `runtime` from this module.
+from autoapplier.worker.tasks import resume  # noqa: E402,F401  (registers resume.* tasks)

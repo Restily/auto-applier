@@ -15,10 +15,13 @@ from celery import Celery
 
 from autoapplier.config import Settings
 from autoapplier.ports.auth import AuthAdmin, TokenVerifier
+from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
 from autoapplier.ports.storage import FileStorage
 from autoapplier.services.health import HealthService
+from autoapplier.services.resume_extraction import ResumeExtractionService
+from autoapplier.services.resumes import ResumeService
 from autoapplier.wiring import Container, close_container
 
 
@@ -71,6 +74,9 @@ def _container(pool: _FakePool, redis_client: _FakeRedis, celery_app: _FakeCeler
         tokens=cast(TokenVerifier, None),
         auth_admin=cast(AuthAdmin, None),
         storage=cast(FileStorage, None),
+        documents=cast(DocumentTextExtractor, None),
+        resumes=cast(ResumeService, None),
+        resume_extraction=cast(ResumeExtractionService, None),
     )
 
 

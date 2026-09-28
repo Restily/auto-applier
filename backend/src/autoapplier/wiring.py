@@ -20,6 +20,7 @@ from pydantic import SecretStr
 from autoapplier import __version__
 from autoapplier.adapters.auth.gotrue_admin import GoTrueAdmin
 from autoapplier.adapters.auth.jwt_verifier import JwtVerifier
+from autoapplier.adapters.documents.pypdf_docx import PyPdfDocxTextExtractor
 from autoapplier.adapters.llm.registry import build_llm_provider
 from autoapplier.adapters.queue.celery_factory import create_celery_app
 from autoapplier.adapters.queue.celery_queue import CeleryJobQueue
@@ -27,13 +28,17 @@ from autoapplier.adapters.storage.supabase import SupabaseStorage
 from autoapplier.config import Settings
 from autoapplier.db.pool import create_pool
 from autoapplier.db.probes import DatabaseProbe
+from autoapplier.db.resumes import PgResumeStore
 from autoapplier.kv.client import create_async_redis
 from autoapplier.kv.probes import QueueProbe
 from autoapplier.ports.auth import AuthAdmin, TokenVerifier
+from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
 from autoapplier.ports.storage import FileStorage
 from autoapplier.services.health import HealthService
+from autoapplier.services.resume_extraction import ResumeExtractionService
+from autoapplier.services.resumes import ResumeService
 
 
 @dataclass
@@ -51,6 +56,9 @@ class Container:
     tokens: TokenVerifier
     auth_admin: AuthAdmin
     storage: FileStorage
+    documents: DocumentTextExtractor
+    resumes: ResumeService
+    resume_extraction: ResumeExtractionService
 
 
 async def build_container(settings: Settings) -> Container:
@@ -75,13 +83,18 @@ async def build_container(settings: Settings) -> Container:
     # No secret key configured: the admin adapters still build and fail on first use, so a
     # missing key never breaks startup or /health (build_container never raises).
     secret_key = settings.supabase_secret_key or SecretStr("")
+    llm = build_llm_provider(settings)
+    queue = CeleryJobQueue(celery_app)
+    storage = SupabaseStorage(base_url=settings.supabase_url, secret_key=secret_key, http=http)
+    documents = PyPdfDocxTextExtractor()
+    resume_store = PgResumeStore(pool)
     return Container(
         settings=settings,
         pool=pool,
         redis=redis_client,
         health=health,
-        llm=build_llm_provider(settings),
-        queue=CeleryJobQueue(celery_app),
+        llm=llm,
+        queue=queue,
         celery_app=celery_app,
         http=http,
         tokens=JwtVerifier(
@@ -92,7 +105,10 @@ async def build_container(settings: Settings) -> Container:
             cache_ttl_s=settings.auth_jwks_cache_ttl_s,
         ),
         auth_admin=GoTrueAdmin(base_url=settings.supabase_url, secret_key=secret_key, http=http),
-        storage=SupabaseStorage(base_url=settings.supabase_url, secret_key=secret_key, http=http),
+        storage=storage,
+        documents=documents,
+        resumes=ResumeService(resume_store, storage, queue),
+        resume_extraction=ResumeExtractionService(resume_store, storage, documents, llm),
     )
 
 

@@ -13,9 +13,12 @@ from autoapplier.adapters.storage.fake import InMemoryFileStorage
 from autoapplier.api.app import create_app
 from autoapplier.config import Settings
 from autoapplier.ports.auth import AuthClaims
+from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
 from autoapplier.services.health import HealthService
+from autoapplier.services.resume_extraction import ResumeExtractionService
+from autoapplier.services.resumes import ResumeService
 from autoapplier.wiring import Container
 
 USER = UUID("3f2b8f0e-6a55-4c33-9d0e-1f2a3b4c5d6e")
@@ -42,6 +45,9 @@ def _client() -> httpx.AsyncClient:
         tokens=FakeTokenVerifier({GOOD: CLAIMS}),
         auth_admin=FakeAuthAdmin(),
         storage=InMemoryFileStorage(),
+        documents=cast(DocumentTextExtractor, None),
+        resumes=cast(ResumeService, None),
+        resume_extraction=cast(ResumeExtractionService, None),
     )
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(create_app(container=container)), base_url="http://test"
