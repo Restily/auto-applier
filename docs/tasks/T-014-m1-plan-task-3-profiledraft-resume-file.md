@@ -1,0 +1,27 @@
+---
+id: T-014
+type: task
+title: "M1 plan Task 3: ProfileDraft, resume file sniffing, document text extraction, Anthropic adapter, fake markers"
+status: todo
+milestone: M1
+owner: backend-dev
+priority: P0
+depends_on: [T-010]
+files: [backend/src/autoapplier/domain/profile.py, backend/src/autoapplier/domain/resume_files.py, backend/src/autoapplier/ports/documents.py, backend/src/autoapplier/adapters/documents/**, backend/src/autoapplier/adapters/llm/**, backend/tests/fixtures/**, backend/tests/contract/**, backend/tests/unit/test_profile_draft.py, backend/tests/unit/test_resume_files.py, backend/tests/unit/test_document_text_extractor.py, backend/tests/unit/test_llm_fake_markers.py, backend/tests/unit/test_llm_registry.py]
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
+needs_human: false
+created: 2026-09-28
+updated: 2026-09-28
+---
+
+## What to do
+
+…
+
+## Definition of done
+
+- [ ] Plan task 3 implemented; its tests pass
+
+## Log
+
+- 2026-09-28 09:15 created (architect)

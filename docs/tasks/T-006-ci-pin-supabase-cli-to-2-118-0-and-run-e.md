@@ -6,6 +6,9 @@ status: todo
 milestone: M1
 owner: qa-automation
 priority: P2
+depends_on: [T-011]
+files: [.github/workflows/ci.yml, tests/integration/ci-workflow.test.ts]
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
 updated: 2026-09-28
@@ -22,3 +25,5 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 07:54 created (team-lead)
+- 2026-09-28 09:15 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md, files=[.github/workflows/ci.yml, tests/integration/ci-workflow.test.ts], depends_on=[T-011] (team-lead)
+- 2026-09-28 09:15 note (architect): Plan Task 14 (CI pin + APP_ENV=ci/LLM_PROVIDER=fake); Task 2 adds the ci→fake settings validator.
