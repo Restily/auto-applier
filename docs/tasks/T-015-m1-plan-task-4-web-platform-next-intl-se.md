@@ -2,7 +2,7 @@
 id: T-015
 type: task
 title: "M1 plan Task 4: Web platform: next-intl, session proxy, app shell and header widgets"
-status: in_progress
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -20,9 +20,11 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Plan task 4 implemented; its tests pass
+- [x] Plan task 4 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 22:50 todo → in_progress (team-lead)
+- 2026-09-28 22:59 AC 1 ✔ (frontend-dev): npm run -s lint/typecheck/test:unit/build exit 0 (19 files, 115 tests); quality-gate fast PASS; /health verified 375+1280 and RU via cookie
+- 2026-09-28 22:59 in_progress → qa (frontend-dev): Plan task 4 done: next-intl (cookie/profile/Accept-Language), proxy.ts session refresh + redirects, focus/app shell, credit balance, language switcher, account menu, i18n ESLint rule, health i18n (TD-001). Not committed.
