@@ -50,7 +50,25 @@ describe("CI workflow (.github/workflows/ci.yml)", () => {
 
     const setupSupabase = steps.find((step) => step.uses === "supabase/setup-cli@v1");
     expect(setupSupabase).toBeDefined();
-    expect((setupSupabase!.with as Record<string, unknown>).version).toBe("latest");
+    expect((setupSupabase!.with as Record<string, unknown>).version).toBe("2.118.0");
+  });
+
+  it("pins the Supabase CLI to 2.118.0", () => {
+    const steps: Array<Record<string, unknown>> = workflow.jobs.quality.steps;
+    const setupSupabase = steps.find((step) => step.uses === "supabase/setup-cli@v1");
+    expect(setupSupabase).toBeDefined();
+
+    const version = (setupSupabase!.with as Record<string, unknown>).version;
+    expect(typeof version).toBe("string");
+    expect(version).toBe("2.118.0");
+  });
+
+  it("runs the quality job with APP_ENV=ci and LLM_PROVIDER=fake", () => {
+    const job = workflow.jobs.quality as Record<string, unknown>;
+    const env = job.env as Record<string, unknown> | undefined;
+    expect(env).toBeDefined();
+    expect(env!.APP_ENV).toBe("ci");
+    expect(env!.LLM_PROVIDER).toBe("fake");
   });
 
   it("checks out the repo before anything else", () => {
