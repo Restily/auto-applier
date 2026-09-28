@@ -43,7 +43,7 @@ def generate_types() -> str:
     """
     try:
         result = subprocess.run(  # noqa: S603
-            [
+            [  # noqa: S607
                 "bash",
                 str(SUPABASE_SCRIPT),
                 "gen",
@@ -70,7 +70,9 @@ def generate_types() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true", help="write the generated types to disk")
     mode.add_argument("--check", action="store_true", help="fail if the file on disk is stale")
