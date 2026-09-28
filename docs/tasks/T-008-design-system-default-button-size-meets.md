@@ -20,7 +20,7 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Given the shadcn Button default size, Then it renders at least 44px high, verified by a component test; the chromium-mobile project sets hasTouch and a mobile UA
+- [x] Given the shadcn Button default size, Then it renders at least 44px high, verified by a component test; the chromium-mobile project sets hasTouch and a mobile UA
 
 ## Log
 
@@ -28,3 +28,5 @@ updated: 2026-09-28
 - 2026-09-28 09:15 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md, files=[apps/web/src/components/ui/button.tsx, apps/web/src/components/ui/button.test.tsx], depends_on=[T-011] (team-lead)
 - 2026-09-28 09:15 note (architect): Plan Task 15 (Button sizes, frontend-dev). The chromium-mobile half (hasTouch + mobile UA) is in Task 5 / T-016 (qa-automation owns playwright.config.ts); rendered 44px check in Task 12 / T-023.
 - 2026-09-28 12:39 todo → in_progress (team-lead)
+- 2026-09-28 20:15 AC 1 ✔ (frontend-dev): apps/web/src/components/ui/button.test.tsx (3/4 fail on old h-9, pass now); chromium-mobile hasTouch/UA part is plan Task 5 (T-016), not covered here
+- 2026-09-28 20:15 note (frontend-dev): Button half done+verified; chromium-mobile hasTouch+UA remains in Task 5 (qa-automation). Left in_progress.

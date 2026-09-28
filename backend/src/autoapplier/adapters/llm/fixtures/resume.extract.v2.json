@@ -1,0 +1,55 @@
+{
+  "text": "Extracted profile (v2)",
+  "data": {
+    "full_name": "Alex Ivanov",
+    "contact_email": "alex.ivanov@example.test",
+    "phone": "+1 555 0100",
+    "location": "Berlin, Germany",
+    "headline": "Staff backend engineer",
+    "target_titles": [
+      "Staff Engineer"
+    ],
+    "skills": [
+      "Python",
+      "Go",
+      "PostgreSQL"
+    ],
+    "years_experience": "10_plus",
+    "experience": [
+      {
+        "title": "Senior Backend Engineer",
+        "company": "Acme GmbH",
+        "start": "2019-03",
+        "end": null,
+        "current": true,
+        "description": "Built payment services in Python and PostgreSQL; led a team of four engineers."
+      }
+    ],
+    "education": [
+      {
+        "institution": "TU Berlin",
+        "degree": "BSc",
+        "field": "Computer Science",
+        "end_year": 2014
+      }
+    ],
+    "languages": [
+      {
+        "name": "English",
+        "level": "fluent"
+      },
+      {
+        "name": "German",
+        "level": "advanced"
+      },
+      {
+        "name": "Russian",
+        "level": "native"
+      }
+    ],
+    "links": {
+      "linkedin": null,
+      "portfolio": null
+    }
+  }
+}

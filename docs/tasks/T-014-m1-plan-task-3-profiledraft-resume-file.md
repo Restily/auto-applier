@@ -2,7 +2,7 @@
 id: T-014
 type: task
 title: "M1 plan Task 3: ProfileDraft, resume file sniffing, document text extraction, Anthropic adapter, fake markers"
-status: in_progress
+status: qa
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -20,9 +20,11 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Plan task 3 implemented; its tests pass
+- [x] Plan task 3 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 12:39 todo → in_progress (team-lead)
+- 2026-09-28 20:17 AC 1 ✔ (backend-dev): uv run --directory backend pytest tests/unit tests/contract -q -> 119 passed; gate lint/typecheck red only in T-012 tests/integration files
+- 2026-09-28 20:17 in_progress → qa (backend-dev): Task 3 implemented, uncommitted (lead commits wave)
