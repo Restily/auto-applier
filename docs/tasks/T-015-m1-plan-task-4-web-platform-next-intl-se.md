@@ -2,7 +2,7 @@
 id: T-015
 type: task
 title: "M1 plan Task 4: Web platform: next-intl, session proxy, app shell and header widgets"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 22:50 todo → in_progress (team-lead)

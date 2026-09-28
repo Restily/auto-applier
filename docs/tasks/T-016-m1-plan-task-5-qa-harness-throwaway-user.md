@@ -2,7 +2,7 @@
 id: T-016
 type: task
 title: "M1 plan Task 5: QA harness: throwaway users, Mailpit, axe, RLS/Storage/D5 as real users, chromium-mobile touch project"
-status: todo
+status: in_progress
 milestone: M1
 owner: qa-automation
 priority: P0
@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 22:50 todo → in_progress (team-lead)

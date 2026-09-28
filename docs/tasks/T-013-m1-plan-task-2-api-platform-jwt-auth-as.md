@@ -2,7 +2,7 @@
 id: T-013
 type: task
 title: "M1 plan Task 2: API platform: JWT auth, as_user, problem details, Storage/Auth-admin adapters, log redaction, settings cleanup"
-status: todo
+status: in_progress
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 22:50 todo → in_progress (team-lead)
