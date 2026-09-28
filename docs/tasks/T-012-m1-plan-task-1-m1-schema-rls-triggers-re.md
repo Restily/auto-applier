@@ -2,7 +2,7 @@
 id: T-012
 type: task
 title: "M1 plan Task 1: M1 schema, RLS, triggers, resume bucket, Auth config, localized reset email, D5 fingerprint"
-status: qa
+status: done
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -28,3 +28,4 @@ updated: 2026-09-28
 - 2026-09-28 12:39 todo → in_progress (team-lead)
 - 2026-09-28 22:49 AC 1 ✔ (backend-dev): supabase test db 85/85 PASS; pytest tests/integration 26 passed; check:db-types ok; quality-gate fast PASS
 - 2026-09-28 22:49 in_progress → qa (backend-dev): Finished WIP d069e1a: fixed touch_candidate_profile jsonb-type guard, lint/mypy; uncommitted, lead commits
+- 2026-09-28 22:50 qa → done (team-lead)
