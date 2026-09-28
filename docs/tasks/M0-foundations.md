@@ -2,14 +2,14 @@
 id: M0
 type: milestone
 title: Foundations
-status: building
+status: verifying
 owner: team-lead
 priority: P1
 ui: false
 release: false
 needs_human: false
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 ## Goal
@@ -29,3 +29,4 @@ Run `board.py gate M0 --run-checks` — it enforces the DoD from team/CONSTITUTI
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 12:17 todo → planning (team-lead)
 - 2026-09-27 13:05 planning → building (team-lead)
+- 2026-09-28 08:02 building → verifying (team-lead)

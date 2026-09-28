@@ -2,14 +2,14 @@
 id: T-003
 type: task
 title: "App skeleton, local Supabase and health page"
-status: in_progress
+status: qa
 milestone: M0
 owner: backend-dev
 priority: P0
 plan: docs/superpowers/plans/2026-09-27-M0-foundations.md
 needs_human: false
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 ## What to do
@@ -28,3 +28,4 @@ updated: 2026-09-27
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 12:38 set plan=docs/superpowers/plans/2026-09-27-M0-foundations.md (team-lead)
 - 2026-09-27 13:05 todo → in_progress (team-lead)
+- 2026-09-28 08:02 in_progress → qa (team-lead): all plan tasks merged; final review clean
