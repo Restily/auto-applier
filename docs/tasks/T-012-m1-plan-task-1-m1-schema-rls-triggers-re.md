@@ -2,7 +2,7 @@
 id: T-012
 type: task
 title: "M1 plan Task 1: M1 schema, RLS, triggers, resume bucket, Auth config, localized reset email, D5 fingerprint"
-status: todo
+status: in_progress
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-28 12:39 todo → in_progress (team-lead)

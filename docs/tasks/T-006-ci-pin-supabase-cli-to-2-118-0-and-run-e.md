@@ -2,7 +2,7 @@
 id: T-006
 type: task
 title: "CI: pin Supabase CLI to 2.118.0 and run e2e/integration with APP_ENV=ci + LLM_PROVIDER=fake"
-status: todo
+status: in_progress
 milestone: M1
 owner: qa-automation
 priority: P2
@@ -27,3 +27,4 @@ updated: 2026-09-28
 - 2026-09-28 07:54 created (team-lead)
 - 2026-09-28 09:15 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md, files=[.github/workflows/ci.yml, tests/integration/ci-workflow.test.ts], depends_on=[T-011] (team-lead)
 - 2026-09-28 09:15 note (architect): Plan Task 14 (CI pin + APP_ENV=ci/LLM_PROVIDER=fake); Task 2 adds the ci→fake settings validator.
+- 2026-09-28 12:39 todo → in_progress (team-lead)

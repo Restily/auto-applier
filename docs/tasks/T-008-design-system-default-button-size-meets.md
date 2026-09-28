@@ -2,7 +2,7 @@
 id: T-008
 type: task
 title: "Design system: default Button size meets the 44x44 touch target; chromium-mobile e2e project uses touch + mobile UA"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P2
@@ -27,3 +27,4 @@ updated: 2026-09-28
 - 2026-09-28 07:54 created (team-lead)
 - 2026-09-28 09:15 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md, files=[apps/web/src/components/ui/button.tsx, apps/web/src/components/ui/button.test.tsx], depends_on=[T-011] (team-lead)
 - 2026-09-28 09:15 note (architect): Plan Task 15 (Button sizes, frontend-dev). The chromium-mobile half (hasTouch + mobile UA) is in Task 5 / T-016 (qa-automation owns playwright.config.ts); rendered 44px check in Task 12 / T-023.
+- 2026-09-28 12:39 todo → in_progress (team-lead)
