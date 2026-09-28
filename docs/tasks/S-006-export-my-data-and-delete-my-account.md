@@ -37,3 +37,5 @@ As a <user>, I want <action>, so that <value>.
 - 2026-09-28 08:58 set needs_human=false (team-lead)
 - 2026-09-28 08:58 note (team-lead): D5 decided by human (2026-09-28): no repeat sign-up bonus after deletion — keep an HMAC of the normalized email after deletion, used only to block a second bonus; disclose in privacy policy.
 - 2026-09-28 09:15 note (architect): Architect (D5): designer to confirm the privacy placeholder + delete-dialog/account-deleted fingerprint copy in plan Task 10 (legal.privacy.*, account.delete.fingerprintNote, account.deleted.fingerprintNote).
+- 2026-09-28 09:18 note (designer): D5 copy confirmed: delete-dialog fingerprint disclosure (account.delete.fingerprintNote) and post-deletion note (account.deleted.fingerprintNote), both linking to /privacy#after-deletion; new /privacy placeholder spec added as S-006 §6d (legal.privacy.* keys). See docs/design/screens/S-006.md.
+- 2026-09-28 09:18 note (qa-automation): QA delta contract review (2026-09-28): AC2 D5 fingerprint addendum verified (positive + negative/rollback case). No gaps. See docs/qa/plans/M1-test-plan.md.
