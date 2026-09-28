@@ -2,7 +2,7 @@
 id: T-008
 type: task
 title: "Design system: default Button size meets the 44x44 touch target; chromium-mobile e2e project uses touch + mobile UA"
-status: in_progress
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P2
@@ -30,3 +30,4 @@ updated: 2026-09-28
 - 2026-09-28 12:39 todo → in_progress (team-lead)
 - 2026-09-28 20:15 AC 1 ✔ (frontend-dev): apps/web/src/components/ui/button.test.tsx (3/4 fail on old h-9, pass now); chromium-mobile hasTouch/UA part is plan Task 5 (T-016), not covered here
 - 2026-09-28 20:15 note (frontend-dev): Button half done+verified; chromium-mobile hasTouch+UA remains in Task 5 (qa-automation). Left in_progress.
+- 2026-09-28 22:43 in_progress → qa (team-lead)
