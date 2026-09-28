@@ -1,7 +1,31 @@
+import { z } from "zod";
+
 import { type ApiClient, createApiClient } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema.gen";
 
 export type HealthResponse = components["schemas"]["HealthResponse"];
+
+/**
+ * Runtime shape check for the `/health` response body. openapi-fetch parses
+ * a non-2xx body as JSON when possible, or hands back the raw text
+ * otherwise (e.g. uvicorn's plain-text 500, or `{"detail":"Not Found"}`
+ * from a wrong API_URL) — neither matches `HealthResponse`, so
+ * `fetchApiHealth` must not trust the shape without checking it.
+ */
+const checkOutSchema = z.object({
+  status: z.enum(["ok", "down"]),
+  latency_ms: z.number(),
+  detail: z.string().nullable(),
+});
+
+const healthResponseSchema = z.object({
+  status: z.enum(["ok", "degraded"]),
+  version: z.string(),
+  checks: z.object({
+    database: checkOutSchema,
+    queue: checkOutSchema,
+  }),
+});
 
 export type ApiHealthResult =
   | { kind: "response"; httpStatus: number; body: HealthResponse }
@@ -44,7 +68,11 @@ export async function fetchApiHealth(client?: ApiClient): Promise<ApiHealthResul
     if (body === undefined) {
       return { kind: "error", message: "Empty response from API" };
     }
-    return { kind: "response", httpStatus: response.status, body };
+    const parsed = healthResponseSchema.safeParse(body);
+    if (!parsed.success) {
+      return { kind: "error", message: `Unexpected /health response shape: ${parsed.error.message}` };
+    }
+    return { kind: "response", httpStatus: response.status, body: parsed.data };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Unknown error";
     return { kind: "error", message };

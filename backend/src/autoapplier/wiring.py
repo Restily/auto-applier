@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 import asyncpg
 import redis
+from celery import Celery
 
 from autoapplier import __version__
 from autoapplier.adapters.llm.registry import build_llm_provider
@@ -38,12 +39,14 @@ class Container:
     health: HealthService
     llm: LLMProvider
     queue: JobQueue
+    celery_app: Celery
 
 
 async def build_container(settings: Settings) -> Container:
     """Build a `Container` from `settings`. Never raises when Postgres or Valkey are down."""
     pool = await create_pool(settings.database_url)
     redis_client = create_async_redis(settings.redis_url)
+    celery_app = create_celery_app(settings)
     health = HealthService(
         [
             DatabaseProbe(pool),
@@ -62,11 +65,36 @@ async def build_container(settings: Settings) -> Container:
         redis=redis_client,
         health=health,
         llm=build_llm_provider(settings),
-        queue=CeleryJobQueue(create_celery_app(settings)),
+        queue=CeleryJobQueue(celery_app),
+        celery_app=celery_app,
     )
 
 
 async def close_container(container: Container) -> None:
-    """Close the pool and the redis client. Safe even if neither ever connected."""
-    await container.pool.close()
-    await container.redis.aclose()
+    """Close every resource, even if an earlier close raises.
+
+    Exception-safe (M0 review, M2): each of the pool, the redis client and the
+    Celery app's producer pool (`Celery.close()`) is closed in its own
+    try/finally, so one raising never skips the others. If any close raised,
+    the *first* such error is re-raised after every resource has been closed —
+    callers (worker shutdown signals, API lifespan) see the failure rather than
+    it being silently swallowed.
+    """
+    first_error: BaseException | None = None
+    try:
+        await container.pool.close()
+    except Exception as exc:  # collected below, re-raised, never swallowed
+        first_error = exc
+    finally:
+        try:
+            await container.redis.aclose()
+        except Exception as exc:
+            first_error = first_error or exc
+        finally:
+            try:
+                container.celery_app.close()
+            except Exception as exc:
+                first_error = first_error or exc
+
+    if first_error is not None:
+        raise first_error

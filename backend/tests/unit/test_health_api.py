@@ -10,6 +10,7 @@ from typing import cast
 import asyncpg
 import httpx
 import redis
+from celery import Celery
 
 from autoapplier.api.app import create_app
 from autoapplier.config import Settings
@@ -40,6 +41,7 @@ def _container(health: HealthService) -> Container:
         health=health,
         llm=cast(LLMProvider, None),
         queue=cast(JobQueue, None),
+        celery_app=cast(Celery, None),
     )
 
 

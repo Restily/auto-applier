@@ -33,3 +33,36 @@ def test_broker_and_backend_use_redis_url() -> None:
 
     assert app.conf.broker_url == "redis://127.0.0.1:6399/2"
     assert app.conf.result_backend == "redis://127.0.0.1:6399/2"
+
+
+def test_broker_and_backend_have_socket_timeouts(settings: Settings) -> None:
+    """Mirrors `kv/client.py`'s 2 s timeouts so a down/slow broker fails fast."""
+    app = create_celery_app(settings)
+
+    broker_opts = app.conf.broker_transport_options
+    assert broker_opts["socket_connect_timeout"] == 2
+    assert broker_opts["socket_timeout"] == 2
+    assert broker_opts["visibility_timeout"] >= 3600
+
+    backend_opts = app.conf.result_backend_transport_options
+    assert backend_opts["socket_connect_timeout"] == 2
+    assert backend_opts["socket_timeout"] == 2
+
+
+def test_does_not_become_current_app_by_default(settings: Settings) -> None:
+    """A producer app (API/worker `Container`) must never hijack `celery.current_app`."""
+    import celery
+
+    previous_current = celery.current_app
+
+    app = create_celery_app(settings)
+
+    assert celery.current_app is previous_current
+    assert celery.current_app is not app
+
+
+def test_set_as_current_true_opts_in(settings: Settings) -> None:
+    """Only the worker `-A` app opts in, e.g. `autoapplier.worker.celery_app`."""
+    app = create_celery_app(settings, set_as_current=True)
+
+    assert app.conf.broker_url == settings.redis_url

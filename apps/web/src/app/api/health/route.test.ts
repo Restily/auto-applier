@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { ApiHealthResult } from "@/lib/health";
 import { createHealthRouteHandler } from "@/lib/health-route";
 
 import { GET } from "./route";
@@ -73,8 +74,58 @@ describe("GET /api/health", () => {
     await expect(response.json()).resolves.toEqual({ status: "degraded", api: body });
   });
 
+  it("returns 503 unavailable when the API returns a plain-text 500 body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("Internal Server Error", {
+          status: 500,
+          headers: { "content-type": "text/plain" },
+        }),
+      ),
+    );
+
+    const response = await GET();
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ status: "unavailable", api: null });
+  });
+
+  it("returns 503 unavailable when the API returns a 404 with an unrelated JSON body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "Not Found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+
+    const response = await GET();
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ status: "unavailable", api: null });
+  });
+
   it("never throws when the injected fetchHealth throws", async () => {
     const handler = createHealthRouteHandler(() => Promise.reject(new Error("boom")));
+
+    const response = await handler();
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ status: "unavailable", api: null });
+  });
+
+  it("returns 503 unavailable instead of throwing when the fetched result maps to a malformed body", async () => {
+    // Intentionally malformed (missing `checks`) to exercise the route's own
+    // safeguard, bypassing fetchApiHealth's own runtime validation.
+    const malformedResult = {
+      kind: "response",
+      httpStatus: 200,
+      body: { status: "ok", version: "0.1.0" },
+    } as unknown as ApiHealthResult;
+    const handler = createHealthRouteHandler(() => Promise.resolve(malformedResult));
 
     const response = await handler();
 
