@@ -9,7 +9,7 @@ priority: P0
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 ## Description
@@ -35,3 +35,4 @@ As a <user>, I want <action>, so that <value>.
 
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 15:00 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md (team-lead)
+- 2026-09-28 08:58 note (team-lead): D5: sign-up bonus is skipped when the email's HMAC fingerprint exists from a deleted account (see PRD decision log 2026-09-28).

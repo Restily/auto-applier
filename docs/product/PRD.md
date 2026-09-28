@@ -168,4 +168,5 @@ Acceptance criteria rules: Given/When/Then, observable in the UI or API, include
   - D4: the Google sign-in success path can't be exercised locally. It is covered by unit and DB tests plus a human live check before launch (TD-006).
   - D5: open, needs the human. Re-registering with the same email after deleting an account would grant the 20-credit sign-up bonus again.
   - LCP budget verification moves to MR (TD-005).
+- 2026-09-28 — Human decision D5: a re-registration after account deletion does NOT get the 20-credit sign-up bonus again. After deletion only a keyed hash (HMAC with a server secret) of the normalized email is kept, used solely to block a repeat sign-up bonus; this retention is disclosed in the privacy policy.
 
