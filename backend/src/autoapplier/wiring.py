@@ -1,0 +1,100 @@
+"""Composition root: wires services to port implementations for api and worker (Task 6).
+
+`build_container` assembles one `Container` per process from `Settings` — an asyncpg pool,
+an async Redis client, the `HealthService` (wired to `DatabaseProbe`/`QueueProbe`), the
+configured `LLMProvider` and a `CeleryJobQueue`. Every piece is lazy (no socket opens at
+build time: `db.pool.create_pool` uses `min_size=0`, `kv.client.create_async_redis` and
+`adapters.queue.celery_factory.create_celery_app` connect on first use), so this never
+raises just because Postgres or Valkey happen to be unreachable — that surfaces as a
+"down" health check instead (`services.health.HealthService`, ADR-0012 Review Focus #1).
+"""
+
+from dataclasses import dataclass
+
+import asyncpg
+import redis
+from celery import Celery
+
+from autoapplier import __version__
+from autoapplier.adapters.llm.registry import build_llm_provider
+from autoapplier.adapters.queue.celery_factory import create_celery_app
+from autoapplier.adapters.queue.celery_queue import CeleryJobQueue
+from autoapplier.config import Settings
+from autoapplier.db.pool import create_pool
+from autoapplier.db.probes import DatabaseProbe
+from autoapplier.kv.client import create_async_redis
+from autoapplier.kv.probes import QueueProbe
+from autoapplier.ports.llm import LLMProvider
+from autoapplier.ports.queue import JobQueue
+from autoapplier.services.health import HealthService
+
+
+@dataclass
+class Container:
+    """Everything one process (the API, or a worker) needs, built once and reused."""
+
+    settings: Settings
+    pool: asyncpg.Pool
+    redis: redis.asyncio.Redis
+    health: HealthService
+    llm: LLMProvider
+    queue: JobQueue
+    celery_app: Celery
+
+
+async def build_container(settings: Settings) -> Container:
+    """Build a `Container` from `settings`. Never raises when Postgres or Valkey are down."""
+    pool = await create_pool(settings.database_url)
+    redis_client = create_async_redis(settings.redis_url)
+    celery_app = create_celery_app(settings)
+    health = HealthService(
+        [
+            DatabaseProbe(pool),
+            QueueProbe(
+                redis_client,
+                key_prefix=settings.redis_key_prefix,
+                max_heartbeat_age_s=settings.queue_heartbeat_max_age_s,
+            ),
+        ],
+        version=__version__,
+        timeout_s=settings.health_probe_timeout_s,
+    )
+    return Container(
+        settings=settings,
+        pool=pool,
+        redis=redis_client,
+        health=health,
+        llm=build_llm_provider(settings),
+        queue=CeleryJobQueue(celery_app),
+        celery_app=celery_app,
+    )
+
+
+async def close_container(container: Container) -> None:
+    """Close every resource, even if an earlier close raises.
+
+    Exception-safe (M0 review, M2): each of the pool, the redis client and the
+    Celery app's producer pool (`Celery.close()`) is closed in its own
+    try/finally, so one raising never skips the others. If any close raised,
+    the *first* such error is re-raised after every resource has been closed —
+    callers (worker shutdown signals, API lifespan) see the failure rather than
+    it being silently swallowed.
+    """
+    first_error: BaseException | None = None
+    try:
+        await container.pool.close()
+    except Exception as exc:  # collected below, re-raised, never swallowed
+        first_error = exc
+    finally:
+        try:
+            await container.redis.aclose()
+        except Exception as exc:
+            first_error = first_error or exc
+        finally:
+            try:
+                container.celery_app.close()
+            except Exception as exc:
+                first_error = first_error or exc
+
+    if first_error is not None:
+        raise first_error

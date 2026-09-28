@@ -7,6 +7,7 @@ milestone: M1
 owner: frontend-dev
 priority: P1
 depends_on: [S-001]
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-27
 updated: 2026-09-27
@@ -30,3 +31,4 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 15:00 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md (team-lead)

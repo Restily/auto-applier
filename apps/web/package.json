@@ -1,0 +1,49 @@
+{
+  "name": "@autoapplier/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "NEXT_DIST_DIR=.next-build next build",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:unit": "vitest run",
+    "gen:api-types": "openapi-typescript ../../backend/openapi.json -o src/lib/api/schema.gen.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/golos-text": "^5",
+    "@fontsource/ibm-plex-mono": "^5",
+    "@supabase/ssr": "^0.12",
+    "@supabase/supabase-js": "^2",
+    "class-variance-authority": "^0.7",
+    "clsx": "^2",
+    "lucide-react": "^1",
+    "next": "16.3.x",
+    "openapi-fetch": "^0.17",
+    "radix-ui": "^1.6.7",
+    "react": "19.x",
+    "react-dom": "19.x",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10",
+    "@testing-library/jest-dom": "^7",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6",
+    "eslint": "^9.39",
+    "eslint-config-next": "16.3.x",
+    "jsdom": "^30",
+    "openapi-typescript": "^7",
+    "tailwindcss": "^4",
+    "typescript": "~6.0.3",
+    "vite": "^8",
+    "vitest": "^5"
+  }
+}

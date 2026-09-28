@@ -1,0 +1,16 @@
+# QA Automation memory (hints; the repo wins)
+
+## Board / tooling quirks
+- `board.py scaffold test-strategy` writes `team/templates/TEST-STRATEGY.md` verbatim — its headings (`## Levels and tools`, `## Test data`, `## Coverage targets`, `## Flaky policy`, `## CI`) do **not** match the M0 plan Task 10 contract (`## Pyramid`, `## Third-party fakes`, `## Test data isolation`, `## Commands`, `## AC coverage rule`, `## Flakiness policy`). Scaffold first (creates the file + `_Owner/_Date` header), then fully rewrite the body to the plan's exact headings — don't assume the template already satisfies a plan's contract, always diff against the plan's own "Contract (required sections, headings verbatim)" text.
+- `board.py check <ID> <n> --by <role> --note "<path>"` only flips the checkbox and appends a log line; it never changes `status`. Checking one AC does not move the item to `qa`/`done` — that's a separate `board.py move`. Safe to call per-AC as work completes without disturbing the item's status.
+- `board.py scaffold <kind> <id>` no-ops (prints `= already exists`) if the destination file exists — use `--force` only on explicit instruction.
+- `.claude/agent-memory/<agent>/` is always writable regardless of `team/ownership.json` (role-guard hook exempts it explicitly).
+
+## M0 plan review (2026-09-27, Celery+Redis revision) — recurring pattern to check for
+When a plan states an ASGI/route-handler-level reliability guarantee in prose (e.g. "the API process starts even when Postgres/Valkey is down", "`/api/health` never returns a Next.js 500"), check whether the cited tests actually exercise that layer, not just the pure/service layer underneath it:
+- Backend: a health-service test with stub probes, or a `create_pool`/probe test against a closed port, does **not** by itself prove the real `create_app()` → lifespan → `build_container()` path tolerates a down DB/Redis — that needs its own integration test that builds the real app against an unreachable DSN/redis_url and drives the ASGI lifespan.
+- Web: unit-testing `fetchApiHealth`/a view-mapper with a stubbed `fetch` does **not** prove the actual Next.js Route Handler (`app/api/.../route.ts`) returns the right HTTP status under failure — that needs a test that imports and calls the handler's exported `GET`/`POST` directly (cheap, no live server needed) or a black-box HTTP test against a genuinely-down upstream.
+This class of gap is easy to miss because the cited unit/service tests are real and pass — they just don't reach the layer the prose claims is covered. Worth a specific pass over every "Review Focus" item's tests, layer by layer, not just checking a test exists.
+
+## Celery/Redis test isolation
+- The project's isolation rule (unique `aa:test:<uuid>:` prefixes, unique queue names, never `FLUSHALL`/`FLUSHDB`) is usually solid when the plan states it explicitly per fixture — but watch for a documented **fallback branch** silently dropping isolation (e.g. "if the installed Celery's `start_worker` doesn't accept `queues=`, fall back to the `default` queue"). A fallback that reuses the literal shared queue/prefix defeats the isolation contract even though the primary path is fine and the test would still pass (functionally correct, just not isolated) — flag it in contract review even when unlikely to trigger.

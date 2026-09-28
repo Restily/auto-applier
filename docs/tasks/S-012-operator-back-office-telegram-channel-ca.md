@@ -30,3 +30,4 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 20:30 note (designer): Screen spec completed: sources/health table (new MASTER §5.3 pattern, stale >2h flagged 3 redundant ways), add/disable catalog channel (reuses §5.2), Access denied state (courtesy only, real gate is backend RLS).

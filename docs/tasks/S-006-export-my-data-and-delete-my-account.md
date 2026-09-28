@@ -7,7 +7,8 @@ milestone: M1
 owner: backend-dev
 priority: P1
 depends_on: [S-001]
-needs_human: false
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
+needs_human: true
 created: 2026-09-27
 updated: 2026-09-27
 ---
@@ -30,3 +31,6 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 15:00 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md (team-lead)
+- 2026-09-27 15:01 set needs_human=true (team-lead)
+- 2026-09-27 15:01 note (team-lead): NEEDS HUMAN (D5): after account deletion, re-signing up with the same email grants 20 free credits again. Options: (a) accept for MVP; (b) keep a keyed hash (HMAC) of the normalized email after deletion, used only to block a second sign-up bonus, disclosed in the privacy policy. Lead recommends (b). Until decided, M1 builds (a) with the grant isolated so (b) is a small follow-up.

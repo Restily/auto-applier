@@ -33,3 +33,4 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 20:30 note (designer): Screen spec completed: feed + detail, match-score indicator (new MASTER §5.1, color-redundant), dedupe-by-source display, Not interested w/ undo toast, two distinct empty states (no matches vs all reviewed).

@@ -30,3 +30,4 @@ As a <user>, I want <action>, so that <value>.
 ## Log
 
 - 2026-09-27 12:11 created (team-lead)
+- 2026-09-27 20:30 note (designer): Screen spec completed: designed as the 'Manage channels' panel (§5.2 pattern) launched from S-007's Sources section, since the AC's add-by-@name/link flow has no standalone page. Full states incl. private/not-found/duplicate rejection.
