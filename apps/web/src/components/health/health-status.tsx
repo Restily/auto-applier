@@ -1,42 +1,31 @@
 import { CheckCircle2, CircleOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SystemHealthView } from "@/lib/health";
 
-const OVERALL_LABEL: Record<SystemHealthView["overall"], string> = {
-  operational: "Operational",
-  degraded: "Degraded",
-  unavailable: "Unavailable",
-};
-
-// Status is conveyed by text ("OK" / "Down") in addition to color, per
-// MASTER.md — icon and color alone never carry the state.
-const CHECK_STATE_LABEL: Record<"ok" | "down", string> = {
-  ok: "OK",
-  down: "Down",
-};
-
 export function HealthStatus({ view }: { view: SystemHealthView }): React.JSX.Element {
+  const t = useTranslations("health");
   const overallVariant = view.overall === "operational" ? "default" : "destructive";
 
   return (
     <div className="mx-auto max-w-[var(--shell-content-max-width)] px-[var(--shell-gutter-mobile)] py-[var(--space-8)]">
       <h1 className="text-[length:var(--text-h1-size)] font-bold leading-[var(--text-h1-line)] text-foreground">
-        System health
+        {t("title")}
       </h1>
 
       <Card className="mt-[var(--space-6)]">
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-[var(--space-2)]">
-            <span>Overall status</span>
+            <span>{t("overall")}</span>
             <Badge data-testid="health-overall" variant={overallVariant}>
-              {OVERALL_LABEL[view.overall]}
+              {t(`overallState.${view.overall}`)}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-[var(--space-4)]">
-          <ul aria-label="Checks" className="flex flex-col gap-[var(--space-3)]">
+          <ul aria-label={t("checks")} className="flex flex-col gap-[var(--space-3)]">
             {view.checks.map((check) => (
               <li
                 key={check.key}
@@ -50,7 +39,7 @@ export function HealthStatus({ view }: { view: SystemHealthView }): React.JSX.El
                     <CircleOff aria-hidden="true" className="size-4 text-destructive" />
                   )}
                   <span className="text-[length:var(--text-ui-size)] font-medium text-foreground">
-                    {check.label}
+                    {t(`check.${check.key}`)}
                   </span>
                   <span
                     className={
@@ -59,12 +48,12 @@ export function HealthStatus({ view }: { view: SystemHealthView }): React.JSX.El
                         : "text-[length:var(--text-small-size)] font-medium text-destructive"
                     }
                   >
-                    {CHECK_STATE_LABEL[check.state]}
+                    {t(`state.${check.state}`)}
                   </span>
                 </div>
-                {check.detail ? (
+                {check.unreachable || check.detail ? (
                   <span className="text-[length:var(--text-small-size)] text-muted-foreground">
-                    {check.detail}
+                    {check.unreachable ? t("apiUnreachable") : check.detail}
                   </span>
                 ) : null}
               </li>
@@ -73,12 +62,12 @@ export function HealthStatus({ view }: { view: SystemHealthView }): React.JSX.El
 
           {view.version ? (
             <p className="text-[length:var(--text-small-size)] text-muted-foreground">
-              Version {view.version}
+              {t("version", { version: view.version })}
             </p>
           ) : null}
 
           <p className="text-[length:var(--text-tiny-size)] text-[color:var(--subtle-foreground)]">
-            Checked at <time dateTime={view.checkedAt}>{view.checkedAt}</time>
+            {t.rich("checkedAt", { time: () => <time dateTime={view.checkedAt}>{view.checkedAt}</time> })}
           </p>
         </CardContent>
       </Card>

@@ -11,6 +11,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/lib/**"],
+      exclude: ["src/lib/**/*.test.ts", "src/lib/**/*.gen.ts", "src/lib/supabase/database.types.ts"],
+    },
   },
   resolve: {
     alias: {

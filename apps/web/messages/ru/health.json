@@ -18,5 +18,5 @@
   },
   "apiUnreachable": "API недоступен",
   "version": "Версия {version}",
-  "checkedAt": "Проверено {time}"
+  "checkedAt": "Проверено <time></time>"
 }

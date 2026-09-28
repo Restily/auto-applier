@@ -18,5 +18,5 @@
   },
   "apiUnreachable": "API unreachable",
   "version": "Version {version}",
-  "checkedAt": "Checked at {time}"
+  "checkedAt": "Checked at <time></time>"
 }
