@@ -9,7 +9,9 @@ Why the template looks the way it does, and what the evidence behind each choice
 | Scorecards with hard thresholds | Anthropic harness design: objective criteria (design quality, originality, craft, functionality) with thresholds | QA, design review templates |
 | Contract review before building | Anthropic "sprint contracts": generator and evaluator agree on testable criteria first | /mvp-milestone §1.3, TEST-PLAN |
 | High-level PRD; plans specify contracts and tests, not implementations; plans written just-in-time per milestone | Anthropic: detailed upfront specs cascaded errors downstream | CONSTITUTION §superpowers.3, architect |
-| One feature at a time, end-to-end browser testing, a known start script | Anthropic long-running harness: premature "done" and untested features are the top failure modes | superpowers SDD, playwright-cli, app.sh |
+| Parallel build waves + one review per milestone | Anthropic multi-agent: parallelize independent work partitioned so agents don't touch the same files; a single independent review at the end beats N per-task reviews on cost | `board.py wave`, /mvp-milestone §3–3b |
+| Per-role best practices loaded on demand | keep quality high without paying always-on tokens: `team/practices/<role>.md` is read once per task, not preloaded | team-protocol, team/practices/ |
+| Workers skip re-loading CLAUDE.md (`omitClaudeMd`) | the hard rules are enforced by hooks and carried in the preloaded team-protocol, so re-injecting the full constitution into every parallel worker is wasted tokens | worker agent frontmatter |
 | Board mutated only by a CLI | Anthropic: models overwrite markdown feature lists more readily than structured files | role-guard blocks docs/tasks, board.py |
 | Deterministic hooks over prompt rules | Claude Code best practices: CLAUDE.md is advisory, hooks are guaranteed | .claude/hooks |
 | CLAUDE.md as a short map, details in skills/docs | Claude Code best practices; OpenAI harness engineering ("a map, not a manual") | CLAUDE.md → CONSTITUTION → skills |
@@ -18,11 +20,11 @@ Why the template looks the way it does, and what the evidence behind each choice
 | Knowledge that compounds (`docs/solutions`, lessons, gardening) | Compound Engineering; OpenAI "garbage collection" of drift | constitution, architect gardening |
 | Subagents by default, Agent Teams optional | Agent Teams are experimental, costlier, not resumable; best for peer discussion | OPERATIONS.md |
 | opus for planning, sonnet for work | cost vs. quality: planning errors cascade, implementation is verified by tests and reviewers | agent frontmatter |
-| superpowers as the engineering engine | mature TDD/plan/review discipline; explicitly lets CLAUDE.md override its rules | CONSTITUTION §superpowers |
+| superpowers as the engineering engine | mature TDD/review discipline; explicitly lets CLAUDE.md override its rules | CONSTITUTION §superpowers |
 
 ## Known limitations
 - The LLM protocol is validated only by running it: pilot on a small idea, read the reports, then tune prompts (especially evaluator strictness) where the team diverges from your judgment.
-- Serial implementation (superpowers) trades speed for fewer conflicts.
+- Serial *review* (one whole-branch pass per milestone) trades a little latency-to-first-feedback for much lower cost; building itself is parallel where the plan declares disjoint `files`.
 - Costs are significant; see README and OPERATIONS.
 - Non-JS stacks need `team/config.sh` commands and adjusted test-pyramid defaults.
 

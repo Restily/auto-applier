@@ -4,7 +4,7 @@ Installed by default = in `.claude/settings.json` / `team/bin/setup.sh`. Add-ons
 
 ## Team Lead — main session (opus)
 - **Does:** kickoff with the human, PRD/roadmap, orchestration, triage, gates, merges, retros.
-- **Default tools:** `/mvp-*` skills · superpowers `brainstorming`, `subagent-driven-development` · built-in `/goal` (autopilot) · board.py.
+- **Default tools:** `/mvp-*` skills · superpowers `brainstorming`, `requesting-code-review` · `board.py wave` (parallel building) · built-in `/goal` (autopilot) · board.py.
 - **Add-ons:** gstack `/office-hours` and `/plan-ceo-review` (sharper product framing) · claude-mem (personal cross-session recall; the repo stays the source of truth) · dynamic workflows (`ultracode`) for huge fan-outs (e.g. regression over dozens of stories).
 
 ## Architect — `architect` (opus, effort high, project memory)
@@ -43,4 +43,4 @@ Installed by default = in `.claude/settings.json` / `team/bin/setup.sh`. Add-ons
 - **Add-ons:** gstack `/cso` · Semgrep plugin (rule-based SAST) · Strix CI workflow (`.github/workflows/strix.yml`).
 
 ## Model routing
-Roles pin aliases (`opus`/`sonnet`). With OmniRoute, remap the aliases (`ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`) to route every role at once — see team/SETUP.md. Keep Claude models on the lead, architect and reviewers: the protocols (superpowers, hooks, reports) are tuned for them.
+Roles pin aliases (`opus`/`sonnet`). With OmniRoute, remap the aliases (`ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`) to route every role at once — see team/SETUP.md. Keep Claude models on the lead, architect and reviewers: the protocols (superpowers, hooks, reports) are tuned for them. $0 setup on local/free models: team/LOCAL-FREE.md.

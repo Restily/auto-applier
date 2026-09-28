@@ -1,0 +1,16 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_AUTH_TOKEN": "sk-team-local",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "team-plan",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "team-work",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "team-fast",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "API_TIMEOUT_MS": "600000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16000",
+    "TEAM_WAVE_MAX": "2",
+    "STRIX_LLM": "openai/team-work",
+    "LLM_API_BASE": "http://localhost:4000/v1",
+    "LLM_API_KEY": "sk-team-local"
+  }
+}

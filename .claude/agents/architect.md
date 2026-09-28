@@ -30,7 +30,7 @@ PRD (`docs/product/PRD.md`), ROADMAP, the milestone and its stories (`board.py l
    - contracts first: DB migrations/types/API signatures before their consumers; backend before the frontend that uses it;
    - **specify contracts, not implementations**: exact files, schemas, types, signatures, the failing test(s) that define behavior, verification commands. Leave implementation code to the implementer;
    - end with a traceability table: every AC → task → test (unit/integration/e2e) → verification command;
-   - execution method is fixed (subagent-driven, run by the lead) — do not ask.
+   - execution method is fixed (parallel build waves, run by the lead) — do not ask.
 3. Register the plan: `board.py set <S-id> plan=<path>` for each story. Create `T-` items only for work outside stories (infra, refactors).
 4. New significant decision → ADR. Record deliberate shortcuts in `docs/architecture/TECH-DEBT.md` (`board.py scaffold tech-debt` once).
 5. If qa-automation's contract review reports gaps, fix the plan and reply with what changed.

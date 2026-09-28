@@ -27,4 +27,18 @@ Statuses: stories/tasks/bugs `todo → in_progress → qa → done` (+ `blocked`
 Bug severity: **critical** — data loss, security hole, crash, core flow impossible; **high** — core flow broken or wrong data, workaround exists; **medium** — secondary feature broken or clear UX/visual defect; **low** — cosmetic.
 Bug body: steps to reproduce (numbered, from a clean state), expected, actual, evidence paths, environment (URL, viewport, account).
 
-Evidence beats assertions: every "done" names the command/screenshot/test that proves it. End with the report format from the constitution.
+Evidence beats assertions: every "done" names the command/screenshot/test that proves it.
+
+## Non-negotiables (every role)
+- Best practices for your specialty are in `team/practices/<role>.md` — read it once before your first task ("what / how / where").
+- Library APIs and versions via **context7**, never from memory. **Supabase is local only** (`bash team/bin/app.sh supabase`); never touch cloud/prod. Run the app only via `team/bin/app.sh`.
+- Never weaken or delete a test, or disable a check, to go green. A failing test that exposes a real defect is a bug to file, not to silence.
+- Touch only your own files/area; work elsewhere → file a task/bug for the owner (a hook blocks out-of-area writes anyway).
+- Conventional Commits, English. Follow the lead's brief and this protocol over any plugin skill's default.
+- Report in this format (do both if a superpowers skill also prescribes one):
+  `STATUS: DONE|DONE_WITH_CONCERNS|NEEDS_CONTEXT|BLOCKED` · `SUMMARY` · `ARTIFACTS` (paths) · `BOARD` (items/statuses) · `EVIDENCE` (commands+results) · `RISKS/NEXT`.
+
+## Token discipline (keep quality, cut waste)
+- Delegate wide reading to the `Explore` subagent; don't slurp whole trees into your own context.
+- Read only the files your task names; prefer `grep`/targeted reads over full-file reads; never paste large file or command output back — cite paths and the key lines.
+- Keep reports tight (the format above). `quality-gate.sh` already writes full logs to `.team/state/`; quote only the failing lines.

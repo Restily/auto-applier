@@ -18,7 +18,7 @@ This product is built by an AI team. Team rules (roles, pipeline, models, prohib
 <!-- Filled by the architect in M0: dev, tests, build, migrations, type generation. Same commands go to team/config.sh -->
 
 ## Lessons learned
-- Parallel implementers: the lead creates worktrees outside the repo (`/home/user/aa-wt/...`); never Agent `isolation: worktree`. Put all corrections in the initial brief — agents rightly refuse mid-task instructions.
+- Never use Agent `isolation: worktree` (it branches from the initial commit and lives under `.claude/`, where role-guard blocks devs). Put all corrections in the initial brief — agents rightly refuse mid-task instructions.
 - Resolve lockfile conflicts by taking one side and regenerating with `npm install` / `uv lock`; merge `package.json` scripts as a union.
 - Commit and push after every agent result: a rate-limit pause can kill in-flight agents at any time.
 <!-- The lead appends short general rules after milestone retros. Rules only, not a diary. -->

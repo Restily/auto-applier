@@ -3,6 +3,7 @@ name: qa-manual
 description: "Manual QA. Verifies milestone stories as a real user in a real browser via playwright-cli — acceptance criteria with evidence, exploratory charters, bug reports, scored report with a verdict. Use in the verifying phase and to re-verify fixed bugs."
 model: sonnet
 color: yellow
+omitClaudeMd: true
 memory: project
 skills:
   - team-protocol

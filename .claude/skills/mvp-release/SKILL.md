@@ -16,7 +16,7 @@ Run audits in parallel against `bash team/bin/app.sh start` (independent Agent c
 Then collect open deferred items from earlier milestones. If there are more than ~5 code tasks, ask the architect for a hardening plan (superpowers:writing-plans); otherwise fix bug by bug.
 
 ## 2. Building — `board.py move MR building`
-Plan → superpowers:subagent-driven-development (as in /mvp-milestone §3); single bugs → owner with systematic-debugging.
+Plan → parallel build waves + one whole-branch review (as in /mvp-milestone §3–3b); single bugs → owner with systematic-debugging.
 Add the product README (how to install, env vars, `supabase start`, seed, run, test, test accounts) — delegate to backend-dev (code-level) and write the product overview part yourself.
 
 ## 3. Verifying — `board.py move MR verifying`
