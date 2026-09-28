@@ -2,7 +2,7 @@
 id: T-003
 type: task
 title: "App skeleton, local Supabase and health page"
-status: qa
+status: done
 milestone: M0
 owner: backend-dev
 priority: P0
@@ -33,3 +33,4 @@ updated: 2026-09-28
 - 2026-09-28 08:05 AC 2 ✔ (qa-manual): curl http://127.0.0.1:8000/health and http://localhost:3000/api/health both 200 with database+queue checks ok; /health page renders Overall status: Operational, Database OK, Queue OK — docs/qa/evidence/M0/T-003-health-1280.png
 - 2026-09-28 08:05 AC 3 ✔ (qa-manual): supabase/migrations/20260927132652_foundation.sql: event trigger enforce_rls enables RLS on every new table by default; apps/web/src/lib/supabase/database.types.ts generated and used by web; backend/.env.example + apps/web/.env.example present, no secrets committed, all values blank/placeholder
 - 2026-09-28 08:05 AC 4 ✔ (qa-manual): backend/src/autoapplier/ports/llm.py + adapters/llm/fake.py deterministic fake; config.py enforces LLM_PROVIDER=fake when APP_ENV=test (test_test_env_requires_fake_llm in backend/tests/unit/test_config.py); conftest.py sets APP_ENV=test for all backend tests
+- 2026-09-28 08:05 qa → done (qa-manual): all 4 AC verified with evidence; docs/qa/reports/M0-qa.md Verdict: PASS

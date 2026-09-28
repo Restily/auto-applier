@@ -2,7 +2,7 @@
 id: T-004
 type: task
 title: "Test strategy, harness and CI"
-status: qa
+status: done
 milestone: M0
 owner: qa-automation
 priority: P0
@@ -33,3 +33,4 @@ updated: 2026-09-28
 - 2026-09-28 08:05 AC 3 ✔ (qa-automation): tests/integration/ci-workflow.test.ts PASS; tests/e2e/health.spec.ts PASS; .github/workflows/ci.yml reviewed, runs quality-gate.sh full on push/PR with Valkey+Supabase+Chromium; see docs/qa/reports/M0-tests.md
 - 2026-09-28 08:05 AC 2 ✔ (qa-manual): bash team/bin/quality-gate.sh fast: lint/typecheck/unit all PASS on skeleton (ran live). full gate composition verified in team/config.sh (lint+typecheck+unit+integration+e2e per package)
 - 2026-09-28 08:05 AC 3 ✔ (qa-manual): .github/workflows/ci.yml runs 'quality-gate.sh full' on push/PR after starting Valkey and Supabase CLI; tests/e2e/health.spec.ts is the e2e smoke test opening the health page
+- 2026-09-28 08:05 qa → done (qa-manual): all 3 AC verified with evidence; docs/qa/reports/M0-qa.md Verdict: PASS
