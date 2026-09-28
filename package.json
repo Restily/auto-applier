@@ -43,6 +43,7 @@
     "@types/node": "^22",
     "concurrently": "^10",
     "typescript": "~6.0.3",
-    "vitest": "^5"
+    "vitest": "^5",
+    "yaml": "^2.9.1"
   }
 }
