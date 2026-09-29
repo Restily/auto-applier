@@ -2,7 +2,7 @@
 id: T-020
 type: task
 title: "M1 plan Task 9: Profile editor, onboarding checklist, D5-aware welcome toast"
-status: in_progress
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -11,7 +11,7 @@ files: [apps/web/src/lib/profile/**, apps/web/src/components/profile/**, apps/we
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 ## What to do
@@ -20,10 +20,12 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Plan task 9 implemented; its tests pass
+- [x] Plan task 9 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 23:00 note (team-lead): lead: credit-balance popover copy (shell.credits normal/low/empty) was written by frontend-dev without a spec; designer confirms in M1 design review.
 - 2026-09-28 23:00 todo → in_progress (team-lead)
+- 2026-09-29 07:38 AC 1 ✔ (frontend-dev): apps/web: profile-editor/checklist/welcome-toast/schema/completeness/actions tests; quality-gate fast PASS (276 unit tests); visual check 375+1280 as admin-created qa+uuid@example.test
+- 2026-09-29 07:38 in_progress → qa (frontend-dev): Implemented ProfileEditor, Checklist, StepCard, StepDots, WelcomeToast (D5), onboarding/profile pages, loading/error; not committed

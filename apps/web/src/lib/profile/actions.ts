@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { getSessionUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isValidationKey, type ValidationKey } from "@/lib/validation/messages";
+import type { ValidationKey } from "@/lib/validation/messages";
 
 import { missingProfileFields, type RequiredField } from "./completeness";
+import { issuesToFieldErrors } from "./field-errors";
 import { profileFormatSchema, toDbRow } from "./schema";
 
 export type SaveProfileResult =
@@ -21,12 +22,7 @@ export type SaveProfileResult =
 export async function saveProfile(input: unknown): Promise<SaveProfileResult> {
   const parsed = profileFormatSchema.safeParse(input);
   if (!parsed.success) {
-    const fieldErrors: Record<string, ValidationKey> = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path.join(".");
-      fieldErrors[key] ??= isValidationKey(issue.message) ? issue.message : "required";
-    }
-    return { ok: false, fieldErrors };
+    return { ok: false, fieldErrors: issuesToFieldErrors(parsed.error.issues) };
   }
 
   const user = await getSessionUser();
