@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProfileEditor } from "@/components/profile/profile-editor";
 import { Button } from "@/components/ui/button";
 import { saveProfile } from "@/lib/profile/actions";
-import { applyChoices, draftToProfileInput, planResumeApplication, type DiffField, type FieldDiff } from "@/lib/profile/merge";
+import { applyChoices, planResumeApplication, type DiffField, type FieldDiff } from "@/lib/profile/merge";
 import type { ProfileInput } from "@/lib/profile/schema";
 import { retryResumeExtraction } from "@/lib/resume/actions";
 import { readResume } from "@/lib/resume/read-client";
