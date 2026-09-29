@@ -25,12 +25,14 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }): React
   const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [errors, setErrors] = useState<Partial<Record<Field, ValidationKey>>>({});
 
   const [state, formAction, pending] = useActionState(
     async (prev: AuthFormState, formData: FormData): Promise<AuthFormState> => {
       const result = await signUpAction(prev, formData);
       if (result.status === "error") {
+        setAttempt((n) => n + 1);
         setErrors(result.fieldErrors ?? {});
         // The password is never echoed back after a failed attempt.
         setPassword("");
@@ -61,7 +63,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }): React
       <form action={formAction} onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {formError ? (
           <FormAlert
-            key={state.status === "error" ? String(Date.now()) : "none"}
+            key={attempt}
             tone="danger"
             actions={
               formError === "duplicate_email" ? (

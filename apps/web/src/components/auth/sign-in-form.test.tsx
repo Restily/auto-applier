@@ -7,8 +7,8 @@ vi.mock("@/lib/auth/actions", () => ({
   signInAction: (...args: unknown[]) => signInAction(...args),
   startGoogleSignInAction: vi.fn(),
 }));
-const toastMessage = vi.fn();
-vi.mock("sonner", () => ({ toast: { success: (...a: unknown[]) => toastMessage(...a), message: toastMessage } }));
+const { toastMessage } = vi.hoisted(() => ({ toastMessage: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: toastMessage, message: toastMessage } }));
 
 import { renderWithIntl } from "@/components/shell/test-utils";
 

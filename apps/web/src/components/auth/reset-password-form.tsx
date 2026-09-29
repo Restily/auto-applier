@@ -25,12 +25,13 @@ export function ResetPasswordForm({ linkInvalid }: { linkInvalid: boolean }): Re
 function NewPasswordForm(): React.JSX.Element {
   const t = useTranslations("auth");
   const [password, setPassword] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<ValidationKey | undefined>();
 
   const [state, formAction, pending] = useActionState(
     async (prev: AuthFormState, formData: FormData): Promise<AuthFormState> => {
       const result = await updatePasswordAction(prev, formData);
-      if (result.status === "error") setError(result.fieldErrors?.password);
+      if (result.status === "error") setAttempt((n) => n + 1); setError(result.fieldErrors?.password);
       return result;
     },
     { status: "idle" },
@@ -50,7 +51,7 @@ function NewPasswordForm(): React.JSX.Element {
     <AuthCard heading={t("reset.heading")}>
       <form action={formAction} onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {formError ? (
-          <FormAlert key={String(state.status === "error" && state)} tone="danger">
+          <FormAlert key={attempt} tone="danger">
             {formError === "rate_limited" ? t("errors.rateLimited") : t("errors.unknown")}
           </FormAlert>
         ) : null}
