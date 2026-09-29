@@ -2,7 +2,7 @@
 id: T-022
 type: task
 title: "M1 plan Task 11: Resume upload UI, extraction status, replace and review-changes dialog"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -11,7 +11,7 @@ files: [apps/web/src/app/(onboarding)/onboarding/resume/**, apps/web/src/app/api
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 ## What to do
@@ -25,3 +25,4 @@ updated: 2026-09-28
 ## Log
 
 - 2026-09-28 09:15 created (architect)
+- 2026-09-29 07:42 todo → in_progress (team-lead)
