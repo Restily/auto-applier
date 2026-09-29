@@ -62,7 +62,7 @@ export function Dropzone({ onFile, disabled = false, error = null }: DropzonePro
         onDrop={onDrop}
         className={cn(
           "rounded-[var(--radius-md)] border-2 border-dashed transition-colors duration-[var(--duration-fast)]",
-          dragging ? "border-primary bg-[color:var(--primary-subtle)]" : shown ? "border-[color:var(--danger)]" : "border-border bg-[color:var(--surface)]",
+          dragging ? "border-primary bg-[color:var(--primary-subtle)]" : shown ? "border-[color:var(--danger)]" : "border-input bg-[color:var(--surface)]",
         )}
       >
         <button

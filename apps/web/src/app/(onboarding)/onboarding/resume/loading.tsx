@@ -2,10 +2,10 @@ import { useTranslations } from "next-intl";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function OnboardingProfileLoading(): React.JSX.Element {
-  const t = useTranslations("profile.loading");
+export default function OnboardingResumeLoading(): React.JSX.Element {
+  const t = useTranslations("resume.loading");
   return (
-    <div role="status" aria-label={t("label")} className="mx-auto flex w-full max-w-[720px] flex-col gap-6">
+    <div role="status" aria-label={t("label")} className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
       <Skeleton className="h-9 w-1/3" />
       <Skeleton className="h-64 w-full" />
       <Skeleton className="h-48 w-full" />

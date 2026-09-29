@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { DiffField, FieldDiff } from "@/lib/profile/merge";
+import type { YEARS_EXPERIENCE } from "@/lib/profile/schema";
 
 type Choice = "keep" | "use";
 type Choices = Partial<Record<DiffField, Choice>>;
@@ -19,7 +20,21 @@ type Props = {
   onCancel: () => void;
 };
 
-const LEGEND: Record<DiffField, string> = {
+type LegendKey =
+  | "fields.fullName"
+  | "fields.contactEmail"
+  | "fields.phone"
+  | "fields.location"
+  | "fields.links"
+  | "fields.targetTitles"
+  | "fields.headline"
+  | "fields.skills"
+  | "fields.yearsExperience"
+  | "sections.experience"
+  | "sections.education"
+  | "sections.languages";
+
+const LEGEND: Record<DiffField, LegendKey> = {
   fullName: "fields.fullName",
   contactEmail: "fields.contactEmail",
   phone: "fields.phone",
@@ -42,7 +57,7 @@ export function ReviewChangesDialog({ open, fileName, diffs, onApply, onCancel }
 
   function summarize(diff: FieldDiff, value: unknown): string {
     if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) return t("empty");
-    if (diff.field === "yearsExperience") return tp(`years.${String(value)}`);
+    if (diff.field === "yearsExperience") return tp(`years.${value as (typeof YEARS_EXPERIENCE)[number]}`);
     if (diff.field === "links") {
       const l = value as { linkedin: string; portfolio: string };
       return [l.linkedin, l.portfolio].filter(Boolean).join(", ") || t("empty");
@@ -60,13 +75,13 @@ export function ReviewChangesDialog({ open, fileName, diffs, onApply, onCancel }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-      <DialogContent showCloseButton={false} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent showCloseButton={false} className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-[length:var(--text-h3-size)] leading-6">{t("title")}</DialogTitle>
           <DialogDescription>{t("body", { filename: fileName })}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
           {diffs.map((d) => (
             <fieldset key={d.field} className="flex min-w-0 flex-col gap-1 border-t border-border pt-3">
               <legend className="mb-1 text-sm font-semibold">{tp(LEGEND[d.field])}</legend>
@@ -88,7 +103,7 @@ export function ReviewChangesDialog({ open, fileName, diffs, onApply, onCancel }
           ))}
         </div>
 
-        <DialogFooter className="sm:flex-wrap">
+        <DialogFooter className="flex-col sm:flex-row sm:flex-wrap">
           <Button type="button" variant="outline" onClick={() => set("keep")}>
             {t("keepAll")}
           </Button>

@@ -55,5 +55,11 @@
     "empty": "(empty)",
     "count": "{count, plural, one {# item} other {# items}}",
     "appliedHint": "Review the highlighted changes and save when you're happy."
+  },
+  "loading": {
+    "label": "Loading your resume step"
+  },
+  "error": {
+    "body": "We couldn't load this step. Try again."
   }
 }
