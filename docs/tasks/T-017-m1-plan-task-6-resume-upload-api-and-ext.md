@@ -2,7 +2,7 @@
 id: T-017
 type: task
 title: "M1 plan Task 6: Resume upload API and extraction job"
-status: qa
+status: done
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -11,7 +11,7 @@ files: [backend/src/autoapplier/ports/jobs.py, backend/src/autoapplier/ports/res
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 ## What to do
@@ -29,3 +29,4 @@ updated: 2026-09-28
 - 2026-09-28 23:05 AC 1 ✔ (backend-dev): unit: backend/tests/unit/test_resume_{service,extraction,task}.py test_resumes_api.py; integration: test_resume_repository.py test_resume_pipeline.py (50 passed); quality-gate fast PASS; check:openapi OK
 - 2026-09-28 23:05 in_progress → qa (backend-dev): Plan task 6 implemented, uncommitted (wave)
 - 2026-09-28 23:05 note (team-lead): lead: for the M1 whole-branch review — test_resume_repository disables resumes_touch_updated_at on the shared DB during a test (isolation risk); db/resumes.py uses select *; unknown resume id → failed no-op. Worker needs app restart to load resume.extract.
+- 2026-09-29 07:41 qa → done (team-lead)

@@ -2,7 +2,7 @@
 id: T-020
 type: task
 title: "M1 plan Task 9: Profile editor, onboarding checklist, D5-aware welcome toast"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -30,3 +30,4 @@ updated: 2026-09-29
 - 2026-09-29 07:38 AC 1 ✔ (frontend-dev): apps/web: profile-editor/checklist/welcome-toast/schema/completeness/actions tests; quality-gate fast PASS (276 unit tests); visual check 375+1280 as admin-created qa+uuid@example.test
 - 2026-09-29 07:38 in_progress → qa (frontend-dev): Implemented ProfileEditor, Checklist, StepCard, StepDots, WelcomeToast (D5), onboarding/profile pages, loading/error; not committed
 - 2026-09-29 07:38 note (team-lead): lead: review items — ui/progress.tsx doesn't pass value to Radix (no aria-valuenow; checklist uses own progressbar); RU list join uses ', ' per S-004; build not run during wave.
+- 2026-09-29 07:41 qa → done (team-lead)
