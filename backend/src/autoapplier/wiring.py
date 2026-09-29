@@ -36,6 +36,8 @@ from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
 from autoapplier.ports.storage import FileStorage
+from autoapplier.services.account_deletion import AccountDeletionService, ResumeFilesPurge
+from autoapplier.services.account_export import AccountExportService
 from autoapplier.services.health import HealthService
 from autoapplier.services.resume_extraction import ResumeExtractionService
 from autoapplier.services.resumes import ResumeService
@@ -59,6 +61,8 @@ class Container:
     documents: DocumentTextExtractor
     resumes: ResumeService
     resume_extraction: ResumeExtractionService
+    account_export: AccountExportService
+    account_deletion: AccountDeletionService
 
 
 async def build_container(settings: Settings) -> Container:
@@ -88,6 +92,9 @@ async def build_container(settings: Settings) -> Container:
     storage = SupabaseStorage(base_url=settings.supabase_url, secret_key=secret_key, http=http)
     documents = PyPdfDocxTextExtractor()
     resume_store = PgResumeStore(pool)
+    auth_admin = GoTrueAdmin(base_url=settings.supabase_url, secret_key=secret_key, http=http)
+    # M3/M4 append purge steps for their own stores here.
+    purge_steps = [ResumeFilesPurge(storage)]
     return Container(
         settings=settings,
         pool=pool,
@@ -104,11 +111,13 @@ async def build_container(settings: Settings) -> Container:
             hs256_secret=settings.supabase_jwt_secret,
             cache_ttl_s=settings.auth_jwks_cache_ttl_s,
         ),
-        auth_admin=GoTrueAdmin(base_url=settings.supabase_url, secret_key=secret_key, http=http),
+        auth_admin=auth_admin,
         storage=storage,
         documents=documents,
         resumes=ResumeService(resume_store, storage, queue),
         resume_extraction=ResumeExtractionService(resume_store, storage, documents, llm),
+        account_export=AccountExportService(pool),
+        account_deletion=AccountDeletionService(auth_admin, purge_steps),
     )
 
 

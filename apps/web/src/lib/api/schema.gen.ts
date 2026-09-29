@@ -24,6 +24,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/account/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Account */
+        post: operations["delete_account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/account/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Account */
+        get: operations["export_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -79,6 +113,44 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountDeletionRequest */
+        AccountDeletionRequest: {
+            /** Confirm Email */
+            confirm_email: string;
+        };
+        /** AccountExport */
+        AccountExport: {
+            account: components["schemas"]["ExportAccount"];
+            /** Applications */
+            applications: {
+                [key: string]: unknown;
+            }[];
+            /** Credit Balance */
+            credit_balance: number;
+            /** Credit Ledger */
+            credit_ledger: components["schemas"]["ExportLedgerEntry"][];
+            /**
+             * Exported At
+             * Format: date-time
+             */
+            exported_at: string;
+            /**
+             * Format Version
+             * @default 1
+             * @constant
+             */
+            format_version: 1;
+            /** Profile */
+            profile: {
+                [key: string]: unknown;
+            } | null;
+            /** Resumes */
+            resumes: components["schemas"]["ExportResume"][];
+            /** Searches */
+            searches: {
+                [key: string]: unknown;
+            }[];
+        };
         /** Body_upload_resume */
         Body_upload_resume: {
             /** File */
@@ -106,6 +178,63 @@ export interface components {
         ChecksOut: {
             database: components["schemas"]["CheckOut"];
             queue: components["schemas"]["CheckOut"];
+        };
+        /** ExportAccount */
+        ExportAccount: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ui Locale
+             * @enum {string}
+             */
+            ui_locale: "en" | "ru";
+        };
+        /** ExportLedgerEntry */
+        ExportLedgerEntry: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Delta */
+            delta: number;
+            /** Reason */
+            reason: string;
+        };
+        /** ExportResume */
+        ExportResume: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Extracted */
+            extracted: {
+                [key: string]: unknown;
+            } | null;
+            /** File Name */
+            file_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Status */
+            status: string;
         };
         /** FieldError */
         FieldError: {
@@ -234,6 +363,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    delete_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    export_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountExport"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
         };

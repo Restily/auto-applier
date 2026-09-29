@@ -16,6 +16,8 @@ from autoapplier.ports.auth import AuthClaims
 from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
+from autoapplier.services.account_deletion import AccountDeletionService
+from autoapplier.services.account_export import AccountExportService
 from autoapplier.services.health import HealthService
 from autoapplier.services.resume_extraction import ResumeExtractionService
 from autoapplier.services.resumes import ResumeService
@@ -48,6 +50,8 @@ def _client() -> httpx.AsyncClient:
         documents=cast(DocumentTextExtractor, None),
         resumes=cast(ResumeService, None),
         resume_extraction=cast(ResumeExtractionService, None),
+        account_export=cast(AccountExportService, None),
+        account_deletion=cast(AccountDeletionService, None),
     )
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(create_app(container=container)), base_url="http://test"

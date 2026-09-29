@@ -19,6 +19,8 @@ from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
 from autoapplier.ports.storage import FileStorage
+from autoapplier.services.account_deletion import AccountDeletionService
+from autoapplier.services.account_export import AccountExportService
 from autoapplier.services.health import HealthService
 from autoapplier.services.resume_extraction import ResumeExtractionService
 from autoapplier.services.resumes import ResumeService
@@ -77,6 +79,8 @@ def _container(pool: _FakePool, redis_client: _FakeRedis, celery_app: _FakeCeler
         documents=cast(DocumentTextExtractor, None),
         resumes=cast(ResumeService, None),
         resume_extraction=cast(ResumeExtractionService, None),
+        account_export=cast(AccountExportService, None),
+        account_deletion=cast(AccountDeletionService, None),
     )
 
 

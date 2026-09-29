@@ -17,6 +17,8 @@ from autoapplier.adapters.storage.fake import InMemoryFileStorage
 from autoapplier.api.app import create_app
 from autoapplier.config import Settings
 from autoapplier.ports.auth import AuthClaims
+from autoapplier.services.account_deletion import AccountDeletionService
+from autoapplier.services.account_export import AccountExportService
 from autoapplier.services.health import HealthService
 from autoapplier.services.resume_extraction import ResumeExtractionService
 from autoapplier.services.resumes import ResumeService
@@ -61,6 +63,8 @@ class _Env:
             documents=documents,
             resumes=ResumeService(self.store, self.storage, self.queue),
             resume_extraction=ResumeExtractionService(self.store, self.storage, documents, llm),
+            account_export=cast(AccountExportService, None),
+            account_deletion=cast(AccountDeletionService, None),
         )
         self.client = httpx.AsyncClient(
             transport=httpx.ASGITransport(create_app(container=container)),
