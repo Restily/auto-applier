@@ -1,1 +1,19 @@
-{}
+{
+  "delete": {
+    "heading": "This can't be undone",
+    "body": "Deleting your account permanently removes your profile, resume, searches, channel connections and application history. Any remaining credits are forfeited.",
+    "fingerprintNote": "We keep only a one-way hash of your email so that a new account with it doesn't get the sign-up bonus again.",
+    "instruction": "Type your email to confirm: <strong>{email}</strong>",
+    "hint": "Doesn't match your account email yet",
+    "cancel": "Cancel",
+    "confirm": "Delete my account",
+    "deleting": "Deleting your account…",
+    "error": "We couldn't delete your account. Try again, or contact support if this keeps happening."
+  },
+  "deleted": {
+    "heading": "Your account has been deleted",
+    "body": "All your data has been permanently removed.",
+    "fingerprintNote": "A new account with the same email starts without the free sign-up credits.",
+    "action": "Create a new account"
+  }
+}
