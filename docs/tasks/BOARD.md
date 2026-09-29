@@ -15,10 +15,11 @@ Status: **done** · closed 4/4
 
 ## M1 — Onboarding & profile
 
-Status: **building** · closed 16/26 · **ui**
+Status: **building** · closed 17/27 · **ui**
 
 | ID | Type | Status | Owner | Pri | AC | Title |
 |---|---|---|---|---|---|---|
+| B-001 | bug (medium) | todo | frontend-dev | P1 | 0/2 | ui/dialog.tsx DialogContent hardcodes an English 'Close' screen-reader label (not localized, S-005) |
 | S-001 | story | todo | frontend-dev | P0 | 0/7 | Sign up, sign in, sign out and password reset with free credits |
 | S-002 | story | todo | frontend-dev | P1 | 0/3 | Sign in with Google |
 | S-003 | story | todo | frontend-dev | P0 | 0/5 | Upload a resume and get an AI-extracted profile |
@@ -42,7 +43,7 @@ Status: **building** · closed 16/26 · **ui**
 | T-019 | task | done | frontend-dev | P0 | 1/1 | M1 plan Task 8: Auth screens: sign up, sign in, forgot/reset password, sign out, Google |
 | T-020 | task | done | frontend-dev | P0 | 1/1 | M1 plan Task 9: Profile editor, onboarding checklist, D5-aware welcome toast |
 | T-021 | task | in_progress | frontend-dev | P0 | 0/1 | M1 plan Task 10: Settings: language, data export, delete account, privacy placeholder (D5) |
-| T-022 | task | qa | frontend-dev | P0 | 1/1 | M1 plan Task 11: Resume upload UI, extraction status, replace and review-changes dialog |
+| T-022 | task | done | frontend-dev | P0 | 1/1 | M1 plan Task 11: Resume upload UI, extraction status, replace and review-changes dialog |
 | T-023 | task | todo | qa-automation | P0 | 0/1 | M1 plan Task 12: E2E: auth, credits, Google edge states, EN/RU, a11y and touch targets |
 | T-024 | task | todo | qa-automation | P0 | 0/1 | M1 plan Task 13: E2E: resume, profile, export, delete and D5 re-sign-up; full gate |
 

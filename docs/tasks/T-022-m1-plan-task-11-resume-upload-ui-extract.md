@@ -2,7 +2,7 @@
 id: T-022
 type: task
 title: "M1 plan Task 11: Resume upload UI, extraction status, replace and review-changes dialog"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -28,3 +28,5 @@ updated: 2026-09-29
 - 2026-09-29 07:42 todo → in_progress (team-lead)
 - 2026-09-29 07:56 AC 1 ✔ (frontend-dev): unit: 57 files/397 tests green incl. validate/upload/status/merge/route/actions/dropzone/review-changes-dialog/extraction-failed/resume-flow/profile-resume-host; e2e evidence docs/qa/evidence/M1/T-022-*.png (upload, extraction, failure, replace, review dialog, EN/RU, 360/1280)
 - 2026-09-29 07:56 in_progress → qa (frontend-dev): Resume upload flow, polling, failure panel, replace dialog, review-changes (keep-current default, no silent overwrite); pages extended, not committed
+- 2026-09-29 07:56 note (team-lead): lead: review items — Replace resume mid-edit discards unsaved editor typing (editor remount); Escape on review dialog re-prompts next visit; extraction bar uses animate-pulse.
+- 2026-09-29 07:56 qa → done (team-lead)
