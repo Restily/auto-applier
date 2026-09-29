@@ -31,7 +31,10 @@ function NewPasswordForm(): React.JSX.Element {
   const [state, formAction, pending] = useActionState(
     async (prev: AuthFormState, formData: FormData): Promise<AuthFormState> => {
       const result = await updatePasswordAction(prev, formData);
-      if (result.status === "error") setAttempt((n) => n + 1); setError(result.fieldErrors?.password);
+      if (result.status === "error") {
+        setAttempt((n) => n + 1);
+        setError(result.fieldErrors?.password);
+      }
       return result;
     },
     { status: "idle" },
