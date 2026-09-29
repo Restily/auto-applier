@@ -41,7 +41,8 @@
     "button": "Replace resume",
     "title": "Replace resume",
     "description": "Upload a new PDF or DOCX. We'll ask before changing anything in your profile.",
-    "close": "Close"
+    "close": "Close",
+    "uploadButton": "Upload a resume"
   },
   "review": {
     "title": "Review changes from your new resume",

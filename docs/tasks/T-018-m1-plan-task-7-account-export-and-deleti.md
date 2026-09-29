@@ -2,7 +2,7 @@
 id: T-018
 type: task
 title: "M1 plan Task 7: Account export and deletion API (+ D5 and cross-user API tests)"
-status: qa
+status: done
 milestone: M1
 owner: backend-dev
 priority: P0
@@ -28,3 +28,4 @@ updated: 2026-09-29
 - 2026-09-29 07:42 todo → in_progress (team-lead)
 - 2026-09-29 07:47 AC 1 ✔ (backend-dev): backend/tests/unit/test_account_{domain,deletion_service,api}.py + tests/integration/test_account_{export,deletion}.py: 262 passed (unit+integration); ruff/mypy/lint-imports clean; check:openapi ok
 - 2026-09-29 07:47 in_progress → qa (backend-dev): Task 7 implemented, uncommitted (lead commits wave); quality-gate fast fails only on frontend T-022 files (components/resume)
+- 2026-09-29 07:48 qa → done (team-lead)

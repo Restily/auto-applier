@@ -2,7 +2,7 @@
 id: T-021
 type: task
 title: "M1 plan Task 10: Settings: language, data export, delete account, privacy placeholder (D5)"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -11,7 +11,7 @@ files: [apps/web/src/app/(app)/settings/**, apps/web/src/app/(public)/account-de
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 ## What to do
@@ -26,3 +26,4 @@ updated: 2026-09-28
 
 - 2026-09-28 09:15 created (architect)
 - 2026-09-28 23:00 note (team-lead): lead: apps/web/messages/*/settings.json already holds language.saveFailed (T-015); extend the file, do not overwrite.
+- 2026-09-29 07:49 todo → in_progress (team-lead)
