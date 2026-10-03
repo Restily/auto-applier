@@ -1,6 +1,6 @@
 # ADR-0016: Account data export and deletion with enforced table coverage
 
-- Status: accepted
+- Status: accepted (amended 2026-09-28 for D5)
 - Date: 2026-09-27
 - Deciders: architect
 
@@ -32,3 +32,10 @@ M1 has only some of these tables. M2–M4 add searches, applications, connection
 ## Consequences
 - Positive: one place per concern; later milestones extend registries instead of rewriting flows; the tests make a forgotten table impossible to ship silently.
 - Negative: an access token issued before deletion stays cryptographically valid until it expires (≤ 1 h). It can't refresh, and RLS finds no rows for it. Accepted for MVP; the MR security audit re-checks it.
+
+## Amendment 2026-09-28 — D5: the one datum kept after deletion
+
+- **What changes:** deleting the Auth user (step 2 above) now also writes one row to `private.deleted_account_fingerprints`: `HMAC-SHA256(Vault key, trim+lowercase(email))`. The `auth.users` delete trigger writes it in the same transaction (ADR-0013 amendment). The Python deletion flow is unchanged and never computes or sees the hash. If a purge step or the Auth delete fails, nothing is written.
+- **What stays:** everything S-006 AC2 promises: the account, profile, resume files, searches, connections and all stored secrets are deleted, the session is signed out, and the old credentials fail. The fingerprint has no user id, no timestamp and no foreign key to `auth.users`. It is therefore outside the "user-owned tables" that the coverage tests enumerate, and it is never exported (it is not the user's data while the account exists, and it cannot be read back).
+- **Disclosure:** the delete dialog and `/account-deleted` state it in one line and link to the `/privacy` section "What we keep after you delete your account".
+- **Tests:** the M1 plan's Task 7 adds `test_deletion_keeps_only_email_fingerprint`, `test_failed_deletion_leaves_no_fingerprint` and `test_signup_after_deletion_gets_account_without_bonus`; Task 1 adds pgTAP §9; Task 13 adds the e2e re-sign-up journey.

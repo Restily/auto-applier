@@ -10,12 +10,22 @@ failures. `autoapplier.config.Settings` forces this provider whenever
 import hashlib
 import json
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from autoapplier.ports.llm import LLMError, LLMRequest, LLMResponse, LLMUsage
+from autoapplier.ports.llm import (
+    LLMError,
+    LLMRequest,
+    LLMResponse,
+    LLMUnavailableError,
+    LLMUsage,
+)
+
+FAIL_MARKER = "[[fake-llm:fail]]"
+_VARIANT_RE = re.compile(r"\[\[fake-llm:variant=([A-Za-z0-9_-]+)\]\]")
 
 
 def request_fingerprint(request: LLMRequest) -> str:
@@ -51,9 +61,11 @@ class FakeLLMProvider:
         replies: Mapping[str, FakeReply] | None = None,
         *,
         fixtures_dir: Path | None = None,
+        enable_markers: bool = False,
     ) -> None:
         self._replies: dict[str, FakeReply] = dict(replies) if replies is not None else {}
         self._fixtures_dir = fixtures_dir
+        self._enable_markers = enable_markers
         self._next_error: LLMError | None = None
         self.calls: list[LLMRequest] = []
 
@@ -68,8 +80,16 @@ class FakeLLMProvider:
             error, self._next_error = self._next_error, None
             raise error
 
+        variant: str | None = None
+        if self._enable_markers:
+            content = "".join(message.content for message in request.messages)
+            if FAIL_MARKER in content:
+                raise LLMUnavailableError("fake: scripted failure")
+            found = _VARIANT_RE.search(content)
+            variant = found.group(1) if found else None
+
         fingerprint = request_fingerprint(request)
-        reply = self._resolve_reply(request.task, fingerprint)
+        reply = self._resolve_reply(request.task, fingerprint, variant)
 
         if request.json_schema is not None and reply.data is None:
             raise LLMError(f"no fake data for task {request.task}")
@@ -87,20 +107,24 @@ class FakeLLMProvider:
             usage=usage,
         )
 
-    def _resolve_reply(self, task: str, fingerprint: str) -> FakeReply:
+    def _resolve_reply(self, task: str, fingerprint: str, variant: str | None = None) -> FakeReply:
         if fingerprint in self._replies:
             return self._replies[fingerprint]
         if task in self._replies:
             return self._replies[task]
-        fixture = self._load_fixture(task)
+        fixture = self._load_fixture(task, variant)
         if fixture is not None:
             return fixture
         return FakeReply(text=f"[fake:{task}] {fingerprint[:12]}")
 
-    def _load_fixture(self, task: str) -> FakeReply | None:
+    def _load_fixture(self, task: str, variant: str | None = None) -> FakeReply | None:
         if self._fixtures_dir is None:
             return None
         path = self._fixtures_dir / f"{task}.json"
+        if variant is not None:
+            variant_path = self._fixtures_dir / f"{task}.{variant}.json"
+            if variant_path.is_file():
+                path = variant_path
         if not path.is_file():
             return None
         payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))

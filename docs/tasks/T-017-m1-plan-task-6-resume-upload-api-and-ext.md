@@ -1,0 +1,32 @@
+---
+id: T-017
+type: task
+title: "M1 plan Task 6: Resume upload API and extraction job"
+status: done
+milestone: M1
+owner: backend-dev
+priority: P0
+depends_on: [T-013, T-014]
+files: [backend/src/autoapplier/ports/jobs.py, backend/src/autoapplier/ports/resume_store.py, backend/src/autoapplier/db/resumes.py, backend/src/autoapplier/services/resumes.py, backend/src/autoapplier/services/resume_extraction.py, backend/src/autoapplier/worker/jobs.py, backend/src/autoapplier/worker/celery_app.py, backend/src/autoapplier/worker/tasks/resume.py, backend/src/autoapplier/api/routes/resumes.py, backend/src/autoapplier/api/schemas/resumes.py, backend/src/autoapplier/wiring.py, backend/src/autoapplier/api/app.py, backend/openapi.json, apps/web/src/lib/api/schema.gen.ts, backend/tests/unit/doubles/**, backend/tests/unit/test_resume_service.py, backend/tests/unit/test_resume_extraction.py, backend/tests/unit/test_resumes_api.py, backend/tests/unit/test_resume_task.py, backend/tests/integration/test_resume_repository.py, backend/tests/integration/test_resume_pipeline.py]
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
+needs_human: false
+created: 2026-09-28
+updated: 2026-09-29
+---
+
+## What to do
+
+…
+
+## Definition of done
+
+- [x] Plan task 6 implemented; its tests pass
+
+## Log
+
+- 2026-09-28 09:15 created (architect)
+- 2026-09-28 23:00 todo → in_progress (team-lead)
+- 2026-09-28 23:05 AC 1 ✔ (backend-dev): unit: backend/tests/unit/test_resume_{service,extraction,task}.py test_resumes_api.py; integration: test_resume_repository.py test_resume_pipeline.py (50 passed); quality-gate fast PASS; check:openapi OK
+- 2026-09-28 23:05 in_progress → qa (backend-dev): Plan task 6 implemented, uncommitted (wave)
+- 2026-09-28 23:05 note (team-lead): lead: for the M1 whole-branch review — test_resume_repository disables resumes_touch_updated_at on the shared DB during a test (isolation risk); db/resumes.py uses select *; unknown resume id → failed no-op. Worker needs app restart to load resume.extract.
+- 2026-09-29 07:41 qa → done (team-lead)

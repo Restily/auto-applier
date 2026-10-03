@@ -9,7 +9,7 @@ priority: P0
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 ## Description
@@ -35,3 +35,8 @@ As a <user>, I want <action>, so that <value>.
 
 - 2026-09-27 12:11 created (team-lead)
 - 2026-09-27 15:00 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md (team-lead)
+- 2026-09-28 08:58 note (team-lead): D5: sign-up bonus is skipped when the email's HMAC fingerprint exists from a deleted account (see PRD decision log 2026-09-28).
+- 2026-09-28 09:15 note (architect): Architect (plan amended for D5): AC7 text predates D5 — lead please reword to: exactly one 20-credit sign-up bonus per account, except an account re-created with the email of a deleted account, which gets none; signing in again never grants more. Plan traceability row S-001·7 covers both.
+- 2026-09-28 09:16 note (team-lead): AC7 amended by human decision D5 (2026-09-28): 'exactly one sign-up bonus per user' now reads 'exactly one sign-up-bonus entry of 20 credits, unless the email's HMAC fingerprint exists from a deleted account — then none; signing in again never grants more'. QA verifies AC7 against this wording.
+- 2026-09-28 09:18 note (designer): D5 copy confirmed: welcome toast (auth.signUp.welcomeToast) shows only when ShellData.signupBonusGranted; no toast, no substitute message when it's false — header balance badge just shows 0 with the same neutral styling as any other value. See docs/design/screens/S-001.md States/Success + Copy.
+- 2026-09-28 09:18 note (qa-automation): QA delta contract review (2026-09-28): AC7 amended wording (D5) verified — 3 test layers + control case, no gaps. See docs/qa/plans/M1-test-plan.md.

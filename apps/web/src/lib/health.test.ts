@@ -51,7 +51,7 @@ describe("toSystemHealthView", () => {
 
     expect(view.overall).toBe("unavailable");
     expect(view.checks.every((check) => check.state === "down")).toBe(true);
-    expect(view.checks.every((check) => check.detail === "API unreachable")).toBe(true);
+    expect(view.checks.every((check) => check.detail === null && check.unreachable)).toBe(true);
   });
 
   it("treats 200 with body status degraded as degraded", () => {

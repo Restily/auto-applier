@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 // This file lives at apps/web/next.config.ts — the repo root is two levels up.
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,4 +17,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

@@ -1,6 +1,8 @@
 # M1 Onboarding & Profile Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development, run by the Team Lead (the constitution fixes the execution method). Steps use checkbox (`- [ ]`) syntax for tracking. Tasks run in **waves** (see "Waves" below). Tasks inside a wave run in parallel, each in its own lead-created git worktree (`/home/user/aa-wt/M1-<task>`) branched from `milestone/M1-onboarding-profile`. Dispatch each implementer with `subagent_type` = the task's `Owner`.
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development, run by the Team Lead (the constitution fixes the execution method). Steps use checkbox (`- [ ]`) syntax for tracking. Every plan task is one board item (`T-0NN`, see "Waves") with a declared `files` set and `depends_on`. `python3 team/bin/board.py wave --milestone M1` returns the next batch of ready, file-disjoint items; the lead dispatches one implementer per item at once, all in the **one** working tree on `milestone/M1-onboarding-profile` (no worktrees). Dispatch each implementer with `subagent_type` = the task's `Owner`, `model: sonnet`. Implementers do not commit; the lead commits each wave. One whole-branch review (opus) follows the last wave.
+
+> **Amended 2026-09-28** for the human decision **D5** (no repeat sign-up bonus after account deletion; Tasks 1, 4, 5, 7, 9, 10, 12, 13), the M0 final-review follow-ups **T-006…T-009** (Tasks 2, 5, 7, 12 and the new Tasks 14–16), and the single-tree wave model (new Tasks 0A/0B own every dependency manifest; "Waves" rewritten).
 
 **Goal:** A new user signs up (email/password, or Google when configured), gets 20 credits once, turns a PDF/DOCX resume into an editable profile or fills it by hand, uses the app in English or Russian, and can export or delete their data.
 
@@ -19,7 +21,8 @@
   - backend: `Settings`, `Container`/`build_container`, `create_app`, `AsyncRuntime`, `JobQueue`, `FakeLLMProvider`, `build_llm_provider`;
   - web: `createSupabaseServerClient`, `createSupabaseBrowserClient`, `createApiClient`, `getServerEnv`, `getPublicEnv`;
   - scripts: `gen:db-types`, `gen:api-types`, `check:*`.
-  Extending an M0 file is allowed; changing an M0 signature is not.
+  Extending an M0 file is allowed; changing an M0 signature is not. **One deliberate exception (T-007):** Task 2 removes the unused `Settings.api_host`, `api_port` and `web_origin` (and their `.env.example` lines). Nothing reads them: `dev:api` passes `--host`/`--port` itself and the browser never calls the API, so there is no CORS origin.
+- **Dependency manifests have one owner each (single-tree waves).** Only Task 0A edits `backend/pyproject.toml` and `backend/uv.lock` (plus Task 16, which runs after it). Only Task 0B edits root `package.json`, `package-lock.json`, `apps/web/package.json`, `apps/web/components.json` and adds shadcn primitives (plus Task 16's two `package.json` script lines, after it). Later tasks that find a missing package stop and report `NEEDS_CONTEXT`; they never run `uv add`, `npm install <pkg>` or `npx shadcn add`.
 - **Licenses:** only MIT, Apache-2.0, BSD, ISC, PSF, or MPL-2.0 used unmodified. **No GPL/AGPL/LGPL/SSPL**. PyMuPDF/fitz (AGPL) is forbidden. Check a new package's license on PyPI/npm before adding it. Keep the exact lockfiles (`backend/uv.lock`, `package-lock.json`).
 - **context7 is unavailable.** Verify library APIs against the **installed** package (`uv run python -c "import inspect, anthropic; …"`, `node_modules/<pkg>/README.md`, `.d.ts` files). Record surprises in `docs/solutions/`.
 - **Supabase is local only.** Only Task 1 may run `supabase db reset`, `supabase stop`/`start` or create migrations. Never `supabase link`/`db push`. RLS on every table.
@@ -71,9 +74,11 @@
   - unique emails `be+<uuid>@example.test` (backend tests) and `qa+<uuid>@example.test` (qa tests); tests delete the users they create;
   - Redis prefixes `aa:test:<uuid>:`;
   - no truncates or resets; never `FLUSHALL`/`FLUSHDB`;
-  - tests that would enqueue `resume.extract` inject `InMemoryJobQueue`. A worktree's tests must never hand tasks to the shared dev worker, which runs older code.
-- **Generated files are never hand-edited or hand-merged:** `backend/openapi.json`, `apps/web/src/lib/api/schema.gen.ts`, `apps/web/src/lib/supabase/database.types.ts`, `backend/uv.lock`, `package-lock.json`. Regenerate them with `npm run gen:api-types`, `npm run gen:db-types`, `uv lock --directory backend` and `npm install`.
-- Every task ends with `bash team/bin/quality-gate.sh fast` green and **one** Conventional Commit on its worktree branch. No push. Do not touch `.claude/`, `team/`, or `docs/` outside your role.
+  - tests that would enqueue `resume.extract` inject `InMemoryJobQueue`. Tests never hand tasks to the shared dev worker: it runs the code from its last `app.sh start`, not the tree being edited;
+  - every deleted test user leaves one row in `private.deleted_account_fingerprints` (D5). That is expected; tests never clean that table, and emails are unique per test anyway.
+- **Generated files are never hand-edited:** `backend/openapi.json`, `apps/web/src/lib/api/schema.gen.ts`, `apps/web/src/lib/supabase/database.types.ts`, `backend/uv.lock`, `package-lock.json`. Regenerate them with `npm run gen:api-types`, `npm run gen:db-types`, `uv lock --directory backend` and `npm install`, and only in the task that declares them in its `files`.
+- **Touch only your board item's files** (`python3 team/bin/board.py show T-0NN` → `files`). Other tasks of the same wave edit the same tree at the same time: never revert, reformat or "fix" a file outside your set. If `quality-gate fast` is red **only** because of another task's files, say so in the report (with the failing lines) and hand in; the lead's post-wave gate is authoritative.
+- Every task ends with `bash team/bin/quality-gate.sh fast` green for its own files. **No commits** (the lead commits the wave), no push. Do not touch `.claude/`, `team/`, or `docs/` outside your role.
 
 ## Decisions made in this plan (inside AUTONOMY; the lead records them in the PRD decision log)
 
@@ -95,7 +100,14 @@
   - the one-grant-per-new-user trigger (pgTAP).
 
   The real consent round trip is a human live check before launch (TECH-DEBT TD-006, README checklist at MR).
-- **D5 — sign-up grant abuse** (delete the account, sign up again with the same email, get 20 credits again) is **not** prevented in M1. Preventing it means keeping an email fingerprint after deletion, which conflicts with the deletion promise. The lead escalates it to the human (ADR-0013).
+- **D5 — no repeat sign-up bonus after deletion (human decision, 2026-09-28; PRD decision log; ADR-0013 and ADR-0016 amendments).**
+  - **What is kept:** when an `auth.users` row is deleted (by any path: our deletion API, GoTrue admin, test teardown), an `after delete` trigger stores `HMAC-SHA256(key, normalize(email))` in `private.deleted_account_fingerprints(email_hmac bytea primary key)`. `normalize` = trim leading/trailing whitespace + lowercase. Nothing else is stored: no user id, no timestamp, no plaintext.
+  - **Where the key lives:** Supabase Vault secret `signup_bonus_fingerprint_key` (32 random bytes, hex), created by the migration if absent, so it is never in git and differs per environment. Only `SECURITY DEFINER` functions in schema `internal` read it. The HMAC is computed only in SQL (`internal.email_fingerprint(text)`); the Python API and the web never compute or see it.
+  - **Who can read the table:** nobody through the Data API. Schema `private` has no `USAGE` for `anon`/`authenticated`; the table has RLS on, no policies, and no privileges for `anon`, `authenticated` or `service_role`.
+  - **Its only use:** `internal.handle_new_user()` skips the `signup_grant` insert when the new user's fingerprint exists. The account and its `profiles` row are still created; the balance is 0 (no ledger row). pgTAP asserts that no other function or view references the table.
+  - **Disclosure:** the `/privacy` placeholder (Task 10) has a "What we keep after you delete your account" section, and the delete dialog links to it. Copy is below in Task 10; the lead asks the designer to confirm it (board note on S-006), like D1.
+  - **UI consequence:** the "You've got 20 free credits" welcome toast shows only when the user actually has a `signup_grant` row (Task 9 via `ShellData.signupBonusGranted`, Task 4).
+  - Everything else from the deletion promise (S-006 AC2) stays.
 
 ## Review Focus
 
@@ -104,6 +116,7 @@
 3. **Cross-user access by id.** Cases: user B retries user A's resume id; the export contains foreign rows; direct Storage download; B reads A's `candidate_profiles`. Expected: 404 `resume.not_found` for the retry, own rows only in the export, denied for Storage, no rows for B. Tests: Task 6 (`test_resumes_api.py::test_retry_other_users_resume_is_404`), Task 7 (`test_account_export.py::test_export_contains_only_callers_rows`), Task 5 (`m1-storage.test.ts`, `m1-profiles.test.ts`).
 4. **Open redirect through `?next=` and the auth callbacks.** Inputs: `next=//evil.test`, `next=https://evil.test`, `next=/\evil.test`, `next=javascript:…`. Expected: redirect to the app's own landing page. Tests: Task 4 (`redirects.test.ts`), Task 8 (`confirm/route.test.ts::unsafe next falls back`).
 5. **Forged, expired or algorithm-confused JWTs on `/v1`.** Inputs: `alg: none`; HS256 signed with the public JWK; a wrong `aud` or `iss`; `exp` in the past; an unknown `kid`. Expected: 401 `auth.invalid_token`, with the token never echoed in the body or logs. Tests: Task 2 (`test_jwt_verifier.py`, `test_api_auth.py::test_problem_never_echoes_token`, `test_logging_redaction.py`).
+6. **The D5 email fingerprint.** Cases: the key or the table readable by `anon`, a user, or the secret key through the Data API; plaintext email or user id stored next to the hash; `Foo@Example.test ` vs `foo@example.test` hashing differently; the table read by anything other than the grant trigger; a re-sign-up still getting 20 credits; a failed deletion leaving a fingerprint of a live account. Expected: all denied / single `email_hmac` column / equal hashes / only `handle_new_user` reads it / 0 credits / the fingerprint is written in the same transaction as the `auth.users` delete, so a rolled-back delete leaves none. Tests: Task 1 (`m1_accounts.test.sql` §9, `test_auth_gotrue.py::test_resignup_after_deletion_gets_no_bonus`), Task 5 (`m1-ledger.test.ts` D5 cases), Task 7 (`test_account_deletion.py::test_deletion_keeps_only_email_fingerprint`, `::test_signup_after_deletion_gets_account_without_bonus`), Task 13 (`delete.spec.ts` re-sign-up).
 
 ---
 
@@ -111,6 +124,8 @@
 
 | Path | Task | Responsibility |
 |---|---|---|
+| `backend/pyproject.toml`, `backend/uv.lock` | 0A | every M1 Python dependency, import-linter contracts, mypy overrides |
+| root `package.json`, `package-lock.json`, `apps/web/package.json`, `apps/web/components.json`, `apps/web/src/components/ui/**` (new primitives), `apps/web/src/hooks/**`, `apps/web/src/app/globals.css` | 0B | every M1 npm dependency and script, shadcn primitives |
 | `supabase/migrations/<ts>_m1_accounts.sql`, `<ts>_m1_profiles_resumes.sql`, `supabase/config.toml`, `supabase/templates/recovery.html`, `supabase/tests/database/m1_*.test.sql` | 1 | schema, RLS, triggers, bucket, auth config, localized reset email |
 | `backend/tests/integration/supabase_helpers.py`, `backend/tests/integration/test_auth_gotrue.py` | 1 | GoTrue/Mailpit test helpers; sign-up, grant and reset-email checks |
 | `apps/web/src/lib/supabase/database.types.ts` | 1 (regenerated) | generated DB types |
@@ -122,16 +137,61 @@
 | `backend/src/autoapplier/{domain/account.py,ports/account.py,services/account_export.py,services/account_deletion.py,db/account.py,api/routes/account.py,api/schemas/account.py}` | 7 | export and deletion API |
 | `apps/web/src/app/(public)/{sign-up,sign-in,reset-password,auth/callback}/**`, `apps/web/src/app/auth/confirm/route.ts`, `apps/web/src/lib/auth/{schemas,errors,actions,providers,oauth}.ts`, `apps/web/src/components/auth/*` | 8 | auth screens, reset, Google |
 | `apps/web/src/lib/profile/{schema,completeness,queries,actions}.ts`, `apps/web/src/components/{profile,onboarding}/*`, `apps/web/src/app/(onboarding)/onboarding/{page.tsx,profile/page.tsx}`, `apps/web/src/app/(app)/profile/page.tsx` | 9 | profile editor, onboarding checklist |
-| `apps/web/src/app/(app)/settings/page.tsx`, `apps/web/src/app/(public)/account-deleted/page.tsx`, `apps/web/src/app/api/account/export/route.ts`, `apps/web/src/lib/account/*`, `apps/web/src/components/settings/*` | 10 | settings, language card, export and delete UI |
+| `apps/web/src/app/(app)/settings/page.tsx`, `apps/web/src/app/(public)/{account-deleted,privacy}/page.tsx`, `apps/web/src/app/api/account/export/route.ts`, `apps/web/src/lib/account/*`, `apps/web/src/components/settings/*` | 10 | settings, language card, export and delete UI, privacy placeholder (D5) |
 | `apps/web/src/app/(onboarding)/onboarding/resume/page.tsx`, `apps/web/src/app/api/resume/route.ts`, `apps/web/src/lib/resume/*`, `apps/web/src/lib/profile/merge.ts`, `apps/web/src/components/resume/*` | 11 | upload UI, polling, replace + review dialog |
 | `tests/e2e/{auth,i18n,a11y}/*` | 12 | e2e for S-001, S-002, S-005 |
 | `tests/fixtures/resumes/*`, `tests/e2e/{resume,profile,account}/*` | 13 | e2e for S-003, S-004, S-006; full gate |
+| `.github/workflows/ci.yml`, `tests/integration/ci-workflow.test.ts` | 14 (T-006) | CI pins the Supabase CLI, runs with `APP_ENV=ci` + `LLM_PROVIDER=fake` |
+| `apps/web/src/components/ui/button.tsx`, `button.test.tsx` | 15 (T-008) | 44 px default touch target |
+| `scripts/**`, `backend/tests/unit/test_valkey_script.py`, two `package.json` script lines, `[tool.mypy]`/`[tool.ruff]` in `backend/pyproject.toml` | 16 (T-009) | scripts under ruff + mypy; `valkey.sh` fails fast |
+
+---
+
+### Task 0A: M1 Python dependencies and import-linter contracts
+
+**Owner:** backend-dev · **Story:** S-001…S-006 (enabler) · **Board:** T-010 · **Wave:** 1
+
+**Files:** Modify `backend/pyproject.toml`; regenerate `backend/uv.lock` (`uv add` / `uv lock --directory backend`). Nothing else.
+
+**Contract** (the versions were checked on PyPI on 2026-09-27; licenses in Global Constraints):
+- runtime deps: `pyjwt[crypto]>=2.10`, `httpx>=0.28` (moved from dev to runtime), `python-multipart>=0.0.20`, `anthropic>=1.8,<2`, `pypdf>=6`, `python-docx>=1.2`;
+- dev deps: `respx>=0.22`, `pytest-cov>=6`;
+- mypy: `ignore_missing_imports` for `docx`, `docx.*` **only** if the installed `python-docx` ships no `py.typed`;
+- import-linter: contracts 1 (domain) and 2 (ports) also forbid `httpx`, `jwt`, `anthropic`, `pypdf`, `docx`; contract 3 (services) forbids the same five. Keep each contract's `name` telling the agent how to fix a violation (M0 style).
+
+- [ ] **Step 1: Failing-first probe.** `printf 'import httpx  # noqa\n' > backend/src/autoapplier/domain/_probe.py && npm run -s lint:py; echo "exit=$?"; rm backend/src/autoapplier/domain/_probe.py` → before the change: `lint-imports` passes (httpx is not forbidden yet). After Step 2 the same probe must fail with the domain contract's message.
+- [ ] **Step 2: Implement** the manifest changes.
+- [ ] **Step 3: Verify**
+  - `uv lock --directory backend --check` → exit 0; `uv sync --directory backend --locked` → exit 0;
+  - `uv run --directory backend python -c "import jwt, httpx, multipart, anthropic, pypdf, docx, respx, pytest_cov"` → exit 0;
+  - the Step 1 probe now exits non-zero and names the domain contract;
+  - `bash team/bin/quality-gate.sh fast` → PASS.
+
+---
+
+### Task 0B: M1 web dependencies, scripts and shadcn primitives
+
+**Owner:** frontend-dev · **Story:** S-001…S-006 (enabler) · **Board:** T-011 · **Wave:** 1
+
+**Files:** Modify root `package.json`, `apps/web/package.json`, `apps/web/components.json` (only if the CLI rewrites it), `apps/web/src/app/globals.css` (only what `shadcn add sidebar` inserts); regenerate `package-lock.json`; create `apps/web/src/components/ui/*` (new primitives only) and `apps/web/src/hooks/*` (if the CLI adds `use-mobile`). **Never** overwrite the existing `button.tsx`, `badge.tsx` or `card.tsx` (Task 15 owns the Button change).
+
+**Contract:**
+- `apps/web/package.json` deps: `next-intl@^4.14`, `sonner@^2`, `react-hook-form@^7`, `@hookform/resolvers@^5`; devDeps: `eslint-plugin-i18next@^6`, `@vitest/coverage-v8@^5`; script `test:coverage` = `vitest run --coverage` (not part of the gate; Task 4 adds the `coverage` block to `vitest.config.mts`).
+- root `package.json` devDeps: `@supabase/supabase-js@^2`, `@axe-core/playwright@^4.13`; script `test:coverage:py` = `uv run --directory backend pytest tests/unit --cov=autoapplier.domain --cov=autoapplier.services --cov-report=term-missing -q` (not part of the gate).
+- shadcn primitives: `npx shadcn@latest add input label alert alert-dialog dialog dropdown-menu popover avatar progress skeleton separator sheet tooltip select radio-group command sonner sidebar` (answer "no" to overwriting any existing file). The generated files are lint-clean under the M0 ESLint config (fix only lint/type errors in the generated files, never their behavior).
+
+- [ ] **Step 1: Implement** (no behavior tests: this task adds packages and vendor components only).
+- [ ] **Step 2: Verify**
+  - `npm ci` from the new lockfile → exit 0; `node -e "require.resolve('next-intl'); require.resolve('@axe-core/playwright')"` → exit 0;
+  - `ls apps/web/src/components/ui/{input,label,alert,alert-dialog,dialog,dropdown-menu,popover,avatar,progress,skeleton,separator,sheet,tooltip,select,radio-group,command,sonner,sidebar}.tsx` → all exist; `git diff --quiet apps/web/src/components/ui/button.tsx` → exit 0;
+  - `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0;
+  - `bash team/bin/quality-gate.sh fast` → PASS.
 
 ---
 
 ### Task 1: M1 schema, RLS, triggers, resume bucket, Auth config and localized reset email
 
-**Owner:** backend-dev · **Story:** S-001, S-003, S-004, S-005, S-006 (data layer) · **Wave:** 1 (alone: restarts Supabase and resets the DB)
+**Owner:** backend-dev · **Story:** S-001, S-003, S-004, S-005, S-006 (data layer) · **Board:** T-012 · **Wave:** 2 (the only task in its wave that uses Supabase: it restarts it and resets the DB; its wave-mates run only lint/typecheck/unit)
 
 **Files:**
 - Create (via `bash scripts/supabase.sh migration new m1_accounts` then `… new m1_profiles_resumes`): `supabase/migrations/<ts>_m1_accounts.sql`, `supabase/migrations/<ts>_m1_profiles_resumes.sql`
@@ -180,7 +240,37 @@ create view public.credit_balances with (security_invoker = true) as
 -- internal.sync_profile_locale(): after update of ui_locale on public.profiles → auth.users.raw_user_meta_data
 --   = coalesce(raw_user_meta_data,'{}') || jsonb_build_object('locale', new.ui_locale); SECURITY DEFINER, search_path ''
 -- internal.touch_updated_at(): generic before-update trigger setting updated_at = now() (profiles, resumes)
+
+-- ── D5: no repeat sign-up bonus after deletion (ADR-0013 amendment). Defined BEFORE handle_new_user. ──
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated, service_role;
+
+create table private.deleted_account_fingerprints (
+  email_hmac bytea primary key check (octet_length(email_hmac) = 32)   -- the ONLY column
+);
+alter table private.deleted_account_fingerprints enable row level security;   -- no policies (event trigger covers public only)
+revoke all on private.deleted_account_fingerprints from public, anon, authenticated, service_role;
+
+-- Vault key, created once per environment, never in git:
+--   if not exists (select 1 from vault.secrets where name = 'signup_bonus_fingerprint_key') then
+--     perform vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'signup_bonus_fingerprint_key',
+--                                 'HMAC key for private.deleted_account_fingerprints (D5, ADR-0013)');
+-- internal.email_fingerprint(email text) returns bytea: SECURITY DEFINER, set search_path = '', stable, strict
+--   = extensions.hmac(convert_to(lower(btrim(email, E' \t\r\n')), 'UTF8'),
+--                     decode(<decrypted_secret of 'signup_bonus_fingerprint_key' from vault.decrypted_secrets>, 'hex'), 'sha256')
+--   missing key → raise exception (fail loud: sign-up and deletion must not silently skip D5)
+--   revoke execute on function internal.email_fingerprint(text) from public, anon, authenticated, service_role
+-- internal.record_deleted_account_fingerprint(): trigger fn, SECURITY DEFINER, search_path ''
+--   if old.email is not null: insert into private.deleted_account_fingerprints(email_hmac)
+--     values (internal.email_fingerprint(old.email)) on conflict do nothing
+-- create trigger on_auth_user_deleted after delete on auth.users for each row
+--   execute function internal.record_deleted_account_fingerprint();
+-- handle_new_user() (above) inserts the signup_grant row ONLY IF new.email is null or
+--   not exists (select 1 from private.deleted_account_fingerprints where email_hmac = internal.email_fingerprint(new.email));
+--   the profiles insert is unconditional. The backfill applies the same rule.
+-- No other function, view or grant may reference private.deleted_account_fingerprints (pgTAP §9 enforces it).
 ```
+If `supabase_auth_admin` (the role GoTrue deletes/creates users with) cannot run the triggers because of a Vault or `private` privilege, fix it with the narrowest grant on the **function owner** side (the functions are `SECURITY DEFINER`), never by granting the table or the Vault view to `supabase_auth_admin`; record it in `docs/solutions/`. If Vault is not usable from a `SECURITY DEFINER` function in the local stack, stop and report `BLOCKED` to the architect (do not move the key elsewhere).
 `m1_profiles_resumes.sql`:
 ```sql
 create table public.resumes (
@@ -275,7 +365,7 @@ async def verify_recovery(http, base_url, secret, token_hash: str) -> httpx.Resp
 Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and deletes them on teardown.
 
 - [ ] **Step 1: Write the failing tests**
-  - `m1_accounts.test.sql` (pgTAP, **`select plan(21)`**: §1 = 2, §2 = 2, §3 = 1, §4 = 1, §5 = 1, §6 = 5, §7 = 6, §8 = 3; update N if an assertion is split; `begin … rollback`; users inserted into `auth.users` as `postgres` with fresh uuids; `set local role authenticated` + `set_config('request.jwt.claims', json_build_object('sub', <uuid>, 'role','authenticated')::text, true)` to act as a user):
+  - `m1_accounts.test.sql` (pgTAP, **`select plan(35)`**: §1 = 2, §2 = 2, §3 = 1, §4 = 1, §5 = 1, §6 = 5, §7 = 6, §8 = 3, §9 = 14; update N if an assertion is split; `begin … rollback`; users inserted into `auth.users` as `postgres` with fresh uuids; `set local role authenticated` + `set_config('request.jwt.claims', json_build_object('sub', <uuid>, 'role','authenticated')::text, true)` to act as a user):
     1. inserting a user with `raw_user_meta_data = {"locale":"ru"}` creates `profiles.ui_locale = 'ru'`; `{"locale":"de"}` gives `'en'`;
     2. exactly one `credit_ledger` row `(20, 'signup_grant', 'auth_user', id)` per new user; `credit_balances.balance = 20`;
     3. `update auth.users set last_sign_in_at = now()` (sign-in) adds no ledger row;
@@ -284,6 +374,21 @@ Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and d
     6. as user A: `select` from `credit_ledger`/`credit_balances` returns only A's rows; `insert`/`update`/`delete` on `credit_ledger` raise `42501`;
     7. as user A: `update profiles set ui_locale='ru'` succeeds and mirrors `auth.users.raw_user_meta_data->>'locale' = 'ru'`; updating another user's profile affects 0 rows; `update profiles set id = …` raises `42501`; as user A, `insert into profiles` raises `42501` (the trigger is the only writer), and `delete from profiles` raises `42501` (no delete grant);
     8. `anon` gets `42501` or no rows on `profiles`, `credit_ledger`, `credit_balances`.
+    9. **D5 fingerprint** (users `D5.<uuid>@Example.test`, inserted and deleted as `postgres`; compute the expected value in-test from the Vault key with `extensions.hmac`):
+       1. `anon` has no `USAGE` on schema `private`;
+       2. `authenticated` has no `USAGE` on schema `private`;
+       3. `private.deleted_account_fingerprints` has RLS enabled;
+       4. `columns_are('private', 'deleted_account_fingerprints', array['email_hmac'])`;
+       5. `anon`, `authenticated` and `service_role` have no `select/insert/update/delete` privilege on it;
+       6. exactly one Vault secret named `signup_bonus_fingerprint_key` exists and it decodes to 32 bytes;
+       7. `anon`, `authenticated` and `public` cannot execute `internal.email_fingerprint(text)`;
+       8. deleting user X adds exactly one row, equal to HMAC-SHA256(key, `'d5.<uuid>@example.test'`);
+       9. inserting a new user with `'  D5.<uuid>@EXAMPLE.TEST '` creates its `profiles` row;
+       10. … and no `credit_ledger` row and no `credit_balances` row for it;
+       11. a new user with a never-deleted email still gets exactly one `signup_grant` of 20 (control, while the table is non-empty);
+       12. deleting a second user whose email normalizes to the same value leaves the row count unchanged;
+       13. deleting a user with `email is null` adds no row;
+       14. the set of `pg_proc` functions whose `prosrc` mentions `deleted_account_fingerprints` is exactly `{handle_new_user, record_deleted_account_fingerprint}`, and no `pg_views` definition mentions it.
   - `m1_profiles_resumes.test.sql` (pgTAP, **`select plan(45)`**: §1 = 4, §2 = 14, §3 = 11, §4 = 1, §5 = 9, §6 = 5, §7 = 1). If an assertion is split, update N; pg_prove fails on a mismatch.
     1. `is_complete` is false for an empty row, true with the five fields set, false when `skills = '{}'`, false when `full_name = '  '`;
     2. check violations (`throws_ok … '23514'`): `salary_max < salary_min`; `contact_email = 'nope'`; `years_experience = 'x'`; 11 `target_titles`; `experience = '{}'::jsonb`. Length limits at N+1: `full_name` 201, `headline` 301, `phone` 51, `location` 201, `contact_email` 321 (valid shape), `work_authorization_other` 201, one `skills` item of 61, one `target_titles` item of 101, one experience `description` of 2001;
@@ -297,6 +402,8 @@ Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and d
     - `test_repeated_sign_in_never_grants_again`: two password sign-ins → still one ledger row.
     - `test_password_shorter_than_8_is_rejected`: 7 characters → 422, error code `weak_password`, and no `auth.users` row for that email.
     - `test_duplicate_signup_creates_no_second_user`: the second sign-up → error code `user_already_exists`, and `count(*)` of users with that email = 1.
+    - `test_resignup_after_deletion_gets_no_bonus` (D5, S-001 AC7): public sign-up with `E` → one ledger row; `admin_delete_user`; public sign-up with `E.upper()` → 200, a new user id, a `profiles` row, **zero** `credit_ledger` rows; `private.deleted_account_fingerprints` holds `internal.email_fingerprint(E)` (read via the `pool` fixture as postgres).
+    - `test_signup_after_unrelated_deletion_still_gets_bonus`: delete a user with email `E1`, then sign up `E2` → exactly one `signup_grant` of 20.
     - `test_recovery_email_english_by_default`: `POST /auth/v1/recover` → the Mailpit message HTML contains `/auth/confirm?token_hash=`, `type=recovery` and "Reset your password".
     - `test_recovery_email_russian_after_locale_switch`: set `profiles.ui_locale = 'ru'` (the trigger mirrors it) → the message contains "Восстановление пароля" and not the EN heading.
     - Recovery-link validity (S-001 AC5). Background, verified against the local GoTrue v2.197 on 2026-09-27:
@@ -325,20 +432,21 @@ Fixture `make_user` (async factory) creates `be+<uuid>@example.test` users and d
   - `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q` → PASS.
   - `npm run -s gen:db-types && npm run -s check:db-types` → exit 0. `grep -c 'candidate_profiles' apps/web/src/lib/supabase/database.types.ts` ≥ 1.
   - `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(db): m1 accounts, credit ledger, profiles, resumes, private bucket, localized reset email`
+- [ ] **Step 5: Hand in** (the lead commits the wave; suggested message `feat(db): m1 accounts, credit ledger, profiles, resumes, private bucket, localized reset email, d5 fingerprint`).
 
 ---
 
 ### Task 2: API platform — JWT auth, `as_user`, problem details, Storage and Auth-admin adapters, log redaction
 
-**Owner:** backend-dev · **Story:** S-003, S-006 (platform they need) · **Wave:** 2
+**Owner:** backend-dev · **Story:** S-003, S-006 (platform they need), T-007 · **Board:** T-013 · **Wave:** 3
 
-**Files:**
-- Modify: `backend/pyproject.toml`
-  - deps: `pyjwt[crypto]>=2.10`, `httpx>=0.28` (move it from dev to runtime), `python-multipart>=0.0.20`;
-  - dev: `respx>=0.22`, `pytest-cov>=6`;
-  - import-linter: contracts 1 and 2 also forbid `httpx` and `jwt`; contract 3 forbids `httpx` and `jwt`.
-- Modify: `backend/src/autoapplier/config.py` (add `supabase_jwt_secret: SecretStr | None = None` and `auth_jwks_cache_ttl_s: float = Field(600, gt=0)`), `backend/.env.example` (`SUPABASE_JWT_SECRET=`), `backend/src/autoapplier/wiring.py`, `backend/src/autoapplier/api/app.py`, root `package.json` (`test:coverage:py` = `uv run --directory backend pytest tests/unit --cov=autoapplier.domain --cov=autoapplier.services --cov-report=term-missing -q`, not part of the gate)
+**Files:** (dependencies and import-linter contracts come from Task 0A; do not edit `backend/pyproject.toml`)
+- Modify: `backend/src/autoapplier/config.py`:
+  - add `supabase_jwt_secret: SecretStr | None = None` and `auth_jwks_cache_ttl_s: float = Field(600, gt=0)`;
+  - **remove** `api_host`, `api_port`, `web_origin` (T-007; unused, see Global Constraints);
+  - the existing "tests must never call a live LLM" validator also applies to `APP_ENV=ci` (T-006: CI runs the app with `APP_ENV=ci`, and a live provider there must fail at startup).
+- Modify: `backend/.env.example`: add `SUPABASE_JWT_SECRET=` (filled by `scripts/sync_env.py` from `JWT_SECRET`, mapping already exists) with a comment "HS256 fallback only; ES256 tokens are verified via JWKS"; remove `API_HOST`, `API_PORT`, `WEB_ORIGIN`; add a comment with suggested model ids for Task 3's adapter (`LLM_MODEL_SMART=claude-opus-5`, `LLM_MODEL_FAST=claude-haiku-4-5`).
+- Modify: `backend/tests/unit/test_config.py` (the removed fields; see Step 1), `backend/src/autoapplier/wiring.py`, `backend/src/autoapplier/api/app.py`.
 - Create:
   - `backend/src/autoapplier/ports/auth.py`, `ports/storage.py`
   - `adapters/auth/{__init__,jwt_verifier,gotrue_admin,fake}.py`, `adapters/storage/{__init__,supabase,fake}.py`
@@ -387,6 +495,11 @@ class JwtVerifier:  # implements TokenVerifier (ADR-0004)
 @asynccontextmanager
 async def as_user(pool: asyncpg.Pool, claims: AuthClaims) -> AsyncIterator[asyncpg.Connection]
 # acquire → transaction → SET LOCAL ROLE authenticated → set_config('request.jwt.claims', json(claims.raw), true)
+# (claims.raw always carries sub and role = "authenticated"; the verifier guarantees both). On exit the transaction ends,
+# so the role and the claims reset with it; the connection returns to the pool as the service role.
+# RULE (T-007, ADR-0004): every API read that returns user data to the caller runs inside as_user, so RLS decides.
+# The service pool is only for: worker/system jobs, writes the schema forbids to users (resumes lifecycle, Task 6,
+# always filtered by user_id), and the Auth/Storage admin adapters.
 
 # api/schemas/problem.py
 class FieldError(BaseModel): loc: list[str | int]; type: str
@@ -434,6 +547,12 @@ def configure_logging(settings: Settings) -> None   # JSON lines; redacts values
     - `test_validation_error_422_request_invalid_with_errors`
     - `test_unhandled_exception_500_without_message`
   - `test_logging_redaction.py`: `test_authorization_and_password_values_redacted`, `test_other_fields_kept`.
+  - `test_config.py` (T-007; adjust the M0 tests that referenced the removed fields, never delete a behavior check):
+    - `test_defaults_point_to_local_supabase`: keeps the `database_url` and `llm_provider` asserts, drops `api_host`;
+    - `test_env_overrides`: uses `REDIS_KEY_PREFIX=aa:x:` instead of `API_PORT`;
+    - `test_unused_network_settings_removed`: `Settings` has no `api_host`, `api_port`, `web_origin` field, and `backend/.env.example` contains none of `API_HOST=`, `API_PORT=`, `WEB_ORIGIN=`;
+    - `test_supabase_jwt_secret_from_env`: `SUPABASE_JWT_SECRET` → `SecretStr`, absent from `repr(settings)`; `.env.example` contains `SUPABASE_JWT_SECRET=`.
+    - `test_ci_env_requires_fake_llm` (T-006): `Settings(app_env="ci", llm_provider="anthropic")` → `ValidationError` naming `LLM_PROVIDER=fake`; `app_env="ci"` with `fake` is valid.
   - `test_storage_fake.py`, `test_auth_fakes.py`: the protocol contract (put/get/remove/list semantics above) and conformance (`storage: FileStorage = InMemoryFileStorage()` type-checks).
   - Integration:
     - `test_as_user.py` (two `make_user` users; sample rows via the service `pool`):
@@ -441,26 +560,24 @@ def configure_logging(settings: Settings) -> None   # JSON lines; redacts values
       - `test_rls_limits_rows_to_caller` (credit_ledger)
       - `test_role_reset_after_block` (the same pooled connection reports `current_user = 'postgres'` afterwards)
       - `test_exception_rolls_back`
+      - `test_cross_user_rows_invisible_and_unwritable` (T-007): as B, `select` of A's `profiles`/`candidate_profiles`/`credit_ledger` rows by A's id returns 0 rows; `update profiles set ui_locale = 'ru' where id = A` affects 0 rows; A's row is unchanged afterwards (checked via the service pool)
+      - `test_claims_visible_to_sql`: inside the block, `current_user = 'authenticated'` and `current_setting('request.jwt.claims')::jsonb ->> 'sub'` = the caller's id
     - `test_jwt_verifier_live.py`: `test_token_from_local_gotrue_verifies` (ES256 via JWKS), `test_tampered_token_rejected`.
     - `test_supabase_storage.py` under `resumes/<uuid>/`: `test_put_get_list_remove_roundtrip`, `test_put_existing_path_raises`, `test_get_missing_raises_not_found`, `test_remove_missing_is_ok`.
     - `test_gotrue_admin.py`: `test_delete_user_blocks_password_sign_in`, `test_delete_twice_is_ok`.
-- [ ] **Step 2: Run them and confirm they fail.** `uv run --directory backend pytest tests/unit tests/integration -q -k "jwt or api_auth or problem or redaction or storage or auth_fakes or as_user or gotrue_admin"` → FAIL.
+- [ ] **Step 2: Run them and confirm they fail.** `uv run --directory backend pytest tests/unit tests/integration -q -k "jwt or api_auth or problem or redaction or storage or auth_fakes or as_user or gotrue_admin or config"` → FAIL.
 - [ ] **Step 3: Implement.** Then run `npm run -s gen:api-types`.
 - [ ] **Step 4: Verify.** `npm run -s test:integration:py` → PASS. `uv run --directory backend pytest tests/unit -q` → PASS. `npm run -s check:openapi` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(api): jwt auth, as_user rls helper, problem details, storage and auth-admin adapters`
+- [ ] **Step 5: Hand in** (suggested message `feat(api): jwt auth, as_user rls helper, problem details, storage and auth-admin adapters`).
 
 ---
 
 ### Task 3: ProfileDraft, resume file sniffing, document text extraction, Anthropic adapter, fake markers
 
-**Owner:** backend-dev · **Story:** S-003 · **Wave:** 2
+**Owner:** backend-dev · **Story:** S-003 · **Board:** T-014 · **Wave:** 2 (no DB; runs beside Task 1)
 
-**Files:**
-- Modify: `backend/pyproject.toml`
-  - deps: `anthropic>=1.8,<2`, `pypdf>=6`, `python-docx>=1.2`;
-  - mypy: `ignore_missing_imports` for `docx`, `docx.*` only if the installed package has no `py.typed`;
-  - import-linter: contracts 1–3 forbid `anthropic`, `pypdf` and `docx`.
-- Modify: `backend/src/autoapplier/adapters/llm/fake.py` (the new kwarg `enable_markers`), `adapters/llm/registry.py`, `backend/.env.example` (a comment with suggested ids: `LLM_MODEL_SMART=claude-opus-5`, `LLM_MODEL_FAST=claude-haiku-4-5`)
+**Files:** (dependencies, mypy override and import-linter contracts come from Task 0A; the `.env.example` model-id comment is Task 2's)
+- Modify: `backend/src/autoapplier/adapters/llm/fake.py` (the new kwarg `enable_markers`), `adapters/llm/registry.py`
 - Create: `backend/src/autoapplier/domain/profile.py`, `domain/resume_files.py`, `ports/documents.py`, `adapters/documents/{__init__,pypdf_docx}.py`, `adapters/llm/anthropic.py`, `adapters/llm/fixtures/{resume.extract.json,resume.extract.v2.json}`
 - Create tests and fixtures:
   - `backend/tests/fixtures/resumes/make_fixtures.py` (CLI `--out DIR`), which writes: `resume-text.pdf` ("Alex Ivanov" CV, ≥ 1 page of text), `resume.docx`, `resume-v2.docx` (contains `[[fake-llm:variant=v2]]`), `ai-fail.pdf` (contains `[[fake-llm:fail]]`), `scanned.pdf` (image-only, no text layer), `encrypted.pdf`, `corrupt.pdf`, `not-a-resume.png`, `png-renamed.pdf`;
@@ -569,31 +686,26 @@ class AnthropicProvider:  # implements LLMProvider (ADR-0006)
 - [ ] **Step 2: Run them and confirm they fail.** `uv run --directory backend pytest tests/unit tests/contract -q` → FAIL.
 - [ ] **Step 3: Implement.** Generate the fixtures with `uv run --directory backend python tests/fixtures/resumes/make_fixtures.py --out tests/fixtures/resumes`.
 - [ ] **Step 4: Verify.** `uv run --directory backend pytest tests/unit tests/contract -q` → PASS. `npm run -s lint:py` → PASS (contracts). `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(resume): profile draft model, file sniffing, pdf/docx text extraction, anthropic llm adapter`
+- [ ] **Step 5: Hand in** (suggested message `feat(resume): profile draft model, file sniffing, pdf/docx text extraction, anthropic llm adapter`).
 
 ---
 
 ### Task 4: Web platform — next-intl, session proxy, app shell and header widgets
 
-**Owner:** frontend-dev · **Story:** S-005 (plus S-001 AC6 redirect) · **Wave:** 2
+**Owner:** frontend-dev · **Story:** S-005 (plus S-001 AC6 redirect, D5 `signupBonusGranted`) · **Board:** T-015 · **Wave:** 3
 
-**Files:**
-- Modify `apps/web/package.json`:
-  - deps: `next-intl@^4.14`, `sonner@^2`, `react-hook-form@^7`, `@hookform/resolvers@^5`;
-  - dev: `eslint-plugin-i18next@^6`, `@vitest/coverage-v8@^5`;
-  - script `test:coverage`.
-- Add the shadcn primitives with `npx shadcn@latest add input label alert alert-dialog dialog dropdown-menu popover avatar progress skeleton separator sheet tooltip select radio-group command sonner sidebar`.
+**Files:** (packages, the `test:coverage` script and the shadcn primitives come from Task 0B; do not edit any `package.json` or `src/components/ui/**`)
 - Modify: `apps/web/next.config.ts` (the `createNextIntlPlugin("./src/i18n/request.ts")` wrapper), `apps/web/eslint.config.mjs`, `apps/web/vitest.config.mts` (the `coverage` block for `src/lib/**`), `apps/web/src/app/layout.tsx`, `apps/web/src/app/page.tsx`, `apps/web/src/app/health/page.tsx` + `apps/web/src/components/health/health-status.tsx` + `apps/web/src/lib/health.ts` (labels via the `health` namespace; EN strings unchanged — pays TD-001)
 - Create:
   - `apps/web/src/i18n/{config,negotiate,messages,request,actions,types.d}.ts`
-  - `apps/web/messages/{en,ru}/{common,shell,validation,auth,onboarding,profile,resume,settings,account,health}.json` (`auth`, `onboarding`, `profile`, `resume`, `settings`, `account` = `{}`)
+  - `apps/web/messages/{en,ru}/{common,shell,validation,auth,onboarding,profile,resume,settings,account,legal,health}.json` (`auth`, `onboarding`, `profile`, `resume`, `settings`, `account`, `legal` = `{}`)
   - `apps/web/src/proxy.ts`, `apps/web/src/lib/supabase/proxy.ts`
   - `apps/web/src/lib/auth/{session,redirects,landing,sign-out}.ts`, `apps/web/src/lib/credits.ts`, `apps/web/src/lib/shell/data.ts`, `apps/web/src/lib/validation/messages.ts`
   - `apps/web/src/components/shell/{focus-shell,app-shell,site-header,credit-balance,language-switcher,account-menu,app-sidebar,skip-link}.tsx`
   - route-group layouts `apps/web/src/app/(public)/layout.tsx`, `(onboarding)/layout.tsx`, `(app)/layout.tsx`
 - Create tests:
   - `apps/web/src/i18n/{negotiate,messages,actions}.test.ts`
-  - `apps/web/src/lib/{auth/redirects,credits}.test.ts`
+  - `apps/web/src/lib/{auth/redirects,credits}.test.ts`, `apps/web/src/lib/shell/data.test.ts`
   - `apps/web/src/components/shell/{site-header,language-switcher,app-shell}.test.tsx`
   - `apps/web/eslint-i18n.test.ts`
 
@@ -602,7 +714,7 @@ class AnthropicProvider:  # implements LLMProvider (ADR-0006)
 // i18n/config.ts
 export const LOCALES = ["en", "ru"] as const; export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en"; export const LOCALE_COOKIE = "NEXT_LOCALE";
-export const NAMESPACES = ["common","shell","validation","auth","onboarding","profile","resume","settings","account","health"] as const;
+export const NAMESPACES = ["common","shell","validation","auth","onboarding","profile","resume","settings","account","legal","health"] as const;
 export function isLocale(v: unknown): v is Locale;
 // i18n/negotiate.ts — Russian iff the highest-q language tag has primary subtag "ru" (case-insensitive); else "en"
 export function negotiateLocale(acceptLanguage: string | null | undefined): Locale;
@@ -642,8 +754,10 @@ export async function signOutAction(): Promise<never>;             // supabase.a
 // lib/credits.ts (pure)
 export function creditsView(balance: number | null): { count: number; tone: "normal" | "low" | "empty" }; // low < 5, empty 0, null → 0
 // lib/shell/data.ts (server-only)
-export type ShellData = { email: string; initials: string; balance: number; locale: Locale; onboardingComplete: boolean };
-export const getShellData: () => Promise<ShellData>;              // React cache(); credit_balances + candidate_profiles
+export type ShellData = { email: string; initials: string; balance: number; locale: Locale; onboardingComplete: boolean;
+  signupBonusGranted: boolean };                                   // D5: true iff the user's credit_ledger has a 'signup_grant' row
+export const getShellData: () => Promise<ShellData>;              // React cache(); credit_balances + credit_ledger (RLS read-own)
+                                                                  // + candidate_profiles; a missing balance row → 0
 ```
 Components:
 - `FocusShell({ data?: ShellData, children })`: MASTER §8.2. Pre-auth (`data` undefined) shows only the logo and the language switcher.
@@ -676,6 +790,7 @@ Components:
     - `safeNextPath`: `/profile` ok; `/profile?x=1` ok; `//evil.test` null; `https://evil.test` null; `/\evil.test` null; `javascript:alert(1)` null; > 512 chars null.
     - `decideProxyRedirect`: signed out on `/settings` → `/sign-in?next=%2Fsettings`; with `hadAuthCookie` it adds `reason=session_expired`; signed in on `/sign-in` → `/`; signed in on `/reset-password` → null; `/sign-up` signed out → null.
   - `credits.test.ts`: null → 0 empty; 0 empty; 4 low; 20 normal.
+  - `data.test.ts` (mock the supabase server client): `signupBonusGranted true with a signup_grant row`, `false and balance 0 when the ledger is empty (D5 re-sign-up)`.
   - `site-header.test.tsx`:
     - `pre-auth shows logo and language only`
     - `signed-in shows "20 credits"` (EN) and `"20 кредитов"` (RU)
@@ -699,21 +814,22 @@ Components:
 - [ ] **Step 4: Verify**
   - `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0. The build proves that no route imports server-only code into the client.
   - `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(web): next-intl en/ru, session proxy, focus and full app shell with credit balance and language switcher`
+- [ ] **Step 5: Hand in** (suggested message `feat(web): next-intl en/ru, session proxy, focus and full app shell with credit balance and language switcher`).
 
 ---
 
 ### Task 5: QA harness — throwaway users, Mailpit, axe, RLS and Storage as real users
 
-**Owner:** qa-automation · **Story:** S-001 (AC7), S-003 (AC5), S-004, S-005 · **Wave:** 2 (needs Task 1 only)
+**Owner:** qa-automation · **Story:** S-001 (AC7 incl. D5), S-003 (AC5), S-004, S-005, T-008 (mobile project) · **Board:** T-016 · **Wave:** 3 (needs Tasks 0B and 1)
 
-**Files:**
-- Modify: root `package.json` (devDeps `@supabase/supabase-js@^2`, `@axe-core/playwright@^4.13`), `tests/tsconfig.json`
+**Files:** (the devDeps `@supabase/supabase-js` and `@axe-core/playwright` come from Task 0B)
+- Modify: `tests/tsconfig.json`, `playwright.config.ts` (T-008: project `chromium-mobile` = `devices["Pixel 7"]` with `viewport: { width: 360, height: 740 }`, so it has `isMobile: true`, `hasTouch: true`, a mobile Chrome user agent and `browserName: "chromium"`; `chromium-desktop` unchanged)
 - Create:
   - `tests/integration/helpers/{supabase,mailpit,local-env}.ts`
   - `tests/integration/rls/{m1-ledger,m1-profiles,m1-storage}.test.ts`
   - `tests/e2e/fixtures/test.ts`
   - `tests/e2e/helpers/{auth,a11y,i18n,db}.ts`
+  - `tests/integration/playwright-config.test.ts` (T-008)
 
 **Interfaces:**
 ```ts
@@ -748,6 +864,8 @@ export function collectMissingMessageErrors(page: Page): () => string[];   // co
     - `user cannot insert, update or delete ledger rows`
     - `user cannot read another user's rows`
     - `anon reads nothing`
+    - `re-sign-up after deletion has no signup_grant and balance 0` (D5): admin-create `qa+<uuid>@example.test`, admin-delete it, admin-create `QA+<uuid>@EXAMPLE.TEST` → `ledgerRows` empty, `credit_balances` returns no row for the new user, and the new user can sign in
+    - `fingerprint table is unreachable through the Data API` (D5): `schema("private").from("deleted_account_fingerprints").select()` returns an error and no data for `anonClient()`, a signed-in user's client and `adminClient()` (secret key)
   - `m1-profiles.test.ts`:
     - `user upserts and reads own candidate_profiles incl. application answers`
     - `user cannot write another user's profile`
@@ -759,14 +877,15 @@ export function collectMissingMessageErrors(page: Page): () => string[];   // co
     - `list under the owner's folder returns nothing or an error for the user`
     - `user upload into own folder denied`
     - `public URL does not serve the object` (the HTTP status is not 200)
-- [ ] **Step 2: Run.** `npx vitest run --config vitest.config.ts tests/integration/rls` → PASS (Task 1 is merged). `npm run -s typecheck` → PASS.
-- [ ] **Step 3: Commit** `test(qa): m1 harness, mailpit and axe helpers, rls and storage tests as real users`
+  - `playwright-config.test.ts` (T-008; imports `playwright.config.ts`): `chromium-mobile uses touch, isMobile and a mobile user agent at 360×740` (`hasTouch === true`, `isMobile === true`, `userAgent` matches `/Mobile/`), `chromium-desktop is unchanged at 1280×800`. It fails before the config change (the M0 project has no `hasTouch` and a desktop UA).
+- [ ] **Step 2: Run.** `npx vitest run --config vitest.config.ts tests/integration/rls tests/integration/playwright-config.test.ts` → PASS (Task 1 is built). `npm run -s typecheck` → PASS.
+- [ ] **Step 3: Hand in** (suggested message `test(qa): m1 harness, mailpit and axe helpers, rls and storage tests as real users`).
 
 ---
 
 ### Task 6: Resume upload API and extraction job
 
-**Owner:** backend-dev · **Story:** S-003 · **Wave:** 3 (needs Tasks 2 and 3)
+**Owner:** backend-dev · **Story:** S-003 · **Board:** T-017 · **Wave:** 4 (needs Tasks 2 and 3)
 
 **Files:**
 - Create:
@@ -892,13 +1011,15 @@ class ResumeOut(BaseModel): id: UUID; file_name: str; mime_type: str; size_bytes
 - [ ] **Step 2: Run them and confirm they fail.** `uv run --directory backend pytest tests/unit -q -k resume` → FAIL.
 - [ ] **Step 3: Implement.** Then run `npm run -s gen:api-types`.
 - [ ] **Step 4: Verify.** `npm run -s test:integration:py` → PASS. `npm run -s check:openapi` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(resume): upload api with magic-byte validation, private storage and celery extraction job`
+- [ ] **Step 5: Hand in** (suggested message `feat(resume): upload api with magic-byte validation, private storage and celery extraction job`).
 
 ---
 
 ### Task 7: Account export and deletion API
 
-**Owner:** backend-dev · **Story:** S-006 · **Wave:** 3 (needs Task 2)
+**Owner:** backend-dev · **Story:** S-006, S-001 AC7 (D5 end-to-end at API level), T-007 (cross-user API test) · **Board:** T-018 · **Wave:** 5 (needs Task 2; after Task 6 because both edit `wiring.py`, `api/app.py` and regenerate the OpenAPI files)
+
+D5 needs no Python code: the fingerprint is written by the `auth.users` delete trigger (Task 1) inside `AuthAdmin.delete_user`. `AccountDeletionService` is unchanged. The fingerprint table has no foreign key to `auth.users`, so it is not a "user-owned table" for `user_owned_tables`/`EXPORT_SECTIONS`, and it is never exported.
 
 **Files:**
 - Create: `backend/src/autoapplier/domain/account.py`, `ports/account.py`, `db/account.py`, `services/account_export.py`, `services/account_deletion.py`, `api/routes/account.py`, `api/schemas/account.py`
@@ -920,7 +1041,7 @@ class AccountExport(BaseModel):
     format_version: Literal[1] = 1; exported_at: datetime; account: ExportAccount
     profile: dict[str, Any] | None           # every candidate_profiles column except user_id
     resumes: list[ExportResume]; searches: list[dict[str, Any]]; applications: list[dict[str, Any]]
-    credit_ledger: list[ExportLedgerEntry]; credit_balance: int
+    credit_ledger: list[ExportLedgerEntry]; credit_balance: int   # 0 when credit_balances has no row (D5 re-sign-up)
 def export_filename(now: datetime) -> str   # "autoapplier-export-<YYYY-MM-DD>.json" (UTC date)
 # ports/account.py
 class AccountPurgeStep(Protocol):
@@ -976,20 +1097,24 @@ async def count_user_rows(pool, user_id: UUID) -> dict[str, int]  # per user-own
   - Integration `test_account_export.py`:
     - `test_export_contains_only_callers_rows`: A and B both have a profile, a resume row and a ledger; A's export has no B values; `credit_balance == 20`; `searches == []`; `applications == []`.
     - `test_export_covers_every_user_owned_table`: each table from `user_owned_tables` is an `EXPORT_SECTIONS` value or an `EXPORT_EXCLUDED` key.
+    - `test_export_api_with_b_token_has_no_a_rows` (T-007): the **real** app (`create_app` with `build_container(Settings())`, real `JwtVerifier` against the local JWKS) and B's access token from a GoTrue password sign-in; `GET /v1/account/export` → 200, `account.id == B`, and the body (serialized) contains none of A's id, email, `full_name` or resume ids. A request with a tampered token → 401 `auth.invalid_token`.
   - Integration `test_account_deletion.py` (a real app and container, `make_user`, a resume object uploaded through `SupabaseStorage`):
     - `test_deletion_removes_everything`: 204; password sign-in then fails; `count_user_rows` all zero; `list_paths("resumes", uid)` empty.
     - `test_every_user_owned_table_cascades`: all delete actions are `c`.
-    - `test_mismatch_keeps_account`: 422, and the user can still sign in.
+    - `test_mismatch_keeps_account`: 422, and the user can still sign in; no fingerprint for that email exists.
+    - `test_deletion_keeps_only_email_fingerprint` (D5, S-006 AC2): after a 204, `private.deleted_account_fingerprints` contains `internal.email_fingerprint(<email>)` (queried through the service `pool` as postgres); `auth.users` and `auth.identities` have no row with that email; `count_user_rows` is all zero.
+    - `test_failed_deletion_leaves_no_fingerprint` (D5): with a purge step that raises, the API returns 502 and no fingerprint for that email exists (the Auth delete never ran).
+    - `test_signup_after_deletion_gets_account_without_bonus` (D5, S-001 AC7): after a 204, a public GoTrue sign-up with the same email in upper case → 200; the new user has a `profiles` row and zero `credit_ledger` rows; `GET /v1/account/export` with the new token → `credit_balance == 0`, `credit_ledger == []`.
 - [ ] **Step 2: Run them and confirm they fail.** `uv run --directory backend pytest tests/unit -q -k account` → FAIL.
 - [ ] **Step 3: Implement.** Then run `npm run -s gen:api-types`.
 - [ ] **Step 4: Verify.** `npm run -s test:integration:py` → PASS. `npm run -s check:openapi` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(account): json data export and full account deletion with enforced table coverage`
+- [ ] **Step 5: Hand in** (suggested message `feat(account): json data export and full account deletion with enforced table coverage`).
 
 ---
 
 ### Task 8: Auth screens — sign up, sign in, forgot/reset password, sign out, Google
 
-**Owner:** frontend-dev · **Story:** S-001, S-002 · **Wave:** 3 (needs Task 4)
+**Owner:** frontend-dev · **Story:** S-001, S-002 · **Board:** T-019 · **Wave:** 4 (needs Task 4)
 
 **Files:**
 - Create:
@@ -1108,13 +1233,13 @@ Screens:
 - [ ] **Step 2: Run them and confirm they fail.** `npm run test:unit -w @autoapplier/web` → FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify.** `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(auth): sign up, sign in, password reset, sign out and google sign-in screens`
+- [ ] **Step 5: Hand in** (suggested message `feat(auth): sign up, sign in, password reset, sign out and google sign-in screens`).
 
 ---
 
 ### Task 9: Profile editor and onboarding checklist
 
-**Owner:** frontend-dev · **Story:** S-004 (plus the S-001 AC1 landing) · **Wave:** 3 (needs Task 4)
+**Owner:** frontend-dev · **Story:** S-004 (plus the S-001 AC1 landing and the D5 welcome toast) · **Board:** T-020 · **Wave:** 4 (needs Task 4)
 
 **Files:**
 - Create:
@@ -1122,7 +1247,7 @@ Screens:
   - components: `apps/web/src/components/profile/{profile-editor,section-card,chips-field,entry-list,experience-dialog,education-dialog,language-dialog,application-answers,salary-fields,unsaved-indicator,save-bar}.tsx`, `apps/web/src/components/onboarding/{checklist,step-card,welcome-toast,step-dots}.tsx`
   - pages: `apps/web/src/app/(onboarding)/onboarding/page.tsx`, `(onboarding)/onboarding/profile/page.tsx`, `(app)/profile/page.tsx`
 - Modify: `apps/web/messages/{en,ru}/{profile,onboarding}.json`
-- Create tests: `apps/web/src/lib/profile/{schema,completeness,actions}.test.ts`, `apps/web/src/components/profile/profile-editor.test.tsx`, `apps/web/src/components/onboarding/checklist.test.tsx`
+- Create tests: `apps/web/src/lib/profile/{schema,completeness,actions}.test.ts`, `apps/web/src/components/profile/profile-editor.test.tsx`, `apps/web/src/components/onboarding/{checklist,welcome-toast}.test.tsx`
 
 **Interfaces:**
 ```ts
@@ -1184,7 +1309,7 @@ Behavior:
   - else show the toast "Saved". In `mode: "onboarding"`, a complete save navigates to `/onboarding`.
 - Onboarding page (`/onboarding`):
   - the checklist per S-001 "Onboarding checklist" and the S-004 "Missing" copy (`onboarding.missing` = "Missing: {list}", joined by `Intl.ListFormat`/comma with the S-004 field names);
-  - `?welcome=1` → toast "You've got 20 free credits" once, then `router.replace("/onboarding")`;
+  - `?welcome=1` → toast "You've got 20 free credits" once **only when `ShellData.signupBonusGranted`** (D5: a re-sign-up after deletion has no bonus and gets no credits toast), then `router.replace("/onboarding")` in both cases. `WelcomeToast({ show: boolean })` is the contract; the page passes `welcome === "1" && signupBonusGranted`;
   - "Get started" → `/onboarding/resume` (built in Task 11); "Edit profile" → `/profile`.
 - `/onboarding/profile`: FocusShell with step dots and `mode: "onboarding"`. `/profile`: AppShell with `mode: "app"`.
 
@@ -1231,24 +1356,27 @@ Behavior:
     - `RU partial shows "Не хватает: …"`
     - `complete shows Done, Edit profile and the all-done block`
     - `progress has aria-valuenow and a text name`
+  - `welcome-toast.test.tsx`:
+    - `show=true fires the "You've got 20 free credits" toast once` (S-001 AC1)
+    - `show=false fires no credits toast` (D5)
 - [ ] **Step 2: Run them and confirm they fail.** `npm run test:unit -w @autoapplier/web` → FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify.** `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(profile): profile editor with application answers and onboarding checklist`
+- [ ] **Step 5: Hand in** (suggested message `feat(profile): profile editor with application answers and onboarding checklist`).
 
 ---
 
 ### Task 10: Settings — account, language, data export, delete account
 
-**Owner:** frontend-dev · **Story:** S-005 (AC2 settings entry), S-006 · **Wave:** 4 (needs Tasks 4 and 7)
+**Owner:** frontend-dev · **Story:** S-005 (AC2 settings entry), S-006, D5 disclosure · **Board:** T-021 · **Wave:** 6 (needs Tasks 4 and 7)
 
 **Files:**
 - Create:
-  - pages and routes: `apps/web/src/app/(app)/settings/page.tsx`, `apps/web/src/app/(public)/account-deleted/page.tsx`, `apps/web/src/app/api/account/export/route.ts`
+  - pages and routes: `apps/web/src/app/(app)/settings/page.tsx`, `apps/web/src/app/(public)/account-deleted/page.tsx`, `apps/web/src/app/(public)/privacy/page.tsx` (+ `page.test.tsx`), `apps/web/src/app/api/account/export/route.ts`
   - lib: `apps/web/src/lib/account/{confirm,actions,export-client}.ts`
   - components: `apps/web/src/components/settings/{account-card,language-card,data-card,danger-zone-card,delete-account-dialog}.tsx`
-- Modify: `apps/web/messages/{en,ru}/{settings,account}.json`
-- Create tests: `apps/web/src/lib/account/{confirm,actions,export-client}.test.ts`, `apps/web/src/app/api/account/export/route.test.ts`, `apps/web/src/components/settings/{delete-account-dialog,language-card,data-card}.test.tsx`
+- Modify: `apps/web/messages/{en,ru}/{settings,account,legal}.json`
+- Create tests: `apps/web/src/app/(public)/privacy/page.test.tsx`, `apps/web/src/lib/account/{confirm,actions,export-client}.test.ts`, `apps/web/src/app/api/account/export/route.test.ts`, `apps/web/src/components/settings/{delete-account-dialog,language-card,data-card}.test.tsx`
 
 **Interfaces:**
 ```ts
@@ -1272,7 +1400,19 @@ Screens:
   - Cancel/Escape/outside-click close the dialog, discard the input and make no call;
   - while deleting, the dialog can't be dismissed;
   - an error shows an in-dialog danger `Alert` with focus, and keeps the typed email.
-- `/account-deleted` is a FocusShell without a session, with the h1 focused and a "Create a new account" link to `/sign-up`.
+- `/account-deleted` is a FocusShell without a session, with the h1 focused and a "Create a new account" link to `/sign-up`. Below it, the `account.deleted.fingerprintNote` line with a link to `/privacy#after-deletion` (D5: a user about to re-register learns why there is no new bonus).
+- The delete dialog's description ends with `account.delete.fingerprintNote` and a link to `/privacy#after-deletion` (opens in a new tab, `target="_blank" rel="noopener noreferrer"`, so the dialog and the typed email survive).
+- **`/privacy` (D5 placeholder, public, FocusShell without data):** h1 `legal.privacy.title`; a placeholder notice `legal.privacy.placeholder`; one section `<section id="after-deletion" aria-labelledby=…>` with `legal.privacy.afterDeletion.title` and `legal.privacy.afterDeletion.body`. Nothing else is claimed. Copy (the lead asks the designer to confirm it on S-006, like D1):
+
+  | Key | EN | RU |
+  |---|---|---|
+  | `legal.privacy.title` | Privacy policy | Политика конфиденциальности |
+  | `legal.privacy.placeholder` | This is a placeholder. The final policy will be published before launch. | Это временный текст. Окончательная политика будет опубликована до запуска. |
+  | `legal.privacy.afterDeletion.title` | What we keep after you delete your account | Что мы храним после удаления аккаунта |
+  | `legal.privacy.afterDeletion.body` | When you delete your account, we delete your profile, resume files, searches, connections and stored secrets. We keep only a one-way keyed hash of your email address. It can't be turned back into your email, and we use it for one thing only: to avoid giving the free sign-up credits again to a new account with the same email. | Когда вы удаляете аккаунт, мы удаляем профиль, файлы резюме, поиски, подключения и сохранённые секреты. Мы храним только необратимый ключевой хеш вашего адреса электронной почты. Восстановить из него адрес нельзя, и мы используем его только для одного: чтобы не начислять бесплатные кредиты за регистрацию повторно новому аккаунту с тем же адресом. |
+  | `account.delete.fingerprintNote` | We keep only a one-way hash of your email so that a new account with it doesn't get the sign-up bonus again. | Мы сохраняем только необратимый хеш вашего адреса, чтобы новый аккаунт с ним не получил бонус за регистрацию повторно. |
+  | `account.deleted.fingerprintNote` | A new account with the same email starts without the free sign-up credits. | Новый аккаунт с тем же адресом начнётся без бесплатных кредитов за регистрацию. |
+  | `legal.privacy.linkLabel` | Privacy policy | Политика конфиденциальности |
 
 - [ ] **Step 1: Write the failing tests**
   - `confirm.test.ts`: `exact`, `trimmed`, `case-insensitive`, `different → false`.
@@ -1294,6 +1434,10 @@ Screens:
     - `Cancel closes, clears input and never calls the action` (AC3)
     - `Escape cancels without calling the action` (AC3)
     - `error keeps typed email and shows focused alert`
+    - `description links to /privacy#after-deletion with the fingerprint note` (D5)
+  - `privacy/page.test.tsx` (D5):
+    - `renders the after-deletion section with id after-deletion in EN`
+    - `renders the RU heading "Что мы храним после удаления аккаунта"`
   - `language-card.test.tsx`:
     - `current locale pre-selected`
     - `selecting Русский calls setLocale("ru")` (S-005 AC2)
@@ -1304,13 +1448,13 @@ Screens:
 - [ ] **Step 2: Run them and confirm they fail.** `npm run test:unit -w @autoapplier/web` → FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify.** `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(settings): language, data export and account deletion`
+- [ ] **Step 5: Hand in** (suggested message `feat(settings): language, data export, account deletion and privacy placeholder`).
 
 ---
 
 ### Task 11: Resume upload UI, extraction status, replace and review-changes dialog
 
-**Owner:** frontend-dev · **Story:** S-003 · **Wave:** 4 (needs Tasks 6 and 9)
+**Owner:** frontend-dev · **Story:** S-003 · **Board:** T-022 · **Wave:** 5 (needs Tasks 6 and 9)
 
 **Files:**
 - Create:
@@ -1409,21 +1553,21 @@ Behavior (S-003 §3a–3e):
 - [ ] **Step 2: Run them and confirm they fail.** `npm run test:unit -w @autoapplier/web` → FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify.** `npm run -s lint && npm run -s typecheck && npm run -s test:unit && npm run -s build` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
-- [ ] **Step 5: Commit** `feat(resume): upload flow with extraction status, failure fallback and review-before-overwrite`
+- [ ] **Step 5: Hand in** (suggested message `feat(resume): upload flow with extraction status, failure fallback and review-before-overwrite`).
 
 ---
 
 ### Task 12: E2E — auth, credits, Google edge states, EN/RU
 
-**Owner:** qa-automation · **Story:** S-001, S-002, S-005 · **Wave:** 5 (serial: starts the app)
+**Owner:** qa-automation · **Story:** S-001, S-002, S-005, T-008 (rendered touch targets) · **Board:** T-023 · **Wave:** 7 (alone: restarts the app)
 
 **Files:** Create `tests/e2e/auth/{sign-up,sign-in,password-reset,sign-out,google}.spec.ts`, `tests/e2e/i18n/{locale,no-missing-keys}.spec.ts`, `tests/e2e/a11y/auth-and-shell.a11y.spec.ts`
 
-Preconditions: waves 1–4 are merged into the milestone branch. Then:
+Preconditions: waves 1–6 are built and committed on the milestone branch. Then:
 ```bash
 bash team/bin/app.sh stop && bash team/bin/app.sh start
 ```
-The restart makes the worker and API run merged code. Locators are semantic, using EN/RU copy from the screen specs.
+The restart makes the worker and API run the code built in waves 1–6. Locators are semantic, using EN/RU copy from the screen specs.
 
 - [ ] **Step 1: Write the specs.** Each creates unique users.
   - `sign-up.spec.ts`:
@@ -1447,16 +1591,17 @@ The restart makes the worker and API run merged code. Locators are semantic, usi
     - `de-DE renders English` (AC1)
     - `switching to RU re-renders the page, validation messages are Russian, and the choice survives reload and a new browser context after sign-in` (AC2)
     - `reset email arrives in Russian after switching` (AC2; Mailpit)
-  - `no-missing-keys.spec.ts` (S-005 AC3): for EN and RU, visit every M1 page reachable in this wave: `/sign-up`, `/sign-in`, `/sign-in/forgot-password`, `/reset-password?error=link_invalid`, `/onboarding`, `/onboarding/resume`, `/onboarding/profile`, `/profile`, `/settings`, `/account-deleted`, `/health`. Run `expectNoRawKeys`, and assert `collectMissingMessageErrors` is empty.
-  - `auth-and-shell.a11y.spec.ts`: `expectNoSeriousA11yViolations` on sign-up, sign-in, forgot, reset (expired), onboarding and settings, in both the `chromium-desktop` and `chromium-mobile` projects; there is no horizontal scroll at 360 px.
+  - `no-missing-keys.spec.ts` (S-005 AC3): for EN and RU, visit every M1 page reachable in this wave: `/sign-up`, `/sign-in`, `/sign-in/forgot-password`, `/reset-password?error=link_invalid`, `/onboarding`, `/onboarding/resume`, `/onboarding/profile`, `/profile`, `/settings`, `/account-deleted`, `/privacy`, `/health`. Run `expectNoRawKeys`, and assert `collectMissingMessageErrors` is empty.
+  - `auth-and-shell.a11y.spec.ts`: `expectNoSeriousA11yViolations` on sign-up, sign-in, forgot, reset (expired), onboarding, settings and `/privacy`, in both the `chromium-desktop` and `chromium-mobile` projects; there is no horizontal scroll at 360 px.
+    - `primary actions are at least 44×44 on mobile` (T-008, `chromium-mobile` only): on `/sign-up`, `/sign-in` and `/onboarding`, every visible `button` rendered with the default or `icon` size (`[data-size="default"], [data-size="icon"]`) has a `boundingBox()` height ≥ 44 (and width ≥ 44 for `icon`).
 - [ ] **Step 2: Run.** `npx playwright test tests/e2e/auth tests/e2e/i18n tests/e2e/a11y` → PASS. File failures as bugs on the board (`board.py new bug … --milestone M1 --owner <frontend-dev|backend-dev>`); do not change app code.
-- [ ] **Step 3: Commit** `test(e2e): auth, credits, google edge states, en/ru and a11y journeys`
+- [ ] **Step 3: Hand in** (suggested message `test(e2e): auth, credits, google edge states, en/ru and a11y journeys`).
 
 ---
 
 ### Task 13: E2E — resume, profile, export and delete; full gate
 
-**Owner:** qa-automation · **Story:** S-003, S-004, S-006 · **Wave:** 5 (serial, after Task 12)
+**Owner:** qa-automation · **Story:** S-003, S-004, S-006, S-001 AC7 (D5 journey) · **Board:** T-024 · **Wave:** 8 (alone, after Task 12)
 
 **Files:** Create `tests/fixtures/resumes/*` (generated: `uv run --directory backend python tests/fixtures/resumes/make_fixtures.py --out ../tests/fixtures/resumes`, then `dd` a > 5 MiB `too-large.pdf`), `tests/e2e/resume/{upload,failure,replace}.spec.ts`, `tests/e2e/profile/manual.spec.ts`, `tests/e2e/account/{export,delete}.spec.ts`
 
@@ -1476,57 +1621,154 @@ The restart makes the worker and API run merged code. Locators are semantic, usi
   - `delete.spec.ts`:
     - `typing the email and confirming deletes the account, shows the deleted page, and sign-in with old credentials fails; no rows or files remain` (AC2; admin checks)
     - `Cancel and Escape leave the account intact` (AC3)
+    - `after deletion, signing up again with the same email creates an account with 0 credits and no welcome-credits toast` (D5, S-001 AC7): sign up again via the UI with the upper-cased email → lands on the checklist, the header shows 0 credits with the empty tone, no "You've got 20 free credits" toast, and `ledgerRows(newUserId)` is empty
+    - `the delete dialog and the deleted page link to the privacy section on what is kept` (D5): the link targets `/privacy#after-deletion`, and that page shows the section heading
   - Add `expectNoSeriousA11yViolations` on the upload step, the editor, the review dialog and the delete dialog.
 - [ ] **Step 2: Run.** `npx playwright test tests/e2e/resume tests/e2e/profile tests/e2e/account` → PASS (file bugs as in Task 12).
 - [ ] **Step 3: Full gate.** `bash team/bin/quality-gate.sh full` → `PASS`.
-- [ ] **Step 4: Commit** `test(e2e): resume extraction, profile, export and deletion journeys`
+- [ ] **Step 4: Hand in** (suggested message `test(e2e): resume extraction, profile, export and deletion journeys`).
+
+---
+
+### Task 14: CI — pinned Supabase CLI, `APP_ENV=ci`, fake LLM
+
+**Owner:** qa-automation · **Story:** T-006 · **Board:** T-006 · **Wave:** 2
+
+**Files:** Modify `.github/workflows/ci.yml`, `tests/integration/ci-workflow.test.ts`.
+
+**Contract:**
+- `supabase/setup-cli@v1` → `with.version: 2.118.0` (the local stack's CLI, `supabase --version`), never `latest`.
+- Job `quality` gets `env: { APP_ENV: ci, LLM_PROVIDER: fake }`. Every step inherits it, including the processes that `app.sh start` spawns (they inherit the shell environment, and pydantic-settings lets environment variables override `backend/.env`). Task 2 makes `APP_ENV=ci` reject a live provider.
+- No other workflow change.
+
+- [ ] **Step 1: Write the failing tests** in `ci-workflow.test.ts`:
+  - change the Supabase expectation in `sets up node 22, uv and the supabase CLI` from `"latest"` to `"2.118.0"` (a contract change, not a weakening: the pinned version is stricter);
+  - `pins the Supabase CLI to 2.118.0` (the value is a string equal to `"2.118.0"`, not a range);
+  - `runs the quality job with APP_ENV=ci and LLM_PROVIDER=fake` (`workflow.jobs.quality.env`).
+- [ ] **Step 2: Run and confirm they fail.** `npx vitest run --config vitest.config.ts tests/integration/ci-workflow.test.ts` → FAIL.
+- [ ] **Step 3: Implement** the workflow change.
+- [ ] **Step 4: Verify.** The same command → PASS. `bash team/bin/quality-gate.sh fast` → PASS.
+- [ ] **Step 5: Hand in** (suggested message `ci: pin supabase cli 2.118.0 and run with APP_ENV=ci and the fake llm`).
+
+---
+
+### Task 15: Button default size meets the 44 px touch target
+
+**Owner:** frontend-dev · **Story:** T-008 · **Board:** T-008 · **Wave:** 2 (after Task 0B, which must not overwrite `button.tsx`)
+
+**Files:** Modify `apps/web/src/components/ui/button.tsx`; create `apps/web/src/components/ui/button.test.tsx`. (The `chromium-mobile` half of T-008 is Task 5; the rendered-size check is Task 12.)
+
+**Contract** (MASTER: "Minimum touch target 44×44px for anything tappable"):
+- `buttonVariants` sizes: `default` → height 44 px (`h-11`); `lg` → 48 px (`h-12`); `icon` → 44×44 (`size-11`); `icon-lg` → 48×48 (`size-12`).
+- `xs`, `sm`, `icon-xs`, `icon-sm` stay for dense desktop-only UI; a comment above them says so and points to MASTER. `data-size` stays on the element (Task 12 selects by it).
+- Variants, focus ring and everything else are unchanged.
+
+- [ ] **Step 1: Write the failing tests** (`button.test.tsx`, Testing Library; jsdom has no layout, so the contract is the size class, and Task 12 measures the rendered box):
+  - `default size is 44px high (h-11)`
+  - `icon size is 44×44 (size-11)`
+  - `lg is 48px high (h-12)`
+  - `data-size reflects the size prop`
+- [ ] **Step 2: Run and confirm they fail.** `npm run test:unit -w @autoapplier/web -- button` → FAIL (M0 default is `h-9`).
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Verify.** The same command → PASS. `npm run -s lint && npm run -s typecheck && npm run -s build` → exit 0. `bash team/bin/quality-gate.sh fast` → PASS.
+- [ ] **Step 5: Hand in** (suggested message `fix(ui): default button meets the 44px touch target`).
+
+---
+
+### Task 16: `scripts/` under ruff + mypy; `valkey.sh` fails fast on Docker errors
+
+**Owner:** backend-dev · **Story:** T-009 · **Board:** T-009 · **Wave:** 3 (after Tasks 0A, 0B and 1, so it is the only editor of the manifests and does not change `scripts/db_types.py` while Task 1 runs it)
+
+**Files:** `scripts/**` (typing/lint fixes without behavior change, `valkey.sh`), root `package.json` (only the `lint:py` and `typecheck:py` script lines), `backend/pyproject.toml` (only `[tool.ruff]`/`[tool.mypy]` scope), `backend/tests/unit/test_valkey_script.py` (new), `backend/tests/unit/test_sync_env.py` (only if a typing fix changes an import).
+
+**Contract:**
+- `npm run lint:py` runs ruff check and ruff format --check over `backend/` **and** `scripts/*.py`, with the backend's ruff settings. `npm run typecheck:py` runs mypy strict over `src`, `tests` **and** `scripts/*.py`. `quality-gate fast` therefore covers them.
+- `scripts/valkey.sh`: a failing `docker run`, `docker start` or `docker stop` makes the script print `✗ valkey: docker <cmd> failed (exit <n>)` to stderr and exit non-zero at once (no PING wait). The success path and the `status` output are unchanged.
+- The per-queue worker heartbeat part of T-009 is design only: recorded as TD-007 in `docs/architecture/TECH-DEBT.md` (done by the architect); no code in M1.
+
+- [ ] **Step 1: Write the failing tests / probes**
+  - `test_valkey_script.py` (runs `bash scripts/valkey.sh` via `subprocess` with a stub `docker` executable first on `PATH` in `tmp_path`; it never calls the real Docker):
+    - `test_start_fails_fast_when_docker_run_fails` (`info` → 0, `inspect` → no output, `run` → exit 125): exit ≠ 0 in < 5 s; stderr mentions `docker run`
+    - `test_start_fails_fast_when_docker_start_fails` (`inspect` → `false`, `start` → exit 1): exit ≠ 0 in < 5 s
+    - `test_stop_fails_when_docker_stop_fails` (`inspect` → `true`, `stop` → exit 1): exit ≠ 0
+    - `test_start_succeeds_when_container_answers_ping` (control: `inspect` → `false`, `start` → 0, `exec … ping` → `PONG`): exit 0 and stdout has `✓ valkey: running`
+  - lint/type probes (before the change they pass, which is the defect):
+    `printf 'import os\n' > scripts/_probe.py && npm run -s lint:py; echo "exit=$?"; rm scripts/_probe.py`
+    `printf 'def f(x):\n    return x\n' > scripts/_probe.py && npm run -s typecheck:py; echo "exit=$?"; rm scripts/_probe.py`
+- [ ] **Step 2: Run and confirm they fail.** `uv run --directory backend pytest tests/unit/test_valkey_script.py -q` → FAIL (the M0 script waits for PING after a failed `docker start`/`run`); both probes print `exit=0`.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Verify.** The pytest command → PASS; both probes now print a non-zero exit (F401 / untyped def); `npm run -s lint:py && npm run -s typecheck:py` → exit 0 on the real tree; `bash scripts/valkey.sh status` still prints `valkey: RUNNING|STOPPED|ABSENT`; `bash team/bin/quality-gate.sh fast` → PASS.
+- [ ] **Step 5: Hand in** (suggested message `chore(scripts): lint and type-check scripts, fail fast on docker errors in valkey.sh`).
 
 ---
 
 ## Waves
 
-A wave's tasks touch disjoint feature files. Within a wave, **no task starts the app, resets or restarts Supabase, or creates migrations**; all tasks share the running local Supabase and Valkey through unique test data. The lead merges each finished worktree branch into `milestone/M1-onboarding-profile` (`merge --no-ff`), runs `bash team/bin/quality-gate.sh fast` after each merge, and does one joint review per wave.
+**Mechanism (constitution rules 5–6, `mvp-milestone` §3).** One working tree, branch `milestone/M1-onboarding-profile`, no worktrees. Each plan task is a board item with `files` (globs it owns) and `depends_on`. The lead loops:
+1. `python3 team/bin/board.py wave --milestone M1 --json` → the ready, file-disjoint batch (max 4);
+2. dispatches one implementer per item in one message (`subagent_type` = Owner, `model: sonnet`; brief = the item id, its plan task, "touch only these files", "TDD; do not commit");
+3. runs `bash team/bin/quality-gate.sh fast` once, commits the wave (cloud: push);
+4. checks each item's AC and closes it: `board.py check T-0NN 1 --by team-lead --note "<commit>"` then `board.py move T-0NN done --by team-lead`. **Dependents become ready only when their dependencies are `done`.**
 
-| Wave | Tasks (parallel inside the wave) | Needs | Why this grouping |
+When `board.py wave` offers only `S-` items (stories declare no files), building is complete: do not dispatch them; go to the whole-branch review.
+
+**Rules that make the waves safe in one tree:**
+- File sets inside a wave are disjoint; every shared hotspot has one owner or a dependency chain: manifests and lockfiles (0A, 0B, then 16), `wiring.py` + `api/app.py` + `backend/openapi.json` + `schema.gen.ts` (2 → 6 → 7), `apps/web/messages/**` (4 creates every namespace; later tasks own only their namespace files), `profile/page.tsx` pages (9 → 11), `button.tsx` (0B must not touch it → 15).
+- Only Task 1 restarts or resets Supabase, and it runs in a wave whose other tasks never touch Supabase (they run lint/typecheck/unit only). Only Tasks 12 and 13 start the app, each alone in its wave.
+- Nobody installs packages outside 0A/0B; a missing package → `NEEDS_CONTEXT` to the lead.
+- Generated files are regenerated only by the task that declares them.
+- Shared Supabase and Valkey are used through unique test data; nobody stops, starts or resets them except Task 1 (Supabase) and Tasks 12–13 (`app.sh`).
+- A red `quality-gate fast` caused only by a wave-mate's unfinished files is reported, not "fixed"; the lead's post-wave gate decides.
+
+**Expected schedule** (what `board.py wave` yields with the `depends_on` below; P2 items fill free slots):
+
+| Wave | Board items (plan task) | Owner |
+|---|---|---|
+| 1 | T-010 (0A), T-011 (0B) | backend-dev, frontend-dev |
+| 2 | T-012 (1), T-014 (3), T-006 (14), T-008 (15) | backend-dev, backend-dev, qa-automation, frontend-dev |
+| 3 | T-013 (2), T-015 (4), T-016 (5), T-009 (16) | backend-dev, frontend-dev, qa-automation, backend-dev |
+| 4 | T-017 (6), T-019 (8), T-020 (9) | backend-dev, frontend-dev, frontend-dev |
+| 5 | T-018 (7), T-022 (11) | backend-dev, frontend-dev |
+| 6 | T-021 (10) | frontend-dev |
+| 7 | T-023 (12), alone: restarts the app | qa-automation |
+| 8 | T-024 (13), alone: restarts the app, ends with `quality-gate full` | qa-automation |
+
+**Board items: files and dependencies** (as registered with `board.py`; `B/` = `backend/src/autoapplier/`, `W/` = `apps/web/src/`, abbreviations for this table only; the board stores full paths):
+
+| Board | Task | depends_on | files |
 |---|---|---|---|
-| 1 | **T1** (backend-dev), alone | M0 merged | Changes `supabase/config.toml`, restarts Supabase, runs `db reset`; every later task builds on the schema and the generated DB types |
-| 2 | **T2** (backend-dev), **T3** (backend-dev), **T4** (frontend-dev), **T5** (qa-automation) | T1 | Backend platform, AI/doc adapters, web platform and the qa harness are independent file sets |
-| 3 | **T6** (backend-dev), **T7** (backend-dev), **T8** (frontend-dev), **T9** (frontend-dev) | T6: T2+T3 · T7: T2 · T8, T9: T4 | Feature APIs and the first feature screens |
-| 4 | **T10** (frontend-dev), **T11** (frontend-dev) | T10: T4+T7 · T11: T6+T9 | These screens need the OpenAPI types from wave 3 (`schema.gen.ts`) and the editor from T9 |
-| 5 | **T12** then **T13** (qa-automation), serial | all | Both start the app (`app.sh stop && start`) and run e2e; T13 ends with `quality-gate full` |
+| T-010 | 0A | — | `backend/pyproject.toml`, `backend/uv.lock` |
+| T-011 | 0B | — | `package.json`, `package-lock.json`, `apps/web/package.json`, `apps/web/components.json`, `W/components/ui/**`, `W/hooks/**`, `W/app/globals.css` |
+| T-006 | 14 | T-011 | `.github/workflows/ci.yml`, `tests/integration/ci-workflow.test.ts` |
+| T-008 | 15 | T-011 | `W/components/ui/button.tsx`, `W/components/ui/button.test.tsx` |
+| T-012 | 1 | T-010, T-011 | `supabase/**`, `backend/tests/integration/{conftest,supabase_helpers,test_auth_gotrue}.py`, `W/lib/supabase/database.types.ts` |
+| T-014 | 3 | T-010 | `B/domain/{profile,resume_files}.py`, `B/ports/documents.py`, `B/adapters/documents/**`, `B/adapters/llm/**`, `backend/tests/fixtures/**`, `backend/tests/contract/**`, `backend/tests/unit/test_{profile_draft,resume_files,document_text_extractor,llm_fake_markers,llm_registry}.py` |
+| T-013 | 2 | T-010, T-012 | `B/{config,wiring,logging}.py`, `B/api/{app,auth,errors}.py`, `B/api/schemas/problem.py`, `B/api/routes/me.py`, `B/ports/{auth,storage}.py`, `B/adapters/{auth,storage}/**`, `B/db/as_user.py`, `backend/.env.example`, `backend/openapi.json`, `W/lib/api/schema.gen.ts`, its unit tests (`test_{config,jwt_verifier,api_auth,problem_handlers,logging_redaction,storage_fake,auth_fakes}.py`) and integration tests (`test_{as_user,jwt_verifier_live,supabase_storage,gotrue_admin}.py`) |
+| T-015 | 4 | T-011, T-012 | `apps/web/{next.config.ts,eslint.config.mjs,vitest.config.mts,eslint-i18n.test.ts}`, `apps/web/messages/**`, `W/i18n/**`, `W/proxy.ts`, `W/lib/supabase/proxy.ts`, `W/lib/auth/{session,redirects,redirects.test,landing,sign-out}.ts`, `W/lib/{credits,credits.test,health,health.test}.ts`, `W/lib/shell/**`, `W/lib/validation/**`, `W/components/{shell,health}/**`, `W/app/{layout,page}.tsx`, `W/app/health/**`, `W/app/(public)/layout.tsx`, `W/app/(onboarding)/layout.tsx`, `W/app/(app)/layout.tsx` |
+| T-016 | 5 | T-011, T-012 | `tests/tsconfig.json`, `playwright.config.ts`, `tests/integration/helpers/**`, `tests/integration/rls/**`, `tests/integration/playwright-config.test.ts`, `tests/e2e/fixtures/**`, `tests/e2e/helpers/**` |
+| T-009 | 16 | T-010, T-011, T-012 | `scripts/**`, `package.json`, `backend/pyproject.toml`, `backend/tests/unit/test_valkey_script.py`, `backend/tests/unit/test_sync_env.py` |
+| T-017 | 6 | T-013, T-014 | `B/ports/{jobs,resume_store}.py`, `B/db/resumes.py`, `B/services/{resumes,resume_extraction}.py`, `B/worker/{jobs,celery_app}.py`, `B/worker/tasks/resume.py`, `B/api/routes/resumes.py`, `B/api/schemas/resumes.py`, `B/wiring.py`, `B/api/app.py`, `backend/openapi.json`, `W/lib/api/schema.gen.ts`, `backend/tests/unit/doubles/**`, `backend/tests/unit/test_{resume_service,resume_extraction,resumes_api,resume_task}.py`, `backend/tests/integration/test_{resume_repository,resume_pipeline}.py` |
+| T-019 | 8 | T-015 | `W/app/(public)/{sign-up,sign-in,reset-password,auth}/**`, `W/app/auth/**`, `W/lib/auth/{schemas,errors,actions,providers,oauth}.ts` + `.test.ts`, `W/components/auth/**`, `W/lib/env.server.ts`, `apps/web/.env.example`, `apps/web/messages/{en,ru}/auth.json` |
+| T-020 | 9 | T-015 | `W/lib/profile/**`, `W/components/{profile,onboarding}/**`, `W/app/(onboarding)/onboarding/page.tsx`, `W/app/(onboarding)/onboarding/profile/**`, `W/app/(app)/profile/**`, `apps/web/messages/{en,ru}/{profile,onboarding}.json` |
+| T-018 | 7 | T-013, T-017 | `B/domain/account.py`, `B/ports/account.py`, `B/db/account.py`, `B/services/{account_export,account_deletion}.py`, `B/api/routes/account.py`, `B/api/schemas/account.py`, `B/wiring.py`, `B/api/app.py`, `backend/openapi.json`, `W/lib/api/schema.gen.ts`, `backend/tests/unit/test_{account_domain,account_deletion_service,account_api}.py`, `backend/tests/integration/test_{account_export,account_deletion}.py` |
+| T-022 | 11 | T-017, T-020 | `W/app/(onboarding)/onboarding/resume/**`, `W/app/api/resume/**`, `W/lib/resume/**`, `W/lib/profile/merge.ts`, `W/lib/profile/merge.test.ts`, `W/components/resume/**`, `W/app/(onboarding)/onboarding/profile/page.tsx`, `W/app/(app)/profile/page.tsx`, `apps/web/messages/{en,ru}/resume.json` |
+| T-021 | 10 | T-015, T-018 | `W/app/(app)/settings/**`, `W/app/(public)/{account-deleted,privacy}/**`, `W/app/api/account/**`, `W/lib/account/**`, `W/components/settings/**`, `apps/web/messages/{en,ru}/{settings,account,legal}.json` |
+| T-023 | 12 | T-008, T-009, T-016, T-019, T-020, T-021, T-022 | `tests/e2e/{auth,i18n,a11y}/**` |
+| T-024 | 13 | T-017, T-018, T-023 | `tests/fixtures/resumes/**`, `tests/e2e/{resume,profile,account}/**` |
 
-The lead creates each worktree outside the repo (constitution rule 6), for example:
-```bash
-git worktree add -b wt/M1-T2 /home/user/aa-wt/M1-T2 milestone/M1-onboarding-profile
-```
-Do not use Agent `isolation: "worktree"`. Every parallel implementer's first step inside its worktree:
-```bash
-npm ci && uv sync --directory backend --locked && python3 scripts/sync_env.py
-```
-Env files are git-ignored, so each worktree must generate its own. Supabase and Valkey are the shared instances started from the main working directory; check them with `bash scripts/supabase.sh status` and `bash scripts/valkey.sh status`, and **never** stop, start or reset them from a worktree.
-
-Expected merge hotspots and how the lead resolves them:
-
-| Files | Resolution |
-|---|---|
-| `backend/uv.lock`, `package-lock.json` | Never hand-merge: take the milestone side, then run `uv lock --directory backend` / `npm install` and commit. |
-| `backend/openapi.json`, `apps/web/src/lib/api/schema.gen.ts` (T2, T6, T7) | Never hand-merge: run `npm run gen:api-types`, then `npm run check:openapi`. |
-| `backend/pyproject.toml` (T2 and T3 add dependencies and import-linter entries) | Union of both sides. |
-| `backend/src/autoapplier/wiring.py`, `api/app.py` (T6, T7) | Keep both sides' container fields and `include_router` lines. |
-| `apps/web/package.json` (T4 only) and root `package.json` (T2 script, T5 devDeps) | Union. |
-| `apps/web/messages/**` | Each task edits only its own namespace files (T4 pre-creates them all), so no conflicts are expected. |
+T-007 (the architect's planning item) is folded into Tasks 2 and 7 and closed; it is not a build item.
 
 ## Traceability
 
 | Story · AC | Task(s) | Tests (level) | Verification command |
 |---|---|---|---|
-| S-001 · 1 sign-up → signed in, checklist, balance 20 | 1, 4, 8, 9, 12 | `m1_accounts.test.sql` 1–2 (pgTAP); `test_auth_gotrue.py::test_email_signup_creates_profile_and_single_grant` (int); `actions.test.ts::signUp success…`, `site-header.test.tsx` (unit); `sign-up.spec.ts::valid sign-up…` (e2e) | `npm run -s test:db`; `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-up.spec.ts` |
+| S-001 · 1 sign-up → signed in, checklist, balance 20 | 1, 4, 8, 9, 12 | `m1_accounts.test.sql` 1–2 (pgTAP); `test_auth_gotrue.py::test_email_signup_creates_profile_and_single_grant` (int); `actions.test.ts::signUp success…`, `site-header.test.tsx`, `data.test.ts::signupBonusGranted true…`, `welcome-toast.test.tsx::show=true…` (unit); `sign-up.spec.ts::valid sign-up…` (e2e) | `npm run -s test:db`; `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-up.spec.ts` |
 | S-001 · 2 duplicate email → no 2nd account, neutral message | 1, 8, 12 | `test_duplicate_signup_creates_no_second_user` (int); `errors.test.ts`, `actions.test.ts::signUp duplicate…`, `sign-up-form.test.tsx::duplicate alert…` (unit); `sign-up.spec.ts::duplicate email…` (e2e) | same as above |
 | S-001 · 3 malformed email / < 8 chars → field errors, no account | 1, 8, 12 | `test_password_shorter_than_8_is_rejected` (int); `schemas.test.ts`, `actions.test.ts::signUp invalid…` (unit); `sign-up.spec.ts::malformed…` (e2e) | same as above |
 | S-001 · 4 same generic error for wrong password and unknown email | 8, 12 | `errors.test.ts`, `actions.test.ts::signIn wrong password and unknown email…`, `sign-in-form.test.tsx` (unit); `sign-in.spec.ts::wrong password and unknown email…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-in.spec.ts` |
 | S-001 · 5 reset via mail catcher; old password fails; expired/reused link rejected | 1, 8, 12 | `test_recovery_email_english_by_default`, `test_recovery_token_fresh_verifies`, `test_recovery_token_expired_is_rejected` (real expiry via `auth.users.recovery_sent_at`), `test_recovery_token_reused_is_rejected`, `test_recovery_token_unknown_is_rejected` (int); `confirm/route.test.ts`, `actions.test.ts::updatePassword…`, `reset-password-form.test.tsx` (unit); `password-reset.spec.ts` ×3 (e2e, Mailpit) | `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npx playwright test tests/e2e/auth/password-reset.spec.ts` |
 | S-001 · 6 sign out → protected pages redirect | 4, 8, 12 | `redirects.test.ts::decideProxyRedirect…`, `app-shell.test.tsx::account menu…` (unit); `sign-out.spec.ts` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-out.spec.ts` |
-| S-001 · 7 exactly one sign-up bonus; re-sign-in never grants | 1, 5, 12 | `m1_accounts.test.sql` 2–6 (pgTAP); `test_repeated_sign_in_never_grants_again` (int); `m1-ledger.test.ts` (black-box RLS); `sign-in.spec.ts::signing in again never adds credits` (e2e) | `npm run -s test:db`; `npx vitest run --config vitest.config.ts tests/integration/rls/m1-ledger.test.ts`; `npx playwright test tests/e2e/auth/sign-in.spec.ts` |
+| S-001 · 7 exactly one sign-up bonus; re-sign-in never grants; **D5:** a re-sign-up after deletion gets an account with 0 credits | 1, 4, 5, 7, 9, 12, 13 | `m1_accounts.test.sql` 2–6 and **§9** (fingerprint on delete, normalized match, no grant on re-sign-up, control grant, table/key/function unreachable, only the grant trigger reads the table) (pgTAP); `test_repeated_sign_in_never_grants_again`, **`test_resignup_after_deletion_gets_no_bonus`**, **`test_signup_after_unrelated_deletion_still_gets_bonus`** (int, real GoTrue); **`test_account_deletion.py::test_signup_after_deletion_gets_account_without_bonus`** (int, API path); `m1-ledger.test.ts` incl. **`re-sign-up after deletion…`** and **`fingerprint table is unreachable…`** (black-box); **`data.test.ts::false and balance 0…`**, **`welcome-toast.test.tsx::show=false…`** (unit); `sign-in.spec.ts::signing in again never adds credits` (e2e); **`delete.spec.ts::after deletion, signing up again…`** (e2e) | `npm run -s test:db`; `uv run --directory backend pytest tests/integration/test_auth_gotrue.py tests/integration/test_account_deletion.py -q`; `npx vitest run --config vitest.config.ts tests/integration/rls/m1-ledger.test.ts`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/sign-in.spec.ts tests/e2e/account/delete.spec.ts` |
 | S-002 · 1 Google creates or links account; bonus once for new | 1, 8 (+ human live check, D4) | `m1_accounts.test.sql` 3–4 (pgTAP: sign-in and identity linking add no grant); `actions.test.ts::startGoogle…`, `::exchangeOAuthCode new account adds welcome`, `oauth.test.ts::isNewAccount` (unit) | `npm run -s test:db`; `npm run test:unit -w @autoapplier/web`; manual: README live-check item (MR, TD-006) |
 | S-002 · 2 cancel on consent → sign-in with neutral message, no account | 8, 12 | `oauth.test.ts::access_denied → oauth_cancelled`, `sign-in-form.test.tsx::oauth_cancelled notice…` (unit); `google.spec.ts::returning with error=access_denied…` (e2e) | `npx playwright test tests/e2e/auth/google.spec.ts` |
 | S-002 · 3 not configured → button hidden, email works | 1, 8, 12 | `providers.test.ts` ×3, `sign-up-form.test.tsx::no Google button…` (unit); `google.spec.ts::Google button and divider are absent…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/auth/google.spec.ts` |
@@ -1543,17 +1785,30 @@ Expected merge hotspots and how the lead resolves them:
 | S-005 · 2 switch applies to pages, validation, emails; persists across sessions/devices | 1, 4, 8, 10, 12 | `m1_accounts.test.sql` 7 (locale mirror); `test_recovery_email_russian_after_locale_switch` (int); `actions.test.ts` (i18n), `language-switcher.test.tsx`, `language-card.test.tsx`, `actions.test.ts::signIn copies profile locale…` (unit); `locale.spec.ts::switching to RU…`, `::reset email arrives in Russian…` (e2e) | `npm run -s test:db`; `uv run --directory backend pytest tests/integration/test_auth_gotrue.py -q`; `npx playwright test tests/e2e/i18n/locale.spec.ts` |
 | S-005 · 3 no missing translation key on any page in either language | 4, 12 | `messages.test.ts` key parity (unit); ESLint `i18next/no-literal-string` + `eslint-i18n.test.ts` (lint/unit); `no-missing-keys.spec.ts` (e2e, EN + RU) | `npm run -s lint`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/i18n/no-missing-keys.spec.ts` |
 | S-006 · 1 export downloads JSON with profile, searches, applications, credit ledger | 7, 10, 13 | `test_account_api.py::test_export_headers_and_body_shape` (unit); `test_account_export.py` ×2 (int); `route.test.ts`, `export-client.test.ts`, `data-card.test.tsx` (unit); `export.spec.ts` (e2e) | `npm run -s test:integration:py`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/account/export.spec.ts` |
-| S-006 · 2 typed-email confirm deletes account, profile, files, searches, connections, secrets; signed out; old credentials fail | 1, 7, 10, 13 | `m1_profiles_resumes.test.sql` 7 (cascade FKs); `test_account_deletion_service.py` (unit); `test_account_deletion.py::test_deletion_removes_everything`, `::test_every_user_owned_table_cascades` (int); `actions.test.ts::204 → signOut…`, `delete-account-dialog.test.tsx` (unit); `delete.spec.ts::typing the email…` (e2e). M1 has no searches, connections or secrets tables yet; the cascade and coverage tests fail automatically when M2–M4 add one without handling it (ADR-0016). | `npm run -s test:db`; `npm run -s test:integration:py`; `npx playwright test tests/e2e/account/delete.spec.ts` |
+| S-006 · 2 typed-email confirm deletes account, profile, files, searches, connections, secrets; signed out; old credentials fail (**D5:** only the email HMAC remains) | 1, 7, 10, 13 | `m1_profiles_resumes.test.sql` 7 (cascade FKs); `m1_accounts.test.sql` §9.1–9.8, 9.14 (the fingerprint is the only retained datum: one `email_hmac` column, unreadable, used only by the grant trigger) (pgTAP); `test_account_deletion_service.py` (unit); `test_account_deletion.py::test_deletion_removes_everything`, `::test_every_user_owned_table_cascades`, **`::test_deletion_keeps_only_email_fingerprint`**, **`::test_failed_deletion_leaves_no_fingerprint`** (int); `actions.test.ts::204 → signOut…`, `delete-account-dialog.test.tsx` incl. **`description links to /privacy…`**, **`privacy/page.test.tsx`** (unit); `delete.spec.ts::typing the email…`, **`::the delete dialog and the deleted page link…`** (e2e). M1 has no searches, connections or secrets tables yet; the cascade and coverage tests fail automatically when M2–M4 add one without handling it (ADR-0016). | `npm run -s test:db`; `npm run -s test:integration:py`; `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/account/delete.spec.ts` |
 | S-006 · 3 cancel → nothing deleted | 7, 10, 13 | `test_account_deletion_service.py::test_mismatch_calls_nothing`, `test_account_deletion.py::test_mismatch_keeps_account` (unit/int); `delete-account-dialog.test.tsx::Cancel…/::Escape…` (unit); `delete.spec.ts::Cancel and Escape…` (e2e) | `npm run test:unit -w @autoapplier/web`; `npx playwright test tests/e2e/account/delete.spec.ts` |
+
+**Board follow-ups from the M0 final review:**
+
+| Item · AC | Task(s) | Tests (level) | Verification command |
+|---|---|---|---|
+| T-006 · CI uses Supabase CLI 2.118.0 and runs the app with `APP_ENV=ci` + `LLM_PROVIDER=fake` | 14, 2 | `ci-workflow.test.ts::pins the Supabase CLI to 2.118.0`, `::runs the quality job with APP_ENV=ci and LLM_PROVIDER=fake` (int, YAML contract); `test_config.py::test_ci_env_requires_fake_llm` (unit) | `npx vitest run --config vitest.config.ts tests/integration/ci-workflow.test.ts`; `uv run --directory backend pytest tests/unit/test_config.py -q` |
+| T-007 · plan specifies the user-scoped transaction helper, the JWT secret setting and a cross-user API denial test (+ drop unused settings) | 2, 7 | `test_as_user.py::test_cross_user_rows_invisible_and_unwritable`, `::test_claims_visible_to_sql`, `::test_role_reset_after_block` (int); `test_account_export.py::test_export_api_with_b_token_has_no_a_rows` (int, real app + GoTrue tokens); `test_config.py::test_supabase_jwt_secret_from_env`, `::test_unused_network_settings_removed` (unit) | `npm run -s test:integration:py`; `uv run --directory backend pytest tests/unit/test_config.py -q` |
+| T-008 · default Button ≥ 44 px (component test); `chromium-mobile` has touch + mobile UA | 15, 5, 12 | `button.test.tsx` ×4 (unit); `playwright-config.test.ts` (int, config contract); `auth-and-shell.a11y.spec.ts::primary actions are at least 44×44 on mobile` (e2e, rendered box) | `npm run test:unit -w @autoapplier/web -- button`; `npx vitest run --config vitest.config.ts tests/integration/playwright-config.test.ts`; `npx playwright test tests/e2e/a11y --project chromium-mobile` |
+| T-009 · `scripts/*.py` linted and type-checked by the fast gate; `valkey.sh` exits non-zero at once on Docker failure; per-queue heartbeat design in TECH-DEBT | 16 (+ TD-007 by the architect) | `test_valkey_script.py` ×4 (unit, stub Docker); the two `scripts/_probe.py` probes (lint F401, mypy untyped def) exit non-zero | `uv run --directory backend pytest tests/unit/test_valkey_script.py -q`; the Task 16 probe commands; `grep -n TD-007 docs/architecture/TECH-DEBT.md` |
 
 Milestone gate: `bash team/bin/quality-gate.sh full` → PASS, then `python3 team/bin/board.py gate M1 --run-checks` → PASS.
 
 ## Notes for the Team Lead
 
-- Execution order: wave 1 (T1) → wave 2 (T2, T3, T4, T5) → wave 3 (T6, T7, T8, T9) → wave 4 (T10, T11) → wave 5 (T12 → T13).
-- T1 restarts local Supabase and runs `db reset`. Stop any running app and make sure nobody is testing at that moment.
-- Record D1–D5 in the PRD decision log. Put a board note on S-004 for the designer to confirm the `profile.savedIncomplete` copy (D1). Escalate D5 (repeat sign-up bonus after deletion) with `needs_human`.
+- Execution: loop `board.py wave --milestone M1` (see "Waves"); expected 8 waves: (0A, 0B) → (1, 3, 14, 15) → (2, 4, 5, 16) → (6, 8, 9) → (7, 11) → (10) → (12) → (13). Close each wave's items (`check` + `move done`) after the post-wave gate so dependents become ready.
+- Task 1 restarts local Supabase and runs `db reset`. Stop any running app first; its wave-mates never touch Supabase.
+- D1–D4 are in the PRD decision log; D5 was decided by the human on 2026-09-28 and is now built (Tasks 1, 4, 5, 7, 9, 10, 12, 13). Board notes for the designer: confirm `profile.savedIncomplete` (S-004, D1) and the D5 privacy/delete-dialog copy in Task 10 (S-006).
+- S-001 AC7's text ("exactly one sign-up bonus … for any user") predates D5: please amend it to "…exactly one sign-up bonus of 20 credits, except an account re-created with the email of a deleted account, which gets none; signing in again never grants more", so QA verifies the right rule.
+- `docs/qa/plans/M1-test-plan.md` predates this amendment: qa-automation adds the D5 rows (S-001·7, S-006·2), the T-006…T-009 rows and the new Tasks 0A/0B/14–16.
 - Out of M1 scope, tracked in TECH-DEBT:
   - TD-004: OpenAI/OpenRouter adapters (M2);
   - TD-005: LCP measurement on a production build (MR);
-  - TD-006: live Google OAuth check (MR, human).
+  - TD-006: live Google OAuth check (MR, human);
+  - TD-007: per-queue worker heartbeats (M2, T-009 design);
+  - TD-008: the D5 fingerprint covers the email held at deletion time only (an email changed before deletion is not fingerprinted) (MR security review).

@@ -6,3 +6,5 @@ from typing import Final
 
 SYSTEM_PING: Final = "system.ping"
 SYSTEM_HEARTBEAT: Final = "system.heartbeat"
+
+from autoapplier.ports.jobs import RESUME_EXTRACT as RESUME_EXTRACT  # noqa: E402  (re-export)

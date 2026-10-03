@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import coreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
+import i18next from "eslint-plugin-i18next";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -80,6 +81,15 @@ const config = [
           ],
         },
       ],
+    },
+  },
+  {
+    // Add the string to apps/web/messages/<en|ru>/<namespace>.json and render it with useTranslations/getTranslations.
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/ui/**", "**/*.test.tsx"],
+    plugins: { i18next },
+    rules: {
+      "i18next/no-literal-string": ["error", { mode: "jsx-text-only" }],
     },
   },
 ];

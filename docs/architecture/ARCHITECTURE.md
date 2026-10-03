@@ -138,6 +138,7 @@ RLS patterns:
 | `applications` (M2–M3) | user_id, vacancy_id (UNIQUE per user), channel, status, idempotency_key UNIQUE, cover_letter, sent_at | R (+ user edit of draft letter via API) |
 | `application_events` (M3) | application_id, event, payload, at (audit trail) | R |
 | `channel_connections` (M3–M4) | user_id, kind email/telegram/linkedin, status, consent_accepted_at, daily_limit, public metadata | R |
+| `private.deleted_account_fingerprints` (M1, D5) | email_hmac bytea PK only (HMAC-SHA256 of trimmed+lowercased email, Vault key `signup_bonus_fingerprint_key`); written by the `auth.users` delete trigger, read only by `internal.handle_new_user()` to skip a repeat sign-up bonus (ADR-0013 amendment) | B (private schema; no privileges for anon/authenticated/service_role) |
 | `private.user_secrets` (M3) | user_id, connection_id, kind, key_id, nonce, ciphertext | B (private schema) |
 | `recruiter_contacts` (M3) | user_id, contact_hash, last_contacted_at (14-day rule) | B |
 | `extension_devices`, `extension_pairings`, `extension_tasks` (M4) | token_hash, scopes, lease | R / B |
@@ -146,11 +147,11 @@ RLS patterns:
 
 Redis keyspace (disposable, prefix `REDIS_KEY_PREFIX`, default `aa:`): `aa:heartbeat:worker` (M0, TTL 30 s), later `aa:rl:<user>:<channel>:<date>` (daily counters), `aa:lock:send:<application_id>`, `aa:llm:<fingerprint>` (cache). Celery's own keys (broker queues, results) live in the same DB. Schedules for delayed work are Postgres columns (`scheduled_at`), never Redis/ETA (ADR-0012).
 
-Deletion: every user-owned table references `auth.users(id) on delete cascade`; storage objects and secrets are removed by `AccountPurgeStep`s before the Auth user is deleted (M1 S-006, extended in M3/M4). Integration tests enumerate every FK to `auth.users` and fail if a table is not cascaded, exported (or explicitly excluded) and emptied by deletion (ADR-0016).
+Deletion: the only datum kept after an account is deleted is the D5 email fingerprint above (ADR-0016 amendment). Every user-owned table references `auth.users(id) on delete cascade`; storage objects and secrets are removed by `AccountPurgeStep`s before the Auth user is deleted (M1 S-006, extended in M3/M4). Integration tests enumerate every FK to `auth.users` and fail if a table is not cascaded, exported (or explicitly excluded) and emptied by deletion (ADR-0016).
 
 ## Auth and authorization
 - Supabase Auth: email/password (M1), Google OAuth (M1, local stack with a fake/disabled provider in tests), sessions in cookies via `@supabase/ssr`; `proxy.ts` refreshes the session.
-- Python API verifies the Supabase JWT (PyJWT, JWKS, `aud=authenticated`) and executes user-scoped SQL as role `authenticated` with the JWT claims set, so RLS applies to the backend as well (ADR-0004).
+- Python API verifies the Supabase JWT (PyJWT, JWKS, `aud=authenticated`) and executes user-scoped SQL as role `authenticated` with the JWT claims set (`db/as_user.py`: `SET LOCAL ROLE authenticated` + `request.jwt.claims`, transaction-scoped), so RLS applies to the backend as well (ADR-0004). Rule: every API read that returns user data runs inside `as_user`; the service connection is only for worker/system jobs, writes the schema forbids to users (always filtered by `user_id`), and the Auth/Storage admin adapters.
 - Operator (M2): `user_roles` + `internal.is_operator()`; operator routes are `/v1/operator/*` and additionally check the role in the API.
 - M1 API surface: `GET /v1/me`, `POST /v1/resumes` (multipart), `POST /v1/resumes/{id}/extraction`, `GET /v1/account/export`, `POST /v1/account/deletion`. JWTs are ES256 via the local JWKS (HS256 fallback only with `SUPABASE_JWT_SECRET`).
 - Extension: scoped hashed token on `/ext/v1/*` (ADR-0005). Webhooks: provider signatures (ADR-0009).
@@ -166,9 +167,9 @@ Deletion: every user-owned table references `auth.users(id) on delete cascade`; 
 ## Configuration and environments
 Local only (plus CI). Environments: `APP_ENV = local | test | ci`.
 - Committed templates: `backend/.env.example`, `apps/web/.env.example`. Generated, git-ignored: `backend/.env`, `apps/web/.env.local` (by `python3 scripts/sync_env.py`, run by `npm run dev`, filling values from `supabase status -o env`).
-- Backend variables: `APP_ENV`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET` (M1), `API_HOST`, `API_PORT`, `WEB_ORIGIN`, `LLM_PROVIDER` (`fake` default), `LLM_MODEL_FAST`, `LLM_MODEL_SMART`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_URL` (`redis://127.0.0.1:6379/0`, broker + results), `REDIS_KEY_PREFIX` (`aa:`), `WORKER_HEARTBEAT_INTERVAL_S` (10), `QUEUE_HEARTBEAT_MAX_AGE_S` (30), `HEALTH_PROBE_TIMEOUT_S` (2), `APP_ENCRYPTION_KEYS` (M3).
+- Backend variables: `APP_ENV`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET` (M1, HS256 fallback only), `LLM_PROVIDER` (`fake` default), `LLM_MODEL_FAST`, `LLM_MODEL_SMART`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_URL` (`redis://127.0.0.1:6379/0`, broker + results), `REDIS_KEY_PREFIX` (`aa:`), `WORKER_HEARTBEAT_INTERVAL_S` (10), `QUEUE_HEARTBEAT_MAX_AGE_S` (30), `HEALTH_PROBE_TIMEOUT_S` (2), `APP_ENCRYPTION_KEYS` (M3).
 - Web variables: `API_URL` (server-only, `http://127.0.0.1:8000`), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-- `APP_ENV=test` forces fake providers (settings validation). Cloud Supabase and real third-party keys are never configured by the team.
+- `APP_ENV=test` and `APP_ENV=ci` force fake providers (settings validation; CI sets `APP_ENV=ci`, `LLM_PROVIDER=fake`). `API_HOST`/`API_PORT`/`WEB_ORIGIN` were removed in M1: `dev:api` passes host/port itself and the browser never calls the API directly. Cloud Supabase and real third-party keys are never configured by the team.
 
 ## Testing approach
 Strategy and pyramid: `docs/qa/TEST-STRATEGY.md` (qa-automation, M0 T-004).

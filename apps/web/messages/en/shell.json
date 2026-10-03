@@ -1,0 +1,33 @@
+{
+  "skipLink": "Skip to content",
+  "logoLabel": "AutoApplier home",
+  "nav": {
+    "label": "Main navigation",
+    "profile": "Profile",
+    "settings": "Settings",
+    "open": "Open navigation",
+    "close": "Close navigation",
+    "collapse": "Collapse navigation",
+    "expand": "Expand navigation",
+    "title": "Navigation"
+  },
+  "credits": {
+    "count": "{count, plural, one {# credit} other {# credits}}",
+    "balance": "Credit balance",
+    "normal": "Credits are used when AutoApplier applies to jobs for you.",
+    "low": "You are running low on credits. Autopilot pauses at 0 credits.",
+    "empty": "Autopilot is paused until you have credits."
+  },
+  "language": {
+    "label": "Language",
+    "menu": "Interface language",
+    "en": "English",
+    "ru": "Русский"
+  },
+  "account": {
+    "menu": "Account menu",
+    "settings": "Settings",
+    "completeProfile": "Complete your profile",
+    "signOut": "Sign out"
+  }
+}

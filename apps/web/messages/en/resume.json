@@ -1,0 +1,65 @@
+{
+  "upload": {
+    "heading": "Upload your resume",
+    "sub": "PDF or DOCX, up to 5 MB",
+    "dropzoneName": "Upload your resume, PDF or DOCX, up to 5 megabytes",
+    "dropzoneIdle": "Drag and drop, or browse files",
+    "dropzoneDrag": "Drop to upload",
+    "fileInputLabel": "Resume file",
+    "manual": "Fill in manually instead",
+    "uploading": "Uploading {filename}…",
+    "uploadProgressLabel": "Upload progress",
+    "errors": {
+      "unsupported": "We only accept PDF or DOCX files",
+      "tooLarge": "This file is larger than 5 MB",
+      "empty": "This file is empty",
+      "network": "We couldn't upload the file. Check your connection and try again.",
+      "unknown": "We couldn't upload the file. Try again."
+    }
+  },
+  "extraction": {
+    "label": "Resume extraction",
+    "phase0": "Reading your resume…",
+    "phase1": "Extracting your experience…",
+    "phase2": "Almost done…",
+    "timeNote": "This can take up to a minute."
+  },
+  "failed": {
+    "heading": "We couldn't read this resume",
+    "body": "{filename} stays attached — you can try again or fill in by hand.",
+    "tryAgain": "Try again",
+    "fillManually": "Fill in manually",
+    "retryFailed": "We couldn't restart the extraction. Try again in a moment."
+  },
+  "attached": {
+    "label": "Resume file",
+    "processing": "Reading {filename}…",
+    "failed": "We couldn't read {filename}.",
+    "ready": "{filename} is attached."
+  },
+  "replace": {
+    "button": "Replace resume",
+    "title": "Replace resume",
+    "description": "Upload a new PDF or DOCX. We'll ask before changing anything in your profile.",
+    "close": "Close",
+    "uploadButton": "Upload a resume"
+  },
+  "review": {
+    "title": "Review changes from your new resume",
+    "body": "We found differences between your current profile and {filename}. Pick what to keep for each field.",
+    "keepCurrent": "Keep current",
+    "useNew": "Use new",
+    "keepAll": "Keep everything current",
+    "useAll": "Use everything new",
+    "apply": "Apply",
+    "empty": "(empty)",
+    "count": "{count, plural, one {# item} other {# items}}",
+    "appliedHint": "Review the highlighted changes and save when you're happy."
+  },
+  "loading": {
+    "label": "Loading your resume step"
+  },
+  "error": {
+    "body": "We couldn't load this step. Try again."
+  }
+}

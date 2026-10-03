@@ -2,10 +2,13 @@
 id: T-006
 type: task
 title: "CI: pin Supabase CLI to 2.118.0 and run e2e/integration with APP_ENV=ci + LLM_PROVIDER=fake"
-status: todo
+status: done
 milestone: M1
 owner: qa-automation
 priority: P2
+depends_on: [T-011]
+files: [.github/workflows/ci.yml, tests/integration/ci-workflow.test.ts]
+plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
 updated: 2026-09-28
@@ -17,8 +20,14 @@ updated: 2026-09-28
 
 ## Definition of done
 
-- [ ] Given CI runs, Then supabase/setup-cli uses version 2.118.0 and the app processes run with APP_ENV=ci and LLM_PROVIDER=fake, verified by ci-workflow.test.ts
+- [x] Given CI runs, Then supabase/setup-cli uses version 2.118.0 and the app processes run with APP_ENV=ci and LLM_PROVIDER=fake, verified by ci-workflow.test.ts
 
 ## Log
 
 - 2026-09-28 07:54 created (team-lead)
+- 2026-09-28 09:15 set plan=docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md, files=[.github/workflows/ci.yml, tests/integration/ci-workflow.test.ts], depends_on=[T-011] (team-lead)
+- 2026-09-28 09:15 note (architect): Plan Task 14 (CI pin + APP_ENV=ci/LLM_PROVIDER=fake); Task 2 adds the ci→fake settings validator.
+- 2026-09-28 12:39 todo → in_progress (team-lead)
+- 2026-09-28 12:40 AC 1 ✔ (qa-automation): npx vitest run --config vitest.config.ts tests/integration/ci-workflow.test.ts -> 13 passed (adds pins-2.118.0 and APP_ENV/LLM_PROVIDER=fake tests, both failed pre-change); ci.yml: supabase/setup-cli version 2.118.0, quality job env APP_ENV=ci/LLM_PROVIDER=fake; actionlint clean; quality-gate.sh fast PASS
+- 2026-09-28 12:40 in_progress → qa (qa-automation): ci.yml pinned + APP_ENV/LLM_PROVIDER; ci-workflow.test.ts extended; no commit made
+- 2026-09-28 22:50 qa → done (team-lead)

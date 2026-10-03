@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <body style="font-family: sans-serif; line-height: 1.5; color: #111;">
+    {{ if eq .Data.locale "ru" }}
+    <h2>Восстановление пароля</h2>
+    <p>Нажмите на кнопку ниже, чтобы задать новый пароль. Ссылка действует один час.</p>
+    <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password" style="display: inline-block; padding: 10px 18px; background: #111; color: #fff; text-decoration: none; border-radius: 6px;">Сменить пароль</a></p>
+    {{ else }}
+    <h2>Reset your password</h2>
+    <p>Use the button below to choose a new password. The link is valid for one hour.</p>
+    <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password" style="display: inline-block; padding: 10px 18px; background: #111; color: #fff; text-decoration: none; border-radius: 6px;">Reset password</a></p>
+    {{ end }}
+  </body>
+</html>

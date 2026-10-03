@@ -15,9 +15,16 @@ from celery import Celery
 from autoapplier.api.app import create_app
 from autoapplier.config import Settings
 from autoapplier.domain.health import CheckResult
+from autoapplier.ports.auth import AuthAdmin, TokenVerifier
+from autoapplier.ports.documents import DocumentTextExtractor
 from autoapplier.ports.llm import LLMProvider
 from autoapplier.ports.queue import JobQueue
+from autoapplier.ports.storage import FileStorage
+from autoapplier.services.account_deletion import AccountDeletionService
+from autoapplier.services.account_export import AccountExportService
 from autoapplier.services.health import HealthService
+from autoapplier.services.resume_extraction import ResumeExtractionService
+from autoapplier.services.resumes import ResumeService
 from autoapplier.wiring import Container
 
 
@@ -42,6 +49,15 @@ def _container(health: HealthService) -> Container:
         llm=cast(LLMProvider, None),
         queue=cast(JobQueue, None),
         celery_app=cast(Celery, None),
+        http=cast(httpx.AsyncClient, None),
+        tokens=cast(TokenVerifier, None),
+        auth_admin=cast(AuthAdmin, None),
+        storage=cast(FileStorage, None),
+        documents=cast(DocumentTextExtractor, None),
+        resumes=cast(ResumeService, None),
+        resume_extraction=cast(ResumeExtractionService, None),
+        account_export=cast(AccountExportService, None),
+        account_deletion=cast(AccountDeletionService, None),
     )
 
 

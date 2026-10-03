@@ -1,0 +1,11 @@
+{
+  "privacy": {
+    "title": "Privacy policy",
+    "placeholder": "This is a placeholder. The final policy will be published before launch.",
+    "linkLabel": "Privacy policy",
+    "afterDeletion": {
+      "title": "What we keep after you delete your account",
+      "body": "When you delete your account, we delete your profile, resume files, searches, connections and stored secrets. We keep only a one-way keyed hash of your email address. It can't be turned back into your email, and we use it for one thing only: to avoid giving the free sign-up credits again to a new account with the same email."
+    }
+  }
+}

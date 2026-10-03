@@ -18,6 +18,16 @@ ensure_docker() {
   return 1
 }
 
+# Runs docker "$@" (stdout discarded); on failure prints the exit code and returns it.
+docker_or_fail() {
+  local rc=0
+  docker "$@" >/dev/null || rc=$?
+  if (( rc != 0 )); then
+    echo "✗ valkey: docker $1 failed (exit $rc)" >&2
+  fi
+  return "$rc"
+}
+
 # Prints "true" (running), "false" (exists, stopped) or "" (absent / docker unreachable).
 container_state() {
   docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null
@@ -42,11 +52,11 @@ do_start() {
       exit 0
       ;;
     false)
-      docker start "$CONTAINER" >/dev/null
+      docker_or_fail start "$CONTAINER" || exit 1
       ;;
     *)
-      docker run -d --name "$CONTAINER" --restart unless-stopped -p "$PUBLISH" "$IMAGE" \
-        valkey-server --save "" --appendonly no >/dev/null
+      docker_or_fail run -d --name "$CONTAINER" --restart unless-stopped -p "$PUBLISH" "$IMAGE" \
+        valkey-server --save "" --appendonly no || exit 1
       ;;
   esac
   wait_for_ping || exit 1
@@ -55,7 +65,7 @@ do_start() {
 
 do_stop() {
   if [[ "$(container_state)" == "true" ]]; then
-    docker stop "$CONTAINER" >/dev/null
+    docker_or_fail stop "$CONTAINER" || exit 1
     echo "✓ valkey: stopped"
   else
     echo "= valkey: not running"

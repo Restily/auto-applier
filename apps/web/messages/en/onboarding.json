@@ -1,0 +1,39 @@
+{
+  "heading": "Let's get you set up",
+  "progress": "{n} of {total} steps complete",
+  "step": {
+    "profile": {
+      "title": "Complete your profile",
+      "body": "Upload a resume or fill it in — takes about 2 minutes.",
+      "action": "Get started",
+      "actionDone": "Edit profile",
+      "done": "Done"
+    }
+  },
+  "missing": "Missing: {list}",
+  "missingFields": {
+    "fullName": "full name",
+    "contactEmail": "contact email",
+    "targetTitles": "at least one target title",
+    "skills": "at least one skill",
+    "yearsExperience": "years of experience"
+  },
+  "allDone": {
+    "heading": "You're all set.",
+    "body": "Explore your profile any time from the menu.",
+    "action": "Go to your profile"
+  },
+  "welcomeToast": "You've got 20 free credits",
+  "steps": {
+    "label": "Setup progress",
+    "signUp": "Sign up",
+    "resume": "Resume",
+    "profile": "Profile"
+  },
+  "loading": {
+    "label": "Loading your setup checklist"
+  },
+  "error": {
+    "body": "We couldn't load your setup checklist."
+  }
+}

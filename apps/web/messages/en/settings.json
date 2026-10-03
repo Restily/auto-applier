@@ -1,0 +1,29 @@
+{
+  "title": "Settings",
+  "account": {
+    "title": "Account",
+    "email": "Email",
+    "resetPrompt": "Forgot your password? <link>Reset it</link>",
+    "signOut": "Sign out"
+  },
+  "language": {
+    "title": "Language",
+    "label": "Interface language",
+    "en": "English",
+    "ru": "Русский",
+    "saveFailed": "Language changed here, but we couldn't save it to your account — try again"
+  },
+  "data": {
+    "title": "Your data",
+    "body": "Download a copy of your profile, searches, applications and credit history.",
+    "download": "Download my data",
+    "preparing": "Preparing your data…",
+    "success": "Your export is downloading",
+    "error": "We couldn't prepare your export. Try again."
+  },
+  "danger": {
+    "title": "Danger zone",
+    "body": "Delete your account and everything in it. This can't be undone.",
+    "delete": "Delete account"
+  }
+}

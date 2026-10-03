@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import localFont from "next/font/local";
+
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 // Self-hosted per the architect's ruling: @fontsource(-variable) packages +
@@ -57,25 +61,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${golosSansLatin.variable} ${golosSansCyrillic.variable} ${plexMono.variable}`}
     >
       <body className="antialiased">
-        <a
-          href="#main"
-          className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          Skip to main content
-        </a>
-        <header className="flex h-[var(--shell-header-height)] items-center border-b border-border bg-card px-[var(--shell-gutter-mobile)]">
-          <span className="text-[length:var(--text-h3-size)] font-semibold leading-[var(--text-h3-line)] text-foreground">
-            AutoApplier
-          </span>
-        </header>
-        <main id="main">{children}</main>
+        <NextIntlClientProvider>
+          {children}
+          {/* The design system ships a light theme by default and no theme toggle yet, so pin sonner to it. */}
+          <Toaster theme="light" />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

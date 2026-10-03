@@ -35,9 +35,11 @@ export type CheckKey = "database" | "queue";
 
 export interface HealthCheckView {
   key: CheckKey;
-  label: string;
   state: "ok" | "down";
+  /** Raw detail reported by the API; null when there is none. */
   detail: string | null;
+  /** True when the API itself could not be reached (rendered as a localized message). */
+  unreachable: boolean;
   latencyMs: number | null;
 }
 
@@ -48,11 +50,8 @@ export interface SystemHealthView {
   checkedAt: string;
 }
 
-// Literal labels until M1 wires a shared i18n source (TD-001).
-const CHECK_LABELS: Record<CheckKey, string> = {
-  database: "Database",
-  queue: "Queue",
-};
+// Labels come from the `health` message namespace (pays TD-001); the view carries keys only.
+const CHECK_KEYS: readonly CheckKey[] = ["database", "queue"];
 
 /**
  * Calls GET /health and never throws. Without an explicit client it builds
@@ -83,11 +82,11 @@ function unavailableView(now: Date): SystemHealthView {
   return {
     overall: "unavailable",
     version: null,
-    checks: (Object.keys(CHECK_LABELS) as CheckKey[]).map((key) => ({
+    checks: CHECK_KEYS.map((key) => ({
       key,
-      label: CHECK_LABELS[key],
       state: "down",
-      detail: "API unreachable",
+      detail: null,
+      unreachable: true,
       latencyMs: null,
     })),
     checkedAt: now.toISOString(),
@@ -106,13 +105,13 @@ export function toSystemHealthView(result: ApiHealthResult, now: Date): SystemHe
   return {
     overall,
     version: body.version,
-    checks: (Object.keys(CHECK_LABELS) as CheckKey[]).map((key) => {
+    checks: CHECK_KEYS.map((key) => {
       const check = body.checks[key];
       return {
         key,
-        label: CHECK_LABELS[key],
-        state: check.status,
+          state: check.status,
         detail: check.detail,
+        unreachable: false,
         latencyMs: check.latency_ms,
       };
     }),
