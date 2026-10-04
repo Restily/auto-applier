@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from autoapplier.ports.resume_store import ResumeErrorCode, ResumeRecord
+from autoapplier.ports.resume_store import MAX_EXTRACTION_ATTEMPTS, ResumeErrorCode, ResumeRecord
 
 
 class InMemoryResumeStore:
@@ -63,9 +63,16 @@ class InMemoryResumeStore:
     async def get(self, resume_id: UUID) -> ResumeRecord | None:
         return self.rows.get(resume_id)
 
-    async def claim_for_extraction(self, resume_id: UUID) -> ResumeRecord | None:
+    async def claim_for_extraction(
+        self, resume_id: UUID, *, max_attempts: int = MAX_EXTRACTION_ATTEMPTS
+    ) -> ResumeRecord | None:
         row = self.rows.get(resume_id)
         if row is None or row.status != "processing":
+            return None
+        if row.attempts >= max_attempts:
+            self.rows[resume_id] = replace(
+                row, status="failed", error_code="unreadable", updated_at=self.now()
+            )
             return None
         claimed = replace(row, attempts=row.attempts + 1, updated_at=self.now())
         self.rows[resume_id] = claimed
@@ -94,6 +101,8 @@ class InMemoryResumeStore:
         age = (self.now() - row.updated_at).total_seconds()
         if row.status == "ready" or (row.status == "processing" and age <= stale_after_s):
             return None
-        reset = replace(row, status="processing", error_code=None, updated_at=self.now())
+        reset = replace(
+            row, status="processing", error_code=None, attempts=0, updated_at=self.now()
+        )
         self.rows[resume_id] = reset
         return reset

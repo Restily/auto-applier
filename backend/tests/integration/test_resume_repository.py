@@ -7,6 +7,7 @@ import asyncpg
 import pytest
 
 from autoapplier.db.resumes import PgResumeStore
+from autoapplier.ports.resume_store import MAX_EXTRACTION_ATTEMPTS
 
 from .supabase_helpers import TestUser
 
@@ -100,14 +101,14 @@ async def test_reset_for_retry_respects_staleness(pool: asyncpg.Pool, make_user:
     assert (
         await store.reset_for_retry(user_id=user.id, resume_id=resume_id, stale_after_s=90) is None
     )
-    await pool.execute("alter table public.resumes disable trigger resumes_touch_updated_at")
-    try:
-        await pool.execute(
+    # `session_replication_role` is local to this transaction: it cannot leak onto the shared DB
+    # (a rollback or crash restores the trigger behaviour; no autocommitted DDL).
+    async with pool.acquire() as conn, conn.transaction():
+        await conn.execute("set local session_replication_role = replica")
+        await conn.execute(
             "update public.resumes set updated_at = now() - interval '120 seconds' where id = $1",
             resume_id,
         )
-    finally:
-        await pool.execute("alter table public.resumes enable trigger resumes_touch_updated_at")
     stale = await store.reset_for_retry(user_id=user.id, resume_id=resume_id, stale_after_s=90)
     assert stale is not None
     assert stale.status == "processing"
@@ -122,3 +123,44 @@ async def test_ready_is_not_retryable(pool: asyncpg.Pool, make_user: MakeUser, s
     assert (
         await store.reset_for_retry(user_id=user.id, resume_id=resume_id, stale_after_s=0) is None
     )
+
+
+async def test_claim_beyond_attempt_cap_fails_the_row(
+    pool: asyncpg.Pool, make_user: MakeUser
+) -> None:
+    user = await make_user()
+    store = PgResumeStore(pool)
+    resume_id, _ = await _insert(store, user.id)
+    for expected in range(1, MAX_EXTRACTION_ATTEMPTS + 1):
+        claimed = await store.claim_for_extraction(resume_id)
+        assert claimed is not None
+        assert claimed.attempts == expected
+
+    assert await store.claim_for_extraction(resume_id) is None
+
+    row = await store.get(resume_id)
+    assert row is not None
+    assert (row.status, row.error_code, row.attempts) == (
+        "failed",
+        "unreadable",
+        MAX_EXTRACTION_ATTEMPTS,
+    )
+    assert await store.claim_for_extraction(resume_id) is None  # still a no-op
+
+
+async def test_user_retry_resets_attempts_so_the_row_can_be_claimed_again(
+    pool: asyncpg.Pool, make_user: MakeUser
+) -> None:
+    user = await make_user()
+    store = PgResumeStore(pool)
+    resume_id, _ = await _insert(store, user.id)
+    for _ in range(MAX_EXTRACTION_ATTEMPTS + 1):
+        await store.claim_for_extraction(resume_id)
+
+    reset = await store.reset_for_retry(user_id=user.id, resume_id=resume_id, stale_after_s=90)
+
+    assert reset is not None
+    assert reset.attempts == 0
+    claimed = await store.claim_for_extraction(resume_id)
+    assert claimed is not None
+    assert claimed.attempts == 1

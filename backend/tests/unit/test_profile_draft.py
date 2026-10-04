@@ -188,3 +188,12 @@ def test_json_schema_is_strict() -> None:
     assert "$ref" not in str(schema)
     assert "$defs" not in schema
     _check_strict(schema)
+
+
+@pytest.mark.parametrize("bad", ["http://[x", "https://[::1", "http://[", "https://exa mple.test"])
+def test_malformed_urls_are_dropped_not_raised(bad: str) -> None:
+    draft = normalize_draft({"full_name": "A", "links": {"linkedin": bad, "portfolio": bad}})
+
+    assert draft.links.linkedin is None
+    assert draft.links.portfolio is None
+    assert draft.full_name == "A"

@@ -18,7 +18,7 @@ from autoapplier.ports.llm import (
     LLMResponse,
     LLMUnavailableError,
 )
-from autoapplier.ports.resume_store import ResumeStatus, ResumeStore
+from autoapplier.ports.resume_store import ResumeRecord, ResumeStatus, ResumeStore
 from autoapplier.ports.storage import FileStorage, StorageError
 from autoapplier.services.resumes import RESUME_BUCKET
 
@@ -55,13 +55,33 @@ class ResumeExtractionService:
         """Run one extraction attempt; returns the resulting status.
 
         A resume that is not `processing` (already done, or deleted meanwhile) is a no-op.
+        The whole attempt (claim, download, parse, LLM) is bounded by `deadline_s`; on expiry
+        or any unexpected error the row becomes `failed`/`ai_failed` so the UI never waits on a
+        row that nothing is working on.
         """
-        started = self._clock()
-        record = await self._store.claim_for_extraction(resume_id)
-        if record is None:
-            current = await self._store.get(resume_id)
-            return current.status if current is not None else "failed"
+        claimed = False
+        try:
+            async with asyncio.timeout(self._deadline_s):
+                record = await self._store.claim_for_extraction(resume_id)
+                if record is None:
+                    current = await self._store.get(resume_id)
+                    return current.status if current is not None else "failed"
+                claimed = True
+                return await self._attempt(record)
+        except TimeoutError:
+            _log.warning(
+                "resume %s: extraction timed out (deadline %.0f s)", resume_id, self._deadline_s
+            )
+        except Exception as exc:
+            # Never log the exception message or traceback: they can carry resume text (PII).
+            _log.error("resume %s: extraction crashed (%s)", resume_id, type(exc).__name__)
+        if claimed:
+            await self._store.mark_failed(resume_id, "ai_failed")
+        return "failed"
 
+    async def _attempt(self, record: ResumeRecord) -> ResumeStatus:
+        resume_id = record.id
+        started = self._clock()
         try:
             data = await self._storage.get(bucket=RESUME_BUCKET, path=record.storage_path)
         except StorageError:

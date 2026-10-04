@@ -52,6 +52,9 @@ async def delete_account(
         ) from None
     except AccountDeletionFailed:
         raise ApiProblem(
-            502, "account.delete_failed", "Account deletion failed; nothing was removed, try again"
+            502,
+            "account.delete_failed",
+            "Account deletion failed; your account still exists and some of your data "
+            "may already have been removed, try again",
         ) from None
     return Response(status_code=204)

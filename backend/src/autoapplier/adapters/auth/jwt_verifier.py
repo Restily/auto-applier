@@ -1,6 +1,7 @@
 """Access-token verification (ADR-0004): asymmetric keys via JWKS, optional HS256 fallback."""
 
 import time
+from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
@@ -17,10 +18,11 @@ _ASYMMETRIC = ("ES256", "RS256")
 class JwtVerifier:
     """Implements `TokenVerifier`.
 
-    ES256/RS256 tokens are checked against the JWKS key with the token's `kid` (one refetch
-    on an unknown `kid`). HS256 is accepted only when `hs256_secret` is set and the header
-    says HS256; the allowed algorithm list is derived from the header against that policy,
-    never from the key material, so a MAC keyed with a public key cannot verify.
+    ES256/RS256 tokens are checked against the JWKS key with the token's `kid` (a refetch on an
+    unknown `kid`, at most once per `min_refetch_interval_s`). HS256 is accepted only when
+    `hs256_secret` is set and the header says HS256; the allowed algorithm list is derived from
+    the header against that policy, never from the key material, so a MAC keyed with a public
+    key cannot verify.
     """
 
     def __init__(
@@ -32,6 +34,8 @@ class JwtVerifier:
         hs256_secret: SecretStr | None = None,
         cache_ttl_s: float = 600,
         leeway_s: float = 10,
+        min_refetch_interval_s: float = 30,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._issuer = issuer
         self._jwks_url = jwks_url
@@ -39,8 +43,11 @@ class JwtVerifier:
         self._hs256_secret = hs256_secret
         self._cache_ttl_s = cache_ttl_s
         self._leeway_s = leeway_s
+        self._min_refetch_interval_s = min_refetch_interval_s
+        self._clock = clock
         self._keys: dict[str, PyJWK] = {}
         self._fetched_at: float | None = None
+        self._last_attempt_at: float | None = None
 
     async def verify(self, token: str) -> AuthClaims:
         try:
@@ -90,12 +97,15 @@ class JwtVerifier:
         )
 
     async def _key_for(self, kid: str) -> PyJWK:
-        fresh = self._fetched_at is not None and (
-            time.monotonic() - self._fetched_at < self._cache_ttl_s
-        )
-        if not fresh:
+        now = self._clock()
+        if self._fetched_at is None or now - self._fetched_at >= self._cache_ttl_s:
             await self._refresh()
-        if kid not in self._keys and fresh:
+        elif kid not in self._keys and (
+            self._last_attempt_at is None
+            or now - self._last_attempt_at >= self._min_refetch_interval_s
+        ):
+            # Unknown kid with a warm cache: a rotation, or a forged header. Refetch at most
+            # once per interval so unauthenticated requests cannot make us hammer the JWKS URL.
             await self._refresh()
         key = self._keys.get(kid)
         if key is None:
@@ -103,6 +113,7 @@ class JwtVerifier:
         return key
 
     async def _refresh(self) -> None:
+        self._last_attempt_at = self._clock()
         try:
             response = await self._http.get(self._jwks_url)
             response.raise_for_status()
@@ -115,4 +126,4 @@ class JwtVerifier:
         except (httpx.HTTPError, ValueError, KeyError, TypeError, jwt.PyJWTError) as exc:
             raise InvalidTokenError("signing keys unavailable") from exc
         self._keys = keys
-        self._fetched_at = time.monotonic()
+        self._fetched_at = self._clock()

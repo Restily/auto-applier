@@ -1,5 +1,6 @@
 """ASGI tests for the resume routes (fake container: in-memory store, storage, queue)."""
 
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import cast
 from uuid import UUID, uuid4
@@ -110,6 +111,78 @@ async def test_content_length_over_limit_rejected_before_parsing() -> None:
     assert response.status_code == 413
     assert response.json()["code"] == "request.too_large"
     assert env.storage.objects == {}
+
+
+async def _chunks(total: int, chunk: int = 64 * 1024) -> AsyncIterator[bytes]:
+    sent = 0
+    while sent < total:
+        piece = min(chunk, total - sent)
+        sent += piece
+        yield b"x" * piece
+
+
+async def test_chunked_body_without_content_length_rejected_while_streaming() -> None:
+    env = _Env()
+    consumed = 0
+
+    async def body() -> AsyncIterator[bytes]:
+        nonlocal consumed
+        async for piece in _chunks(50 * 1024 * 1024):
+            consumed += len(piece)
+            yield piece
+
+    response = await env.client.post(
+        "/v1/resumes",
+        content=body(),
+        headers={**_auth(), "Content-Type": "multipart/form-data; boundary=x"},
+    )
+    assert response.status_code == 413
+    assert response.json()["code"] == "request.too_large"
+    assert env.storage.objects == {}
+    # The server stopped reading shortly after the limit instead of buffering 50 MiB.
+    assert consumed < 8 * 1024 * 1024
+
+
+async def test_false_content_length_cannot_bypass_the_limit() -> None:
+    env = _Env()
+    response = await env.client.post(
+        "/v1/resumes",
+        content=_chunks(20 * 1024 * 1024),
+        headers={
+            **_auth(),
+            "Content-Length": "100",
+            "Content-Type": "multipart/form-data; boundary=x",
+        },
+    )
+    assert response.status_code == 413
+    assert response.json()["code"] == "request.too_large"
+    assert env.storage.objects == {}
+
+
+async def test_valid_upload_still_works_when_body_is_streamed_in_chunks() -> None:
+    env = _Env()
+    data = (FIXTURES / "resume-text.pdf").read_bytes()
+    boundary = "bnd"
+    payload = (
+        (
+            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="cv.pdf"\r\n'
+            "Content-Type: application/pdf\r\n\r\n"
+        ).encode()
+        + data
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
+
+    async def parts() -> AsyncIterator[bytes]:
+        for start in range(0, len(payload), 1000):
+            yield payload[start : start + 1000]
+
+    response = await env.client.post(
+        "/v1/resumes",
+        content=parts(),
+        headers={**_auth(), "Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    assert response.status_code == 202
+    assert len(env.queue.enqueued) == 1
 
 
 async def test_unsupported_type_422_code() -> None:

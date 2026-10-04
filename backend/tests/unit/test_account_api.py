@@ -129,6 +129,9 @@ async def test_delete_failure_502_code() -> None:
     assert response.status_code == 502
     assert response.json()["code"] == "account.delete_failed"
     assert "injected" not in response.text
+    # The purge may already have run, so the message must not promise that nothing was removed.
+    assert "nothing was removed" not in response.json()["title"]
+    assert "still exists" in response.json()["title"]
 
 
 async def test_both_require_auth() -> None:

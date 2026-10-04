@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Request, Response, UploadFile
 from fastapi.routing import APIRoute
+from starlette.types import Message, Receive
 
 from autoapplier.api.auth import CurrentUser
 from autoapplier.api.errors import ApiProblem
@@ -33,8 +34,18 @@ def _container(request: Request) -> Container:
     return cast(Container, request.app.state.container)
 
 
+def _too_large() -> ApiProblem:
+    return ApiProblem(413, "request.too_large", "Request body is too large")
+
+
 class _SizeGuardRoute(APIRoute):
-    """Rejects an oversized `Content-Length` before FastAPI parses the multipart body."""
+    """Caps the request body at `MAX_REQUEST_BYTES` before FastAPI parses the multipart body.
+
+    An oversized `Content-Length` is rejected outright. The header alone proves nothing (a
+    chunked body has none, a client can lie), so the body is also counted while it streams
+    in and reading stops as soon as the cap is crossed. The buffered bytes are then replayed
+    to the real handler.
+    """
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
         handler = super().get_route_handler()
@@ -42,10 +53,28 @@ class _SizeGuardRoute(APIRoute):
         async def guarded(request: Request) -> Response:
             header = request.headers.get("content-length")
             if header is not None and header.isdigit() and int(header) > MAX_REQUEST_BYTES:
-                raise ApiProblem(413, "request.too_large", "Request body is too large")
-            return await handler(request)
+                raise _too_large()
+            body = bytearray()
+            async for chunk in request.stream():
+                body.extend(chunk)
+                if len(body) > MAX_REQUEST_BYTES:
+                    raise _too_large()
+            return await handler(Request(request.scope, _replay(bytes(body))))
 
         return guarded
+
+
+def _replay(body: bytes) -> Receive:
+    sent = False
+
+    async def receive() -> Message:
+        nonlocal sent
+        if sent:
+            return {"type": "http.disconnect"}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    return receive
 
 
 router = APIRouter(prefix="/v1", route_class=_SizeGuardRoute)

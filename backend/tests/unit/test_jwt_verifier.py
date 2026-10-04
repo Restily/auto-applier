@@ -61,6 +61,14 @@ async def http() -> Any:
         yield client
 
 
+class _Clock:
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
 def _verifier(http: httpx.AsyncClient, **kw: Any) -> JwtVerifier:
     return JwtVerifier(issuer=ISSUER, jwks_url=JWKS_URL, http=http, **kw)
 
@@ -191,10 +199,12 @@ async def test_unknown_kid_refetches_once_then_rejects(
     http: httpx.AsyncClient, key: ec.EllipticCurvePrivateKey
 ) -> None:
     route = respx.get(JWKS_URL).respond(json=_jwks(key))
-    verifier = _verifier(http)
+    clock = _Clock()
+    verifier = _verifier(http, clock=clock)
     await verifier.verify(_sign(key, _claims()))
     assert route.call_count == 1
 
+    clock.now += 31  # past the refetch rate limit
     with pytest.raises(InvalidTokenError):
         await verifier.verify(_sign(key, _claims(), kid="rotated-away"))
 
@@ -210,9 +220,11 @@ async def test_rotated_key_found_after_refetch(http: httpx.AsyncClient) -> None:
             httpx.Response(200, json=_jwks(new, kid="kid-2")),
         ]
     )
-    verifier = _verifier(http)
+    clock = _Clock()
+    verifier = _verifier(http, clock=clock)
     await verifier.verify(_sign(old, _claims()))
 
+    clock.now += 31  # past the refetch rate limit
     claims = await verifier.verify(_sign(new, _claims(), kid="kid-2"))
 
     assert str(claims.user_id) == USER_ID
@@ -248,3 +260,46 @@ async def test_garbage_token_rejected_without_echo(http: httpx.AsyncClient) -> N
         await _verifier(http).verify("not.a.jwt-SECRETMARK")
 
     assert "SECRETMARK" not in str(info.value)
+
+
+@respx.mock
+async def test_unknown_kid_refetch_is_rate_limited_to_one_per_30_seconds(
+    http: httpx.AsyncClient, key: ec.EllipticCurvePrivateKey
+) -> None:
+    route = respx.get(JWKS_URL).respond(json=_jwks(key))
+    clock = _Clock()
+    verifier = _verifier(http, clock=clock)
+    await verifier.verify(_sign(key, _claims()))
+    assert route.call_count == 1
+
+    # A flood of tokens with an unknown kid inside the window never reaches the JWKS endpoint.
+    for _ in range(20):
+        clock.now += 1
+        with pytest.raises(InvalidTokenError, match="unknown key id"):
+            await verifier.verify(_sign(key, _claims(), kid="attacker"))
+    assert route.call_count == 1
+
+    # Once the window has passed, exactly one refetch is allowed, then the limit applies again.
+    clock.now += 30
+    with pytest.raises(InvalidTokenError):
+        await verifier.verify(_sign(key, _claims(), kid="attacker"))
+    assert route.call_count == 2
+    with pytest.raises(InvalidTokenError):
+        await verifier.verify(_sign(key, _claims(), kid="attacker"))
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_known_kid_still_verifies_inside_the_rate_limit_window(
+    http: httpx.AsyncClient, key: ec.EllipticCurvePrivateKey
+) -> None:
+    respx.get(JWKS_URL).respond(json=_jwks(key))
+    clock = _Clock()
+    verifier = _verifier(http, clock=clock)
+    await verifier.verify(_sign(key, _claims()))
+    with pytest.raises(InvalidTokenError):
+        await verifier.verify(_sign(key, _claims(), kid="attacker"))
+
+    claims = await verifier.verify(_sign(key, _claims()))
+
+    assert str(claims.user_id) == USER_ID

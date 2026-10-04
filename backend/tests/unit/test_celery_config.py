@@ -66,3 +66,14 @@ def test_set_as_current_true_opts_in(settings: Settings) -> None:
     app = create_celery_app(settings, set_as_current=True)
 
     assert app.conf.broker_url == settings.redis_url
+
+
+def test_extraction_task_has_soft_and_hard_time_limits() -> None:
+    """A hanging parse must be interrupted before the stale-retry window (90 s) opens."""
+    from autoapplier.worker.celery_app import app
+
+    task = app.tasks["resume.extract"]
+
+    assert task.soft_time_limit is not None
+    assert task.time_limit is not None
+    assert 55 < task.soft_time_limit < task.time_limit < 90

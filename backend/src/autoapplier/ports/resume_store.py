@@ -3,8 +3,12 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Protocol
+from typing import Any, Final, Literal, Protocol
 from uuid import UUID
+
+# A crash-looping extraction (OOM, hard kill) is redelivered by the broker; after this many
+# claims the row is failed instead of looping forever.
+MAX_EXTRACTION_ATTEMPTS: Final = 3
 
 ResumeStatus = Literal["processing", "ready", "failed"]
 ResumeErrorCode = Literal["unreadable", "ai_failed"]
@@ -52,8 +56,14 @@ class ResumeStore(Protocol):
         """Worker (system) use: not scoped to a user."""
         ...
 
-    async def claim_for_extraction(self, resume_id: UUID) -> ResumeRecord | None:
-        """`processing` -> attempts + 1 and return the row; any other state returns None."""
+    async def claim_for_extraction(
+        self, resume_id: UUID, *, max_attempts: int = MAX_EXTRACTION_ATTEMPTS
+    ) -> ResumeRecord | None:
+        """`processing` -> attempts + 1 and return the row; any other state returns None.
+
+        A `processing` row that already used `max_attempts` claims is not claimed: it becomes
+        `failed`/`unreadable` (the file is what keeps killing the worker) and None is returned.
+        """
         ...
 
     async def mark_ready(self, resume_id: UUID, draft: Mapping[str, Any]) -> None: ...
@@ -64,6 +74,8 @@ class ResumeStore(Protocol):
         self, *, user_id: UUID, resume_id: UUID, stale_after_s: float
     ) -> ResumeRecord | None:
         """`failed`, or `processing` older than `stale_after_s` -> `processing`, error cleared.
+
+        Also resets `attempts` to 0: a user-initiated retry gets a fresh attempt budget.
 
         Any other state (or another user's row) returns None.
         """

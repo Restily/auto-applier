@@ -99,7 +99,10 @@ def _url(value: Any) -> str | None:
     text = _text(value, PROFILE_LIMITS["url"] + 1)
     if text is None or len(text) > PROFILE_LIMITS["url"]:
         return None
-    parsed = urlparse(text)
+    try:
+        parsed = urlparse(text)
+    except ValueError:  # e.g. "http://[x": an invalid IPv6 literal
+        return None
     if parsed.scheme not in ("http", "https") or not parsed.netloc or " " in text:
         return None
     return text

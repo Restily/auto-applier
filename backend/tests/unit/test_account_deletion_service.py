@@ -52,8 +52,44 @@ async def test_steps_run_before_auth_delete() -> None:
     admin = FakeAuthAdmin()
     service = AccountDeletionService(admin, [_Step("a", log), _Step("b", log)])
     await service.delete(CLAIMS, confirm_email=" me@example.test ")
-    assert log == [f"a:{USER}", f"b:{USER}"]
+    # Purge runs before the Auth delete and again after it (idempotent sweep for files
+    # uploaded while the deletion was in flight).
+    assert log == [f"a:{USER}", f"b:{USER}", f"a:{USER}", f"b:{USER}"]
     assert admin.deleted == [USER]
+
+
+async def test_repurge_after_auth_delete_failure_is_not_run() -> None:
+    log: list[str] = []
+    admin = FakeAuthAdmin()
+    admin.fail_next()
+    service = AccountDeletionService(admin, [_Step("a", log)])
+    with pytest.raises(AccountDeletionFailed):
+        await service.delete(CLAIMS, confirm_email="me@example.test")
+    assert log == [f"a:{USER}"]
+
+
+async def test_repurge_failure_after_auth_delete_does_not_fail_the_deletion(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class _FlakySecondPass:
+        name = "flaky"
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def purge(self, user_id: UUID) -> None:
+            self.calls += 1
+            if self.calls == 2:
+                raise RuntimeError("SECRET-DETAIL")
+
+    step = _FlakySecondPass()
+    admin = FakeAuthAdmin()
+    service = AccountDeletionService(admin, [step])
+    await service.delete(CLAIMS, confirm_email="me@example.test")
+    assert admin.deleted == [USER]
+    assert step.calls == 2
+    assert "RuntimeError" in caplog.text
+    assert "SECRET-DETAIL" not in caplog.text
 
 
 async def test_step_failure_stops_before_auth_delete() -> None:
