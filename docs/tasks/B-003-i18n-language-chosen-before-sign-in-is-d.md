@@ -6,7 +6,7 @@ status: todo
 milestone: M1
 owner: frontend-dev
 priority: P1
-severity: low
+severity: medium
 needs_human: false
 created: 2026-10-04
 updated: 2026-10-04
@@ -58,3 +58,5 @@ http://localhost:3000, chromium desktop, throwaway qa+<uuid>@example.test accoun
 ## Log
 
 - 2026-10-04 11:58 created (qa-automation)
+- 2026-10-04 12:05 set severity=medium (team-lead)
+- 2026-10-04 12:05 note (team-lead): lead decision: S-005 spec §Global language behavior says a deliberate pre-signup (signed-out) choice becomes the stored preference at sign-up/in — so an explicitly chosen locale (NEXT_LOCALE cookie set by the switcher) must be written to profiles.ui_locale on sign-in; Accept-Language-derived defaults must not override the stored profile value.
