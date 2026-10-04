@@ -6,6 +6,7 @@ export const VALIDATION_KEYS = [
   "minPassword",
   "maxLength",
   "maxItems",
+  "maxValue",
   "salaryRange",
   "minTitles",
   "minSkills",

@@ -1,10 +1,11 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 
 import { isLocale, LOCALE_COOKIE, PENDING_LOCALE_COOKIE, type Locale } from "@/i18n/config";
+import { negotiateLocale } from "@/i18n/negotiate";
 import { getServerEnv } from "@/lib/env.server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ValidationKey } from "@/lib/validation/messages";
@@ -12,6 +13,7 @@ import type { ValidationKey } from "@/lib/validation/messages";
 import { mapSignInError, mapSignUpError, type SignInFormError, type SignUpFormError } from "./errors";
 import { resolveLandingPath } from "./landing";
 import { isNewAccount } from "./oauth";
+import { isRecoverySession } from "./recovery";
 import { safeNextPath } from "./redirects";
 import { forgotPasswordSchema, resetPasswordSchema, signInSchema, signUpSchema, toFieldErrors } from "./schemas";
 
@@ -65,6 +67,20 @@ async function syncLocaleAfterSignIn(userId: string): Promise<void> {
   } catch {
     // The cookie is a convenience; signing in must not fail because it could not be synced.
   }
+}
+
+/**
+ * The language a not-yet-signed-in visitor is using: an explicit pending choice, then the NEXT_LOCALE cookie, then
+ * Accept-Language. Must be read BEFORE the session exists: afterwards next-intl's getLocale() reads the new profile
+ * row, whose default is "en", and would store every new Google account as English (M1 review #7).
+ */
+async function resolveVisitorLocale(): Promise<Locale> {
+  const store = await cookies();
+  const pending = store.get(PENDING_LOCALE_COOKIE)?.value;
+  if (isLocale(pending)) return pending;
+  const chosen = store.get(LOCALE_COOKIE)?.value;
+  if (isLocale(chosen)) return chosen;
+  return negotiateLocale((await headers()).get("accept-language"));
 }
 
 export async function signUpAction(_prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
@@ -134,6 +150,10 @@ export async function updatePasswordAction(_prev: AuthFormState, fd: FormData): 
   }
 
   const supabase = await createSupabaseServerClient();
+  // Only the session the emailed recovery link created may set a password without the old one (M1 review #10).
+  const { data: claimsData } = await supabase.auth.getClaims();
+  if (!isRecoverySession(claimsData?.claims)) redirect("/reset-password?error=link_invalid");
+
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
     if (error.status === 401 || error.code === "session_not_found" || error.code === "not_authenticated") {
@@ -160,13 +180,21 @@ export async function startGoogleSignInAction(): Promise<never> {
 export async function exchangeOAuthCodeAction(code: string): Promise<{ redirectTo: string }> {
   const failed = { redirectTo: "/sign-in?notice=oauth_failed" };
   try {
+    const visitorLocale = await resolveVisitorLocale();
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error || !data.user) return failed;
 
     if (isNewAccount(data.user, new Date())) {
       // Google gives us no locale: keep the language the visitor was already using.
-      await supabase.from("profiles").update({ ui_locale: await getLocale() }).eq("id", data.user.id);
+      await supabase.from("profiles").update({ ui_locale: visitorLocale }).eq("id", data.user.id);
+      try {
+        const store = await cookies();
+        store.delete(PENDING_LOCALE_COOKIE);
+        setLocaleCookie(store, visitorLocale);
+      } catch {
+        // Cookies are a convenience; the stored preference is already set.
+      }
       return { redirectTo: "/onboarding?welcome=1" };
     }
     await syncLocaleAfterSignIn(data.user.id);

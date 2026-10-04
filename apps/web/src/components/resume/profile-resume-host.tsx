@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { saveProfile } from "@/lib/profile/actions";
 import { applyChoices, planResumeApplication, type DiffField, type FieldDiff } from "@/lib/profile/merge";
 import type { ProfileInput } from "@/lib/profile/schema";
-import { retryResumeExtraction } from "@/lib/resume/actions";
+import { retryResumeExtraction, type RetryResult } from "@/lib/resume/actions";
 import { readResume } from "@/lib/resume/read-client";
 import { pollResume, type ResumeState } from "@/lib/resume/status";
 
+import { DiscardEditsDialog } from "./discard-edits-dialog";
 import { ReplaceResumeDialog } from "./replace-resume-dialog";
 import { ReviewChangesDialog } from "./review-changes-dialog";
 
@@ -38,6 +39,9 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState(false);
+  /** A ready resume waiting for the user's decision because the editor has unsaved changes. */
+  const [confirmDiscard, setConfirmDiscard] = useState<ResumeState | null>(null);
+  const editorDirty = useRef(false);
 
   const [{ editor, review }, setView] = useState<{ editor: EditorState; review: Review | null }>(() => {
     const plan = planResumeApplication(saved, initialResume);
@@ -56,10 +60,15 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
   }, [saved, initialResume]);
 
   /** A resume that just became ready (poll or replace dialog): apply the same plan against the saved profile. */
-  function handleReady(next: ResumeState): void {
+  function handleReady(next: ResumeState, confirmed = false): void {
     setResume(next);
     const base = saved;
     const plan = planResumeApplication(base, next);
+    // Fill and review both rebuild the editor from the saved profile, which would silently drop unsaved edits.
+    if ((plan.kind === "fill" || plan.kind === "review") && editorDirty.current && !confirmed) {
+      setConfirmDiscard(next);
+      return;
+    }
     if (plan.kind === "fill") {
       setView((v) => ({ editor: { key: v.editor.key + 1, initial: plan.initial, banner: next.fileName }, review: null }));
     } else if (plan.kind === "review") {
@@ -99,9 +108,10 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
     if (!resume) return;
     setRetrying(true);
     setRetryError(false);
-    const r = await retryResumeExtraction(resume.id).catch(() => ({ ok: false }));
+    const r: RetryResult = await retryResumeExtraction(resume.id).catch(() => ({ ok: false }));
     setRetrying(false);
-    if (r.ok) setResume({ ...resume, status: "processing", errorCode: null });
+    // 409: an extraction is already running (or done) for this resume, so go back to polling it.
+    if (r.ok || r.conflict) setResume({ ...resume, status: "processing", errorCode: null });
     else setRetryError(true);
   }
 
@@ -136,7 +146,27 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
 
   return (
     <>
-      <ProfileEditor key={editor.key} initial={editor.initial} mode={mode} bannerFileName={editor.banner} headerSlot={headerSlot} />
+      <ProfileEditor
+        key={editor.key}
+        initial={editor.initial}
+        mode={mode}
+        bannerFileName={editor.banner}
+        headerSlot={headerSlot}
+        onDirtyChange={(dirty) => {
+          editorDirty.current = dirty;
+        }}
+      />
+      {confirmDiscard ? (
+        <DiscardEditsDialog
+          fileName={confirmDiscard.fileName}
+          onUseResume={() => {
+            const next = confirmDiscard;
+            setConfirmDiscard(null);
+            handleReady(next, true);
+          }}
+          onKeepEdits={() => setConfirmDiscard(null)}
+        />
+      ) : null}
       <ReplaceResumeDialog
         open={replaceOpen}
         onOpenChange={setReplaceOpen}

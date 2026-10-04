@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { retryResumeExtraction } from "@/lib/resume/actions";
+import { retryResumeExtraction, type RetryResult } from "@/lib/resume/actions";
 import { readResume } from "@/lib/resume/read-client";
 import { pollResume, type ResumeState } from "@/lib/resume/status";
 import { uploadResume, type UploadResult } from "@/lib/resume/upload";
@@ -16,7 +16,7 @@ import { UploadCard } from "./upload-card";
 export type ResumeFlowDeps = {
   upload: (file: File, opts: { onProgress?: (pct: number) => void }) => Promise<UploadResult>;
   read: (id: string) => Promise<ResumeState>;
-  retry: (id: string) => Promise<{ ok: boolean }>;
+  retry: (id: string) => Promise<RetryResult>;
 };
 
 const DEFAULT_DEPS: ResumeFlowDeps = { upload: uploadResume, read: readResume, retry: retryResumeExtraction };
@@ -79,8 +79,9 @@ export function ResumeFlow({ initial, manualHref, onReady, showManualLink = fals
 
   async function retry(p: Extract<Phase, { kind: "failed" }>): Promise<void> {
     setPhase({ ...p, retrying: true, retryError: false });
-    const r = await depsRef.current.retry(p.id).catch(() => ({ ok: false }));
-    setPhase(r.ok ? { kind: "extracting", id: p.id, fileName: p.fileName, startedAt: Date.now() } : { ...p, retrying: false, retryError: true });
+    const r: RetryResult = await depsRef.current.retry(p.id).catch(() => ({ ok: false }));
+    // 409: an extraction is already running (or finished) for this resume, so keep waiting for it instead of reporting a failed restart.
+    setPhase(r.ok || r.conflict ? { kind: "extracting", id: p.id, fileName: p.fileName, startedAt: Date.now() } : { ...p, retrying: false, retryError: true });
   }
 
   return (

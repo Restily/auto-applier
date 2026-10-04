@@ -36,8 +36,13 @@ describe("retryResumeExtraction", () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it("is not ok when the API refuses (409 not retryable)", async () => {
+  it("a 409 (already running or ready) is not ok but flagged as a conflict so the UI can resume polling", async () => {
     post.mockResolvedValue({ error: { code: "resume.not_retryable" }, response: new Response(null, { status: 409 }) });
+    await expect(retryResumeExtraction(ID)).resolves.toEqual({ ok: false, conflict: true });
+  });
+
+  it("other refusals (404) are plain failures, not conflicts", async () => {
+    post.mockResolvedValue({ error: { code: "resume.not_found" }, response: new Response(null, { status: 404 }) });
     await expect(retryResumeExtraction(ID)).resolves.toEqual({ ok: false });
   });
 

@@ -10,6 +10,9 @@ export const SALARY_PERIOD = ["month", "year"] as const;
 export const LANGUAGE_LEVEL = ["native", "fluent", "advanced", "intermediate", "basic"] as const;
 export const CURRENCIES: readonly string[] = ["USD", "EUR", "GBP", "RUB", "KZT", "GEL", "AMD", "TRY", "AED", "PLN", "CAD", "AUD"];
 
+/** Postgres `integer` maximum: the salary columns are int4, so a larger value must be rejected in the form (M1 review #4). */
+export const INT4_MAX = 2147483647;
+
 /** Same names and values as PROFILE_LIMITS in backend/.../domain/profile.py and the DB checks; schema.test.ts pins all three. */
 export const PROFILE_LIMITS = {
   fullName: 200,
@@ -138,8 +141,8 @@ export const profileFormatSchema = z
     workAuthorizationOther: text(L.workAuthorizationOther),
     relocation: z.enum(RELOCATION).nullable(),
     noticePeriod: z.enum(NOTICE_PERIOD).nullable(),
-    salaryMin: z.number().int().min(0).nullable(),
-    salaryMax: z.number().int().min(0).nullable(),
+    salaryMin: z.number().int().min(0).max(INT4_MAX, "maxValue").nullable(),
+    salaryMax: z.number().int().min(0).max(INT4_MAX, "maxValue").nullable(),
     salaryCurrency: z.string().regex(/^[A-Z]{3}$/).nullable(),
     salaryPeriod: z.enum(SALARY_PERIOD).nullable(),
     sourceResumeId: z.uuid().nullable(),

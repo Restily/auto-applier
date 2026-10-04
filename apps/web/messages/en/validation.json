@@ -5,6 +5,7 @@
   "minPassword": "At least 8 characters",
   "maxLength": "This is too long",
   "maxItems": "You have added too many items",
+  "maxValue": "This number is too large",
   "salaryRange": "Max should be greater than min",
   "minTitles": "Add at least one target title",
   "minSkills": "Add at least one skill"

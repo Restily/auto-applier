@@ -57,8 +57,10 @@ export function ApplicationAnswers({ values, onChange, errors }: Props): React.J
       />
       <SalaryFields
         id="profile-salaryMax"
+        minId="profile-salaryMin"
         value={values}
         onChange={onChange}
+        minError={errors.salaryMin}
         error={errors.salaryMax}
       />
     </>

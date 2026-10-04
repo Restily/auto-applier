@@ -8,14 +8,18 @@ vi.mock("next/navigation", () => ({ redirect: (url: string) => redirectMock(url)
 const cookieSet = vi.fn();
 const cookieDelete = vi.fn();
 const cookieStore = new Map<string, string>();
+const headerStore = new Map<string, string>();
 vi.mock("next/headers", () => ({
+  headers: async () => ({ get: (name: string) => headerStore.get(name.toLowerCase()) ?? null }),
   cookies: async () => ({
     set: cookieSet,
     delete: cookieDelete,
     get: (name: string) => (cookieStore.has(name) ? { name, value: cookieStore.get(name) } : undefined),
   }),
 }));
-vi.mock("next-intl/server", () => ({ getLocale: async () => "ru" }));
+// What next-intl resolves for the request: after a session exists it reads the profile row, which defaults to "en".
+const getLocaleMock = vi.fn(async () => "ru");
+vi.mock("next-intl/server", () => ({ getLocale: () => getLocaleMock() }));
 
 const auth = {
   signUp: vi.fn(),
@@ -23,6 +27,7 @@ const auth = {
   resetPasswordForEmail: vi.fn(),
   updateUser: vi.fn(),
   signOut: vi.fn(),
+  getClaims: vi.fn(),
   signInWithOAuth: vi.fn(),
   exchangeCodeForSession: vi.fn(),
 };
@@ -76,10 +81,13 @@ async function redirectTarget(promise: Promise<unknown>): Promise<string> {
 beforeEach(() => {
   vi.clearAllMocks();
   cookieStore.clear();
+  headerStore.clear();
+  getLocaleMock.mockImplementation(async () => "ru");
   resolveLandingPath.mockResolvedValue("/onboarding");
   profileSelect.mockResolvedValue({ data: { ui_locale: "ru" } });
   profileUpdateEq.mockResolvedValue({ error: null });
   auth.signOut.mockResolvedValue({ error: null });
+  auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "otp", timestamp: 1 }] } }, error: null });
 });
 
 const idle = { status: "idle" } as const;
@@ -245,6 +253,23 @@ describe("updatePasswordAction", () => {
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
+  it("M1 review #10: a normal password session cannot change the password: expired-link panel, no update", async () => {
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "password", timestamp: 1 }] } }, error: null });
+    expect(await redirectTarget(updatePasswordAction(idle, form({ password: "brand-new-pass" })))).toBe(
+      "/reset-password?error=link_invalid",
+    );
+    expect(auth.updateUser).not.toHaveBeenCalled();
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("M1 review #10: no session at all is the expired-link panel, no update", async () => {
+    auth.getClaims.mockResolvedValue({ data: null, error: { message: "no session" } });
+    expect(await redirectTarget(updatePasswordAction(idle, form({ password: "brand-new-pass" })))).toBe(
+      "/reset-password?error=link_invalid",
+    );
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+
   it("a missing session sends the user to the expired-link panel", async () => {
     auth.updateUser.mockResolvedValue({ data: {}, error: { code: "session_not_found", status: 401 } });
     expect(await redirectTarget(updatePasswordAction(idle, form({ password: "brand-new-pass" })))).toBe(
@@ -278,6 +303,47 @@ describe("exchangeOAuthCodeAction", () => {
     });
     await expect(exchangeOAuthCodeAction("code-1")).resolves.toEqual({ redirectTo: "/onboarding?welcome=1" });
     expect(profileUpdateEq).toHaveBeenCalled();
+  });
+
+  describe("M1 review #7: the new account stores the visitor's locale, resolved before the session exists", () => {
+    const newUser = (): void => {
+      auth.exchangeCodeForSession.mockImplementation(async () => {
+        // From here on getLocale() sees the freshly created profile row (default "en"), not the visitor's choice.
+        getLocaleMock.mockImplementation(async () => "en");
+        return { data: { user: { id: "u1", created_at: new Date().toISOString() } }, error: null };
+      });
+    };
+
+    it("NEXT_LOCALE cookie", async () => {
+      newUser();
+      cookieStore.set("NEXT_LOCALE", "ru");
+      await exchangeOAuthCodeAction("code-1");
+      expect(profileUpdate).toHaveBeenCalledWith({ ui_locale: "ru" });
+    });
+
+    it("Accept-Language when there is no cookie", async () => {
+      newUser();
+      headerStore.set("accept-language", "ru-RU,ru;q=0.9,en;q=0.5");
+      await exchangeOAuthCodeAction("code-1");
+      expect(profileUpdate).toHaveBeenCalledWith({ ui_locale: "ru" });
+    });
+
+    it("the pending choice beats NEXT_LOCALE and Accept-Language (B-003) and is consumed", async () => {
+      newUser();
+      cookieStore.set("NEXT_LOCALE_PENDING", "ru");
+      cookieStore.set("NEXT_LOCALE", "en");
+      headerStore.set("accept-language", "en-US");
+      await exchangeOAuthCodeAction("code-1");
+      expect(profileUpdate).toHaveBeenCalledWith({ ui_locale: "ru" });
+      expect(cookieDelete).toHaveBeenCalledWith("NEXT_LOCALE_PENDING");
+      expect(cookieSet).toHaveBeenCalledWith("NEXT_LOCALE", "ru", expect.anything());
+    });
+
+    it("nothing to go on is English", async () => {
+      newUser();
+      await exchangeOAuthCodeAction("code-1");
+      expect(profileUpdate).toHaveBeenCalledWith({ ui_locale: "en" });
+    });
   });
 
   it("existing account goes to its landing without welcome", async () => {

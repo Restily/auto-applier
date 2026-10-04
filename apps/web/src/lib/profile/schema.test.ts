@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Tables } from "@/lib/supabase/database.types";
 
-import { emptyProfile, fromDbRow, PROFILE_LIMITS, profileFormatSchema, toDbRow, type ProfileInput } from "./schema";
+import { emptyProfile, fromDbRow, INT4_MAX, PROFILE_LIMITS, profileFormatSchema, toDbRow, type ProfileInput } from "./schema";
 
 const base = (): ProfileInput => emptyProfile("a@example.test");
 
@@ -110,6 +110,25 @@ describe("maxLength per field family", () => {
     });
     expect(errorsOf({ ...base(), languages: Array.from({ length: 21 }, () => ({ name: "", level: null })) })).toEqual({ languages: "maxItems" });
     expect(errorsOf({ ...base(), skills: Array.from({ length: 101 }, (_, i) => `s${i}`) })).toEqual({ skills: "maxItems" });
+  });
+});
+
+describe("salary upper bound (M1 review #4)", () => {
+  it("INT4_MAX is the Postgres integer maximum and the salary columns are int4", () => {
+    expect(INT4_MAX).toBe(2 ** 31 - 1);
+    const migrations = path.resolve(__dirname, "../../../../../supabase/migrations");
+    const sql = readFileSync(
+      path.join(migrations, readdirSync(migrations).find((f) => f.endsWith("m1_profiles_resumes.sql"))!),
+      "utf8",
+    );
+    expect(sql).toMatch(/salary_min integer\b/);
+    expect(sql).toMatch(/salary_max integer\b/);
+  });
+
+  it("INT4_MAX passes, one above is maxValue on its own path", () => {
+    expect(errorsOf({ ...base(), salaryMin: INT4_MAX, salaryMax: INT4_MAX })).toEqual({});
+    expect(errorsOf({ ...base(), salaryMin: INT4_MAX + 1 })).toEqual({ salaryMin: "maxValue" });
+    expect(errorsOf({ ...base(), salaryMax: INT4_MAX + 1 })).toEqual({ salaryMax: "maxValue" });
   });
 });
 

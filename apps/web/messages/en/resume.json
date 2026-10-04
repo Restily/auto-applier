@@ -44,6 +44,12 @@
     "close": "Close",
     "uploadButton": "Upload a resume"
   },
+  "discard": {
+    "title": "Replace your unsaved changes?",
+    "body": "{filename} is ready, but your profile has changes you haven't saved. Using the resume will replace them. If you keep your edits, we'll offer {filename} again the next time you open this page.",
+    "keep": "Keep my edits",
+    "use": "Use the new resume"
+  },
   "review": {
     "title": "Review changes from your new resume",
     "body": "We found differences between your current profile and {filename}. Pick what to keep for each field.",

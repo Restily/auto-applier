@@ -14,9 +14,15 @@ import { FieldError } from "./field";
 type SalaryValue = Pick<ProfileInput, "salaryMin" | "salaryMax" | "salaryCurrency" | "salaryPeriod">;
 
 type SalaryFieldsProps = {
+  /** Id of the Max input (the range error and the focus order point at it). */
   id: string;
+  /** Id of the Min input, so a min-specific error can take focus. */
+  minId: string;
   value: SalaryValue;
   onChange: (patch: Partial<SalaryValue>) => void;
+  /** Error on Min (e.g. above the integer limit). */
+  minError?: ValidationKey | undefined;
+  /** Error on Max (range or above the integer limit). */
   error?: ValidationKey | undefined;
 };
 
@@ -27,24 +33,27 @@ function toNumber(raw: string): number | null {
 }
 
 /** One fieldset so a screen reader announces the group. Min and Max stay paired; currency and period wrap below at 375px. */
-export function SalaryFields({ id, value, onChange, error }: SalaryFieldsProps): React.JSX.Element {
+export function SalaryFields({ id, minId, value, onChange, minError, error }: SalaryFieldsProps): React.JSX.Element {
   const t = useTranslations("profile.salary");
   const tp = useTranslations("profile");
   const uid = useId();
   const errorId = `${uid}-error`;
+  const shownError = error ?? minError;
   return (
     <fieldset className="flex min-w-0 flex-col gap-2">
       <legend className="mb-2 text-sm leading-none font-medium">{t("legend")}</legend>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-1 basis-40 flex-col gap-2">
-          <Label htmlFor={`${uid}-min`}>{t("min")}</Label>
+          <Label htmlFor={minId}>{t("min")}</Label>
           <Input
-            id={`${uid}-min`}
+            id={minId}
             type="number"
             inputMode="numeric"
             min={0}
             step={1}
-            className="h-11"
+            className="h-11 scroll-mt-24"
+            aria-invalid={minError ? true : undefined}
+            aria-describedby={minError ? errorId : undefined}
             value={value.salaryMin ?? ""}
             onChange={(e) => onChange({ salaryMin: toNumber(e.target.value) })}
           />
@@ -98,7 +107,7 @@ export function SalaryFields({ id, value, onChange, error }: SalaryFieldsProps):
           </Select>
         </div>
       </div>
-      <FieldError id={errorId} error={error} />
+      <FieldError id={errorId} error={shownError} />
     </fieldset>
   );
 }

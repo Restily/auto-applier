@@ -57,6 +57,43 @@ describe("POST /api/resume", () => {
     expect(createApiClient).not.toHaveBeenCalled();
   });
 
+  it("a chunked body with no Content-Length is cut off at the cap while streaming: 413, the rest is never read (M1 review #9)", async () => {
+    const CHUNK = 1_048_576;
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls > 200) return controller.close();
+        controller.enqueue(new Uint8Array(CHUNK));
+      },
+    }, { highWaterMark: 0 });
+    const req = new Request("http://localhost:3000/api/resume", {
+      method: "POST",
+      body,
+      headers: { "content-type": "multipart/form-data; boundary=x" },
+      duplex: "half",
+    } as RequestInit);
+    expect(req.headers.get("content-length")).toBeNull();
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ code: "resume.too_large" });
+    expect(pulls).toBeLessThan(10); // 5 MiB + overhead is about 6 chunks; never the 200 offered
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("a Content-Length that understates the body does not let it through", async () => {
+    const big = new File([new Uint8Array(5_242_880 + 65_536 + 10)], "cv.pdf", { type: "application/pdf" });
+    const fd = new FormData();
+    fd.append("file", big);
+    const real = new Request("http://localhost:3000/api/resume", { method: "POST", body: fd });
+    const headers = new Headers(real.headers);
+    headers.set("content-length", "1000");
+    const lying = new Request("http://localhost:3000/api/resume", { method: "POST", body: real.body, headers, duplex: "half" } as RequestInit);
+    const res = await POST(lying);
+    expect(res.status).toBe(413);
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it("forwards the file and bearer token and returns the API status", async () => {
     post.mockResolvedValue({ data: RESUME, error: undefined, response: new Response(null, { status: 202 }) });
     const res = await POST(request());

@@ -51,6 +51,18 @@ describe("ResumeFlow", () => {
     await waitFor(() => expect(onReady).toHaveBeenCalled());
   });
 
+  it("Try again that hits a 409 (extraction already running) resumes polling instead of showing retry-failed (M1 review #2)", async () => {
+    const read = vi.fn().mockResolvedValueOnce(resume({ status: "processing" })).mockResolvedValue(resume({ status: "ready" }));
+    const retry = vi.fn().mockResolvedValue({ ok: false, conflict: true });
+    const onReady = vi.fn();
+    const user = userEvent.setup();
+    await renderWithIntl(<ResumeFlow initial={resume({ status: "failed" })} manualHref="/x" onReady={onReady} deps={{ upload: vi.fn(), read, retry }} />);
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Reading your resume…")).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't restart/)).not.toBeInTheDocument();
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(expect.objectContaining({ id: ID, status: "ready" })), { timeout: 4000 });
+  });
+
   it("starts on the failure panel when the existing resume already failed", async () => {
     await renderWithIntl(<ResumeFlow initial={resume({ status: "failed", errorCode: "ai_failed" })} manualHref="/x" onReady={vi.fn()} />);
     expect(screen.getByRole("heading", { name: "We couldn't read this resume" })).toBeInTheDocument();

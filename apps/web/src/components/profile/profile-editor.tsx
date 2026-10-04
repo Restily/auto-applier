@@ -41,6 +41,8 @@ export type ProfileEditorProps = {
   /** The resume task injects Replace resume / the extraction notice here. */
   headerSlot?: ReactNode;
   onSaved?: (r: Extract<SaveProfileResult, { ok: true }>) => void;
+  /** Reports whether the form has unsaved changes (also once on mount), so the host can ask before replacing them. */
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type Errors = Record<string, ValidationKey>;
@@ -62,6 +64,7 @@ const FOCUS_ORDER: ReadonlyArray<readonly [string, string]> = [
   ["education", "profile-education-add"],
   ["languages", "profile-languages-add"],
   ["workAuthorizationOther", "profile-workAuthorizationOther"],
+  ["salaryMin", "profile-salaryMin"],
   ["salaryMax", "profile-salaryMax"],
 ];
 
@@ -89,7 +92,7 @@ function firstFocusId(errors: Errors): string | undefined {
   return FOCUS_ORDER.find(([key]) => errors[key] !== undefined)?.[1];
 }
 
-export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSaved }: ProfileEditorProps): React.JSX.Element {
+export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSaved, onDirtyChange }: ProfileEditorProps): React.JSX.Element {
   const t = useTranslations("profile");
   const te = useTranslations("profile.entries");
   const tc = useTranslations("common");
@@ -107,6 +110,14 @@ export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSav
   const savingRef = useRef(false);
 
   const dirty = useMemo(() => JSON.stringify(values) !== baseline, [values, baseline]);
+
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  useEffect(() => {
+    onDirtyChangeRef.current = onDirtyChange;
+  });
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirty);
+  }, [dirty]);
 
   useEffect(() => {
     if (!dirty) return;

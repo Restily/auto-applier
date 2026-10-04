@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { extractionPhase, pollResume, type ResumeState } from "./status";
+import { extractionPhase, POLL_TIMEOUT_MS, pollResume, type ResumeState } from "./status";
 
 const state = (over: Partial<ResumeState>): ResumeState => ({ id: "r1", fileName: "cv.pdf", status: "processing", errorCode: null, extracted: null, ...over });
 
@@ -60,5 +62,23 @@ describe("extractionPhase", () => {
     expect(extractionPhase(39_999)).toBe(1);
     expect(extractionPhase(40_000)).toBe(2);
     expect(extractionPhase(89_000)).toBe(2);
+  });
+});
+
+describe("client timeout vs backend bounds (M1 review #2)", () => {
+  const root = path.resolve(__dirname, "../../../../..");
+  const num = (file: string, name: string): number => {
+    const src = readFileSync(path.join(root, file), "utf8");
+    const m = new RegExp(`${name}\\s*:\\s*Final\\s*=\\s*(\\d+(?:\\.\\d+)?)`).exec(src);
+    expect(m, `${name} in ${file}`).not.toBeNull();
+    return Number(m![1]) * 1000;
+  };
+
+  it("outlasts one extraction attempt (deadline) plus 30 s of queue time", () => {
+    expect(POLL_TIMEOUT_MS).toBeGreaterThanOrEqual(num("backend/src/autoapplier/services/resume_extraction.py", "EXTRACTION_DEADLINE_S") + 30_000);
+  });
+
+  it("is not shorter than the backend stale-processing window, so a timed-out Try again is not a 409 in the common case", () => {
+    expect(POLL_TIMEOUT_MS).toBeGreaterThanOrEqual(num("backend/src/autoapplier/services/resumes.py", "STALE_PROCESSING_S"));
   });
 });

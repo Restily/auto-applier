@@ -101,6 +101,17 @@ describe("ProfileEditor", () => {
     expect(saveProfile).not.toHaveBeenCalled();
   });
 
+  it("a salary above the database integer limit shows a field-level message and sends nothing", async () => {
+    const user = userEvent.setup();
+    await renderWithIntl(<ProfileEditor initial={emptyProfile("")} mode="app" />);
+    await user.type(screen.getByLabelText(/^Min/), "2147483648");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByText("This number is too large")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Min/)).toHaveFocus();
+    expect(saveProfile).not.toHaveBeenCalled();
+  });
+
   it("dirty shows Unsaved changes", async () => {
     const user = userEvent.setup();
     await renderWithIntl(<ProfileEditor initial={emptyProfile("")} mode="app" />);

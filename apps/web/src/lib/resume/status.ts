@@ -7,6 +7,10 @@ export type ResumeState = {
 };
 
 export const POLL_INTERVAL_MS = 2000;
+/**
+ * Longer than one backend attempt (EXTRACTION_DEADLINE_S, 55 s) plus queue time, and not shorter than the
+ * backend's stale-processing window (STALE_PROCESSING_S, 90 s); status.test.ts pins both against the Python constants.
+ */
 export const POLL_TIMEOUT_MS = 90_000;
 
 function abortError(): Error {
