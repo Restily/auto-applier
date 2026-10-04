@@ -75,19 +75,17 @@ test.describe("account deletion (S-006 AC2, AC3)", () => {
     await expect(page).toHaveURL(/\/settings$/);
 
     // Escape: same, and the reopened dialog starts empty with the confirm button disabled again.
-    dialog = await openDeleteDialog(page).catch(async () => {
-      await page.getByRole("button", { name: "Delete account" }).click();
-      return page.getByRole("alertdialog");
-    });
+    dialog = await openDeleteDialog(page, { navigate: false });
     await expect(confirmInput(dialog)).toHaveValue("");
     await confirmInput(dialog).fill(newUser.email);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("alertdialog")).toBeHidden();
     await expect(page).toHaveURL(/\/settings$/);
-    await page.getByRole("button", { name: "Delete account" }).click();
-    await expect(confirmInput(page.getByRole("alertdialog"))).toHaveValue("");
-    await expect(page.getByRole("alertdialog").getByRole("button", { name: "Delete my account" })).toBeDisabled();
+    dialog = await openDeleteDialog(page, { navigate: false });
+    await expect(confirmInput(dialog)).toHaveValue("");
+    await expect(dialog.getByRole("button", { name: "Delete my account" })).toBeDisabled();
     await page.keyboard.press("Escape");
+    await expect(page.getByRole("alertdialog")).toBeHidden();
 
     // Still signed in, and nothing was deleted.
     await page.goto("/profile");

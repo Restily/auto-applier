@@ -4,8 +4,8 @@ import { adminClient } from "../../integration/helpers/supabase";
 import { userExists } from "../auth/support";
 
 /** Settings -> Danger zone -> Delete account. Returns the confirmation dialog. */
-export async function openDeleteDialog(page: Page): Promise<Locator> {
-  await page.goto("/settings");
+export async function openDeleteDialog(page: Page, opts: { navigate?: boolean } = {}): Promise<Locator> {
+  if (opts.navigate !== false) await page.goto("/settings");
   await page.getByRole("button", { name: "Delete account" }).click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByText("This can't be undone")).toBeVisible();

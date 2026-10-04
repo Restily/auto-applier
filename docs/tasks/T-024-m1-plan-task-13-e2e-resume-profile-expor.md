@@ -2,7 +2,7 @@
 id: T-024
 type: task
 title: "M1 plan Task 13: E2E: resume, profile, export, delete and D5 re-sign-up; full gate"
-status: in_progress
+status: qa
 milestone: M1
 owner: qa-automation
 priority: P0
@@ -20,9 +20,12 @@ updated: 2026-10-04
 
 ## Definition of done
 
-- [ ] Plan task 13 implemented; its tests pass
+- [x] Plan task 13 implemented; its tests pass
 
 ## Log
 
 - 2026-09-28 09:15 created (architect)
 - 2026-10-04 12:05 todo → in_progress (team-lead)
+- 2026-10-04 12:28 AC 1 ✔ (qa-automation): 36/36 e2e (resume 12, profile 10, account 12... x2 projects) twice in a row; npx tsc -p tests clean; quality-gate.sh full PASS (e2e 123 passed); specs in tests/e2e/{resume,profile,account}
+- 2026-10-04 12:28 note (qa-automation): Added tests/fixtures/resumes (copied from backend fixtures; too-large file is built in memory, no 5 MB blob), tests/e2e/resume/{support,upload,failure,replace}.spec.ts, tests/e2e/profile/manual.spec.ts, tests/e2e/account/{support,export,delete}.spec.ts. No product bugs found. Not covered here: S-003 AC5 (stored-file access) is backend/RLS-level.
+- 2026-10-04 12:28 in_progress → qa (qa-automation): test(e2e): resume extraction, profile, export and deletion journeys (uncommitted)

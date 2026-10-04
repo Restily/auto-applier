@@ -14,3 +14,11 @@ This class of gap is easy to miss because the cited unit/service tests are real 
 
 ## Celery/Redis test isolation
 - The project's isolation rule (unique `aa:test:<uuid>:` prefixes, unique queue names, never `FLUSHALL`/`FLUSHDB`) is usually solid when the plan states it explicitly per fixture — but watch for a documented **fallback branch** silently dropping isolation (e.g. "if the installed Celery's `start_worker` doesn't accept `queues=`, fall back to the `default` queue"). A fallback that reuses the literal shared queue/prefix defeats the isolation contract even though the primary path is fine and the test would still pass (functionally correct, just not isolated) — flag it in contract review even when unlikely to trigger.
+
+## M1 e2e harness quirks (T-024)
+- `signInEn` does not wait for the redirect; wait for `toHaveURL(/\/onboarding$/)` before `goto`/clicking, or the sign-in race lands you on /sign-in.
+- Radix Select triggers and the chips inputs are both `role=combobox`; use `getByRole("combobox",{name, exact:true})` ("Period" also substring-matches "Notice period"). Chip remove buttons need `exact:true` (entry rows have "Remove <summary>" buttons). `getByLabel("Location")` also matches "Relocation readiness": use `exact:true`.
+- `getByText("Saved")` matches "Unsaved changes" (case-insensitive substring); use `/^Saved/` or `exact:true`.
+- Contact email on a blank profile defaults to the sign-up email, so "name only" saves leave 3 fields missing, not 4.
+- Fake LLM: `resume-v2.docx` differs from the others in headline, target title, skills, years only; `ai-fail.pdf` always fails (retry re-runs: `resumes.attempts` increments).
+- One-off `signIn failed: invalid response from upstream server` in the `newUser` fixture (GoTrue hiccup) passed on rerun; not seen again in 5 full runs.
