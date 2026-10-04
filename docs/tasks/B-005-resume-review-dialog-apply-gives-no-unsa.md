@@ -2,7 +2,7 @@
 id: B-005
 type: bug
 title: "resume review dialog: Apply gives no unsaved-changes cue and appliedHint copy is unused"
-status: todo
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -37,9 +37,11 @@ Evidence: docs/qa/evidence/M1/design/review-applied-1280-en.png, review-dialog-{
 
 ## Acceptance criteria
 
-- [ ] Regression test added that failed before the fix
+- [x] Regression test added that failed before the fix
 - [ ] Fix verified by QA
 
 ## Log
 
 - 2026-10-04 19:01 created (designer)
+- 2026-10-04 19:09 AC 1 ✔ (frontend-dev): apps/web/src/components/resume/profile-resume-host.test.tsx
+- 2026-10-04 19:09 todo → qa (frontend-dev): Root cause: applied editor remounted with merged values as its own baseline so never dirty, appliedHint unused. Fix: editor baseline = stored profile (savedBaseline), appliedHint rendered in the sticky save bar until next save. Per-field highlight not implemented (S-003/S-004 define no highlight treatment).

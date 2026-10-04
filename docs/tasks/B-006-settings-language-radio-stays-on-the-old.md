@@ -2,7 +2,7 @@
 id: B-006
 type: bug
 title: "settings: Language radio stays on the old language after switching via the header menu"
-status: todo
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -37,9 +37,11 @@ Evidence: docs/qa/evidence/M1/design/settings-radio-desync-1280-en.png
 
 ## Acceptance criteria
 
-- [ ] Regression test added that failed before the fix
+- [x] Regression test added that failed before the fix
 - [ ] Fix verified by QA
 
 ## Log
 
 - 2026-10-04 19:01 created (designer)
+- 2026-10-04 19:09 AC 1 ✔ (frontend-dev): apps/web/src/components/settings/language-card.test.tsx
+- 2026-10-04 19:09 todo → qa (frontend-dev): Root cause: LanguageCard seeded state from server prop once. Fix: derive from useLocale(), optimistic selection resynced when active locale changes; locale prop removed.

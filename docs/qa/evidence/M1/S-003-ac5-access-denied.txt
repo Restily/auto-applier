@@ -1,0 +1,9 @@
+S-003 AC5 - access to a stored resume file (QA manual, 2026-10-04, local Supabase http://127.0.0.1:54321)
+Owner file: bucket resumes, path <U5 uuid>/<resume uuid>.docx  (U5 = qa+s003-*, U7 = qa+s003r-* other user)
+- anon  GET /storage/v1/object/resumes/<path>             -> HTTP 400 (denied)
+- anon  GET /storage/v1/object/public/resumes/<path>      -> HTTP 400 (bucket is private, public=false)
+- other user (U7 JWT) GET /storage/v1/object/resumes/<path> -> 404 "Object not found" (RLS hides it)
+- other user list prefix <U5 uuid> -> [] ; anon list -> 403 AccessDenied
+- anon  GET /rest/v1/resumes -> 42501 permission denied for table resumes
+- other user GET /rest/v1/resumes -> only U7's own row; candidate_profiles -> []
+Note: no storage.objects policy exists at all, so even the owner cannot fetch the file with a user JWT (the app serves no download path; by design per S-003 spec).

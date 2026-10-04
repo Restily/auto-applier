@@ -7,7 +7,8 @@ afterEach(() => vi.restoreAllMocks());
 describe("logDbError", () => {
   it("logs scope, code and message only (no details/hint that may carry row data)", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    logDbError("profile_load_failed", { code: "42P01", message: 'relation "candidate_profiles" does not exist', details: "secret@example.test", hint: "x" });
+    const err = { code: "42P01", message: 'relation "candidate_profiles" does not exist', details: "secret@example.test", hint: "x" };
+    logDbError("profile_load_failed", err);
     expect(spy).toHaveBeenCalledTimes(1);
     const line = spy.mock.calls[0]!.map(String).join(" ");
     expect(line).toContain("profile_load_failed");

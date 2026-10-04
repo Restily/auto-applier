@@ -2,7 +2,7 @@
 id: B-004
 type: bug
 title: "profile: bottom-right toast covers the sticky Save button and swallows clicks"
-status: todo
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -37,9 +37,11 @@ Evidence: docs/qa/evidence/M1/design/profile-saved-incomplete-1280-en.png, delet
 
 ## Acceptance criteria
 
-- [ ] Regression test added that failed before the fix
+- [x] Regression test added that failed before the fix
 - [ ] Fix verified by QA
 
 ## Log
 
 - 2026-10-04 19:01 created (designer)
+- 2026-10-04 19:09 AC 1 ✔ (frontend-dev): apps/web/src/components/ui/sonner.test.tsx
+- 2026-10-04 19:09 todo → qa (frontend-dev): Root cause: Sonner default bottom-right overlapped sticky Save bar. Fix: Toaster position top-center, offset below shell header (--shell-header-height + 8px), desktop+mobile.
