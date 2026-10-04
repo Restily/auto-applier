@@ -2,7 +2,7 @@
 id: B-002
 type: bug
 title: "auth/forgot-password: reset email ignores the language the user switched to (uses sign-up-time locale only) [S-005 AC2]"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -56,7 +56,7 @@ Make the recovery email follow the locale in effect at request time (e.g. update
 ## Acceptance criteria
 
 - [x] Regression test added that failed before the fix
-- [ ] Fix verified by QA
+- [x] Fix verified by QA
 
 ## Log
 
@@ -68,3 +68,5 @@ Make the recovery email follow the locale in effect at request time (e.g. update
 - 2026-10-04 12:16 note (backend-dev): Backend half landed (T-025 in qa): recovery.html honours ?lang=ru|en on the request-time redirect, falls back to .Data.locale. Remaining: qa-automation removes test.fixme in tests/e2e/i18n/locale.spec.ts and verifies.
 - 2026-10-04 12:17 note (team-lead): lead: both halves landed (web 'lang' marker + T-025 template). Remaining: qa-automation removes test.fixme('B-002…') in tests/e2e/i18n/locale.spec.ts and runs it — do in verifying.
 - 2026-10-04 18:34 blocked → qa (team-lead)
+- 2026-10-04 18:53 AC 2 ✔ (qa-manual): docs/qa/evidence/M1/B-002-ru-recovery-email.txt, B-002-ru-forgot-sent-1280.png: en-created account, RU chosen signed-out -> RU email; switching back -> EN email; signed-in switch updates auth metadata locale
+- 2026-10-04 18:54 qa → done (qa-manual)

@@ -19,10 +19,10 @@ As a <user>, I want <action>, so that <value>.
 
 ## Acceptance criteria
 
-- [ ] Given a user without a resume, When they fill the required fields (full name, contact email, target title, at least one skill, years of experience), Then the profile is saved and the onboarding checklist marks it complete
-- [ ] Given required fields are missing or an email/URL is invalid, When the user saves, Then the invalid fields are highlighted and the profile stays incomplete
-- [ ] Given a saved profile, When the user edits it (including application answers: work authorization, relocation readiness, notice period, expected salary, phone) and reloads the page, Then the changes persist
-- [ ] Given the profile is incomplete, Then the onboarding checklist lists exactly what is missing
+- [x] Given a user without a resume, When they fill the required fields (full name, contact email, target title, at least one skill, years of experience), Then the profile is saved and the onboarding checklist marks it complete
+- [x] Given required fields are missing or an email/URL is invalid, When the user saves, Then the invalid fields are highlighted and the profile stays incomplete
+- [x] Given a saved profile, When the user edits it (including application answers: work authorization, relocation readiness, notice period, expected salary, phone) and reloads the page, Then the changes persist
+- [x] Given the profile is incomplete, Then the onboarding checklist lists exactly what is missing
 
 ## Notes
 
@@ -36,3 +36,7 @@ As a <user>, I want <action>, so that <value>.
 - 2026-09-27 15:01 note (team-lead): Plan D1: partial profiles are saved (only format errors block save) so AC4's 'checklist lists what's missing' is reachable; designer to confirm copy profile.savedIncomplete.
 - 2026-09-27 15:05 note (designer): D1 copy confirmed: profile.savedIncomplete = "Saved. Fill in the highlighted fields to complete your profile." / "Сохранено. Заполните отмеченные поля, чтобы завершить профиль." (Sonner, info variant); sibling onboarding.missing = "Missing: {list}" / "Не хватает: {list}" (checklist sub-copy). Spec updated: docs/design/screens/S-004.md (States/Copy/Validation/Accessibility/Interactions).
 - 2026-10-04 18:34 todo → qa (team-lead)
+- 2026-10-04 18:49 AC 1 ✔ (qa-manual): docs/qa/evidence/M1/S-004-ac1-saved-en-1280.png, S-004-ac1-checklist-complete-en-1280.png, S-004-ac1-saved-ru-375.png, S-004-ac1-checklist-complete-ru-375.png
+- 2026-10-04 18:49 AC 2 ✔ (qa-manual): docs/qa/evidence/M1/S-004-ac2-en-1280.png, S-004-ac2-incomplete-toast-en-1280.png, S-004-ac2-highlight-en-1280.png (RU re-run OK; invalid email/URL highlighted, salary Max<Min and too-large blocked)
+- 2026-10-04 18:49 AC 3 ✔ (qa-manual): docs/qa/evidence/M1/S-004-ac3-reload-persist-en-1280.png, S-004-ac3-reload-persist-ru-375.png
+- 2026-10-04 18:49 AC 4 ✔ (qa-manual): docs/qa/evidence/M1/S-004-ac4-missing-en-1280.png

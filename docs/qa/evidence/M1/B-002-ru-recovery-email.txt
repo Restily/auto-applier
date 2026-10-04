@@ -1,0 +1,10 @@
+1 msgs
+Reset your password / Восстановление пароля
+---------------------
+Восстановление пароля
+---------------------
+
+Нажмите на кнопку ниже, чтобы задать новый пароль. Ссылка действует один час.
+
+Сменить пароль ( http://localhost:3000/auth/confirm?token_hash=pkce_1bacf3bdf7a536e3dfceaa872a3a77511984f2b04450d78526576290&type=recovery&next=/reset-password )
+http://localhost:3000/auth/confirm?token_hash=pkce_1bacf3bdf7a536e3dfceaa872a3a77511984f2b04450d78526576290&type=recovery&next=/reset-password

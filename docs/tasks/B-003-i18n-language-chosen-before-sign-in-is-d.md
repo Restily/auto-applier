@@ -2,7 +2,7 @@
 id: B-003
 type: bug
 title: "i18n: language chosen before sign-in is discarded and the account's stored language wins [S-005 AC2]"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -53,7 +53,7 @@ http://localhost:3000, chromium desktop, throwaway qa+<uuid>@example.test accoun
 ## Acceptance criteria
 
 - [x] Regression test added that failed before the fix
-- [ ] Fix verified by QA
+- [x] Fix verified by QA
 
 ## Log
 
@@ -63,3 +63,5 @@ http://localhost:3000, chromium desktop, throwaway qa+<uuid>@example.test accoun
 - 2026-10-04 12:12 todo → in_progress (frontend-dev)
 - 2026-10-04 12:12 AC 1 ✔ (frontend-dev): apps/web/src/lib/auth/actions.test.ts + src/i18n/actions.test.ts (B-003 cases; failed before); scratch e2e of locale.spec.ts 'language precedence' passes
 - 2026-10-04 12:12 in_progress → qa (frontend-dev): Root cause: signInAction/OAuth copied profiles.ui_locale over NEXT_LOCALE and nothing distinguished a deliberate signed-out choice. Fix: setLocale (signed out) also sets httpOnly NEXT_LOCALE_PENDING; sign-in/OAuth adopt it into profiles.ui_locale (DB trigger mirrors to auth locale), else profile wins; sign-up drops it. Accept-Language never overrides.
+- 2026-10-04 18:53 AC 2 ✔ (qa-manual): docs/qa/evidence/M1/B-003-ru-after-signin-1280.png: RU chosen before sign-in survives sign-in on en-profile account; profile adopts ru; fresh browser shows account language (S-005-ac2-cross-device-ru-1280.png)
+- 2026-10-04 18:54 qa → done (qa-manual)

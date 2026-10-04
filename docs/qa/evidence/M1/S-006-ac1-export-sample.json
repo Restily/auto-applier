@@ -1,0 +1,55 @@
+{
+ "format_version": 1,
+ "exported_at": "2026-10-04T18:55:54.780441Z",
+ "account": {
+  "id": "ebd858e0-b5f0-402d-889f-44178c414be9",
+  "email": "qa+s001-952183ae1a@example.test",
+  "ui_locale": "ru",
+  "created_at": "2026-10-04T18:36:27.508573Z"
+ },
+ "profile": {
+  "links": {
+   "linkedin": "https://www.linkedin.com/in/qa-tester"
+  },
+  "phone": "+49 170 1234567",
+  "skills": [
+   "Playwright",
+   "SQL"
+  ],
+  "version": 2,
+  "headline": null,
+  "location": null,
+  "education": [],
+  "full_name": "Ада QA Тестер",
+  "languages": [],
+  "created_at": "2026-10-04T18:43:07.566947+00:00",
+  "experience": [],
+  "relocation": "open",
+  "salary_max": 80000,
+  "salary_min": 60000,
+  "updated_at": "2026-10-04T18:44:34.915451+00:00",
+  "is_complete": true,
+  "contact_email": "qa+s001-952183ae1a@example.test",
+  "notice_period": "1_month",
+  "salary_period": "year",
+  "target_titles": [
+   "QA Engineer"
+  ],
+  "salary_currency": "EUR",
+  "source_resume_id": null,
+  "years_experience": "3_5",
+  "work_authorization": "sponsorship",
+  "work_authorization_other": null
+ },
+ "resumes": [],
+ "searches": [],
+ "applications": [],
+ "credit_ledger": [
+  {
+   "delta": 20,
+   "reason": "signup_grant",
+   "created_at": "2026-10-04T18:36:27.508573Z"
+  }
+ ],
+ "credit_balance": 20
+}
