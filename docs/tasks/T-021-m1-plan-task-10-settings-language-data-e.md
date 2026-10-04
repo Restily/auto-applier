@@ -2,7 +2,7 @@
 id: T-021
 type: task
 title: "M1 plan Task 10: Settings: language, data export, delete account, privacy placeholder (D5)"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P0
@@ -11,7 +11,7 @@ files: [apps/web/src/app/(app)/settings/**, apps/web/src/app/(public)/account-de
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-28
-updated: 2026-09-29
+updated: 2026-10-04
 ---
 
 ## What to do
@@ -30,3 +30,5 @@ updated: 2026-09-29
 - 2026-09-29 07:59 AC 1 ✔ (frontend-dev): 36 new unit tests pass (src/lib/account, src/components/settings, src/app/(public)/privacy, src/app/api/account/export); fast gate PASS; screenshots docs/qa/evidence/M1/T-021-*.png
 - 2026-09-29 07:59 note (frontend-dev): frontend-dev: live E2E of export/delete/D5 re-signup NOT done: the API on :8000 is a stale process started before T-018 (openapi lacks /v1/account/*, returns 404), and killing it would trip concurrently --kill-others-on-fail. Needs 'bash team/bin/app.sh restart' by the lead, then qa runs export, delete, /account-deleted, re-signup without the 20-credit bonus.
 - 2026-09-29 07:59 in_progress → qa (frontend-dev): Settings, language, export route+client, delete dialog+action, /account-deleted, /privacy D5 placeholder; uncommitted
+- 2026-10-04 11:54 note (team-lead): lead: live export/delete/D5 was blocked by a stale API during the wave (API restarted since; /v1/account/* served). Covered by T-024 e2e + QA.
+- 2026-10-04 11:54 qa → done (team-lead)
