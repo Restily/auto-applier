@@ -3,6 +3,8 @@ import { expectNoSeriousA11yViolations } from "../helpers/a11y";
 import { EXTRACTION_TIMEOUT, dropzone, fileInput, fixture, openUploadStep, resumeRows, storageObjectExists, storedObjectCount } from "./support";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+/** backend ports/resume_store.py MAX_EXTRACTION_ATTEMPTS */
+const MAX_EXTRACTION_ATTEMPTS = 3;
 
 test.describe("resume upload failures (S-003 AC2, AC3)", () => {
   test("png and too-large files are rejected with the spec messages and nothing is stored", async ({ page, newUser }) => {
@@ -84,11 +86,20 @@ test.describe("resume upload failures (S-003 AC2, AC3)", () => {
     expect(first).toMatchObject({ file_name: "ai-fail.pdf", status: "failed", error_code: "ai_failed", is_current: true });
     expect(await storageObjectExists(first!.storage_path)).toBe(true);
 
-    // The fake LLM fails this file every time, so a retry ends on the same panel, but it really ran again.
+    // The fake LLM fails this file every time, so a retry ends on the same panel, but it really ran again:
+    // the row was touched (updated_at advanced) and went through reset_for_retry (attempts back to 0, T-026), then
+    // one fresh claim by the worker. So attempts is NOT cumulative: it ends equal to the first run's, within the cap.
     await tryAgain.click();
     await expect(page.getByRole("heading", { name: "We couldn't read this resume" })).toBeVisible({ timeout: EXTRACTION_TIMEOUT });
-    await expect.poll(async () => (await resumeRows(newUser.id))[0]?.attempts).toBe(first!.attempts + 1);
+    await expect
+      .poll(async () => Date.parse((await resumeRows(newUser.id))[0]!.updated_at), { timeout: EXTRACTION_TIMEOUT })
+      .toBeGreaterThan(Date.parse(first!.updated_at));
+    // Wait for the re-run to reach its terminal state (reset puts the row in `processing` first).
+    await expect.poll(async () => (await resumeRows(newUser.id))[0]?.status, { timeout: EXTRACTION_TIMEOUT }).toBe("failed");
     const [after] = await resumeRows(newUser.id);
+    expect(after!.attempts).toBe(first!.attempts);
+    expect(after!.attempts).toBeLessThanOrEqual(MAX_EXTRACTION_ATTEMPTS);
+    expect(Date.parse(after!.updated_at)).toBeGreaterThan(Date.parse(first!.updated_at));
     expect(after).toMatchObject({ id: first!.id, status: "failed", error_code: "ai_failed" });
   });
 });

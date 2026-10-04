@@ -47,12 +47,12 @@ export async function uploadAndWaitForEditor(page: Page, file: string): Promise<
   await expect(page.getByRole("heading", { name: "Profile", level: 1 })).toBeVisible({ timeout: EXTRACTION_TIMEOUT });
 }
 
-export type ResumeRow = { id: string; file_name: string; status: string; error_code: string | null; is_current: boolean; storage_path: string; attempts: number };
+export type ResumeRow = { id: string; file_name: string; status: string; error_code: string | null; is_current: boolean; storage_path: string; attempts: number; updated_at: string };
 
 export async function resumeRows(userId: string): Promise<ResumeRow[]> {
   const { data, error } = await adminClient()
     .from("resumes")
-    .select("id, file_name, status, error_code, is_current, storage_path, attempts")
+    .select("id, file_name, status, error_code, is_current, storage_path, attempts, updated_at")
     .eq("user_id", userId)
     .order("created_at");
   if (error) throw new Error(`resumeRows: ${error.message}`);

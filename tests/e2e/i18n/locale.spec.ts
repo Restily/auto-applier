@@ -83,7 +83,6 @@ test.describe("switching language (S-005 AC2)", () => {
   });
 
   test("reset email arrives in Russian after switching", async ({ page, mailpit, newUser }) => {
-    test.fixme(true, "B-002: the reset email follows the sign-up-time locale, not the language chosen later");
     await page.goto("/sign-in/forgot-password");
     await switchLanguage(page, "EN", "Русский");
     await expect(page.getByRole("heading", { name: "Восстановление пароля" })).toBeVisible();
@@ -127,7 +126,6 @@ test.describe("reset email language", () => {
 
 test.describe("language precedence", () => {
   test("a language chosen before sign-in is not lost when the account has another one", async ({ page, newUser }) => {
-    test.fixme(true, "B-003: profiles.ui_locale overrides the NEXT_LOCALE cookie after sign-in");
     // The account is English. The visitor picks Russian on the sign-in page, then signs in.
     const { error } = await adminClient().from("profiles").update({ ui_locale: "en" }).eq("id", newUser.id);
     expect(error).toBeNull();
