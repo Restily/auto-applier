@@ -46,7 +46,7 @@ test.describe("sign-up (S-001 AC1-AC3)", () => {
     await page.getByLabel(/^Password/).fill("1234567");
     await page.getByRole("button", { name: "Sign up" }).click();
 
-    await expect(page.getByText("Enter a valid email address")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "Enter a valid email address" })).toBeVisible();
     await expect(page.getByLabel(/^Email/)).toHaveAttribute("aria-invalid", "true");
     await expect(page).toHaveURL(/\/sign-up$/);
 
@@ -54,7 +54,7 @@ test.describe("sign-up (S-001 AC1-AC3)", () => {
     await page.getByLabel(/^Email/).fill(freshCreds.email);
     await page.getByLabel(/^Password/).fill("1234567");
     await page.getByRole("button", { name: "Sign up" }).click();
-    await expect(page.getByText("At least 8 characters", { exact: true }).and(page.getByRole("alert"))).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "At least 8 characters" })).toBeVisible();
     await expect(page.getByLabel(/^Password/)).toHaveAttribute("aria-invalid", "true");
     await expect(page).toHaveURL(/\/sign-up$/);
 
