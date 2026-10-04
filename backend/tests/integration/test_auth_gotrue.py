@@ -19,6 +19,7 @@ from .supabase_helpers import (
 )
 
 MakeUser = Callable[..., Awaitable[TestUser]]
+APP_ORIGIN = "http://localhost:3000"  # supabase/config.toml auth.site_url
 PASSWORD = "correct-horse-battery"  # noqa: S105 - fake test secret
 
 
@@ -157,10 +158,20 @@ async def test_signup_after_unrelated_deletion_still_gets_bonus(
 
 
 async def _request_recovery(
-    http: httpx.AsyncClient, supabase_url: str, publishable: str, email: str
+    http: httpx.AsyncClient,
+    supabase_url: str,
+    publishable: str,
+    email: str,
+    lang: str | None = None,
 ) -> None:
+    # Mirrors resetPasswordForEmail(email, { redirectTo }) from the web app: the
+    # language marker travels as ?lang= on the redirect URL (B-002 / T-025).
+    params = {"redirect_to": f"{APP_ORIGIN}/reset-password?lang={lang}"} if lang else {}
     response = await http.post(
-        f"{supabase_url}/auth/v1/recover", headers={"apikey": publishable}, json={"email": email}
+        f"{supabase_url}/auth/v1/recover",
+        headers={"apikey": publishable},
+        params=params,
+        json={"email": email},
     )
     assert response.status_code == 200, response.text
 
@@ -194,6 +205,53 @@ async def test_recovery_email_russian_after_locale_switch(
     html = str((await wait_for_email(http, mailpit_url, user.email))["HTML"])
     assert "Восстановление пароля" in html
     assert "Reset your password" not in html
+
+
+async def test_recovery_email_russian_marker_overrides_english_metadata(
+    http: httpx.AsyncClient,
+    supabase_url: str,
+    supabase_publishable_key: str,
+    mailpit_url: str,
+    make_user: MakeUser,
+) -> None:
+    user = await make_user()  # metadata locale stays en: signed-out visitor switched to ru
+    await _request_recovery(http, supabase_url, supabase_publishable_key, user.email, lang="ru")
+    html = str((await wait_for_email(http, mailpit_url, user.email))["HTML"])
+    assert "Восстановление пароля" in html
+    assert "Reset your password" not in html
+    assert "/auth/confirm?token_hash=" in html
+    assert "type=recovery" in html
+
+
+async def test_recovery_email_english_marker_overrides_russian_metadata(
+    pool: asyncpg.Pool,
+    http: httpx.AsyncClient,
+    supabase_url: str,
+    supabase_publishable_key: str,
+    mailpit_url: str,
+    make_user: MakeUser,
+) -> None:
+    user = await make_user()
+    await pool.execute("update public.profiles set ui_locale = 'ru' where id = $1", user.id)
+    await _request_recovery(http, supabase_url, supabase_publishable_key, user.email, lang="en")
+    html = str((await wait_for_email(http, mailpit_url, user.email))["HTML"])
+    assert "Reset your password" in html
+    assert "Восстановление пароля" not in html
+
+
+async def test_recovery_email_unknown_marker_falls_back_to_metadata(
+    pool: asyncpg.Pool,
+    http: httpx.AsyncClient,
+    supabase_url: str,
+    supabase_publishable_key: str,
+    mailpit_url: str,
+    make_user: MakeUser,
+) -> None:
+    user = await make_user()
+    await pool.execute("update public.profiles set ui_locale = 'ru' where id = $1", user.id)
+    await _request_recovery(http, supabase_url, supabase_publishable_key, user.email, lang="de")
+    html = str((await wait_for_email(http, mailpit_url, user.email))["HTML"])
+    assert "Восстановление пароля" in html
 
 
 async def _recover_and_hash(
