@@ -2,7 +2,7 @@
 id: T-025
 type: task
 title: "Recovery email template: honour the request-time language marker (B-002)"
-status: qa
+status: done
 milestone: M1
 owner: backend-dev
 priority: P1
@@ -30,3 +30,4 @@ Verify the redirect allowlist (additional_redirect_urls http://localhost:3000/**
 - 2026-10-04 12:12 todo → in_progress (team-lead)
 - 2026-10-04 12:16 AC 1 ✔ (backend-dev): backend/tests/integration/test_auth_gotrue.py::test_recovery_email_* (ru/en marker, metadata fallback; Mailpit); e2e fixme removal is qa-automation's
 - 2026-10-04 12:16 in_progress → qa (backend-dev): recovery.html branches on .RedirectTo ?lang= marker; auth container restarted only; uncommitted
+- 2026-10-04 12:17 qa → done (team-lead)
