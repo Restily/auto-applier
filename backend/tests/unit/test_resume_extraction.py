@@ -22,6 +22,7 @@ from autoapplier.services.resume_extraction import (
 )
 from autoapplier.services.resumes import RESUME_BUCKET
 
+from .doubles.documents import InlineDocumentExtractor
 from .doubles.resume_store import InMemoryResumeStore
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "resumes"
@@ -42,7 +43,7 @@ class _Env:
         self.service = ResumeExtractionService(
             self.store,
             self.storage,
-            documents or PyPdfDocxTextExtractor(),  # type: ignore[arg-type]
+            InlineDocumentExtractor(documents or PyPdfDocxTextExtractor()),  # type: ignore[arg-type]
             llm or self.llm,  # type: ignore[arg-type]
             clock=lambda: self.clock_now,
         )
@@ -176,7 +177,11 @@ async def test_llm_data_none_ai_failed() -> None:
             )
 
     env.service = ResumeExtractionService(
-        env.store, env.storage, PyPdfDocxTextExtractor(), NoData(), clock=lambda: 0.0
+        env.store,
+        env.storage,
+        InlineDocumentExtractor(PyPdfDocxTextExtractor()),
+        NoData(),
+        clock=lambda: 0.0,
     )
     assert await env.service.extract(resume_id) == "failed"
     assert env.store.rows[resume_id].error_code == "ai_failed"
@@ -235,7 +240,11 @@ async def test_whole_attempt_deadline_marks_ai_failed_and_row_is_reclaimable() -
     env = _Env()
     resume_id = await env.seed()
     hung = ResumeExtractionService(
-        env.store, env.storage, PyPdfDocxTextExtractor(), Hang(), deadline_s=0.05
+        env.store,
+        env.storage,
+        InlineDocumentExtractor(PyPdfDocxTextExtractor()),
+        Hang(),
+        deadline_s=0.05,
     )
     assert await hung.extract(resume_id) == "failed"
     row = env.store.rows[resume_id]
@@ -255,7 +264,9 @@ async def test_deadline_bounds_a_hanging_document_parser() -> None:
 
     env = _Env()
     resume_id = await env.seed()
-    service = ResumeExtractionService(env.store, env.storage, Hanging(), env.llm, deadline_s=0.05)
+    service = ResumeExtractionService(
+        env.store, env.storage, InlineDocumentExtractor(Hanging()), env.llm, deadline_s=0.05
+    )
     started = time.monotonic()
     assert await service.extract(resume_id) == "failed"
     assert time.monotonic() - started < 0.4
@@ -292,7 +303,9 @@ async def test_malformed_url_in_llm_output_does_not_strand_the_row() -> None:
         }
     )
     resume_id = await env.seed()
-    service = ResumeExtractionService(env.store, env.storage, PyPdfDocxTextExtractor(), env.llm)
+    service = ResumeExtractionService(
+        env.store, env.storage, InlineDocumentExtractor(PyPdfDocxTextExtractor()), env.llm
+    )
     assert await service.extract(resume_id) == "ready"
     extracted = env.store.rows[resume_id].extracted
     assert extracted is not None

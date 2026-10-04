@@ -21,6 +21,7 @@ from autoapplier import __version__
 from autoapplier.adapters.auth.gotrue_admin import GoTrueAdmin
 from autoapplier.adapters.auth.jwt_verifier import JwtVerifier
 from autoapplier.adapters.documents.pypdf_docx import PyPdfDocxTextExtractor
+from autoapplier.adapters.documents.subprocess_extractor import SubprocessDocumentExtractor
 from autoapplier.adapters.llm.registry import build_llm_provider
 from autoapplier.adapters.queue.celery_factory import create_celery_app
 from autoapplier.adapters.queue.celery_queue import CeleryJobQueue
@@ -115,7 +116,9 @@ async def build_container(settings: Settings) -> Container:
         storage=storage,
         documents=documents,
         resumes=ResumeService(resume_store, storage, queue),
-        resume_extraction=ResumeExtractionService(resume_store, storage, documents, llm),
+        resume_extraction=ResumeExtractionService(
+            resume_store, storage, SubprocessDocumentExtractor(), llm
+        ),
         account_export=AccountExportService(pool),
         account_deletion=AccountDeletionService(auth_admin, purge_steps),
     )

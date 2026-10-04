@@ -25,6 +25,7 @@ from autoapplier.services.resume_extraction import ResumeExtractionService
 from autoapplier.services.resumes import ResumeService
 from autoapplier.wiring import Container
 
+from .doubles.documents import InlineDocumentExtractor
 from .doubles.resume_store import InMemoryResumeStore
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "resumes"
@@ -63,7 +64,9 @@ class _Env:
             storage=self.storage,
             documents=documents,
             resumes=ResumeService(self.store, self.storage, self.queue),
-            resume_extraction=ResumeExtractionService(self.store, self.storage, documents, llm),
+            resume_extraction=ResumeExtractionService(
+                self.store, self.storage, InlineDocumentExtractor(documents), llm
+            ),
             account_export=cast(AccountExportService, None),
             account_deletion=cast(AccountDeletionService, None),
         )

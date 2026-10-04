@@ -9,7 +9,11 @@ from uuid import UUID
 
 from autoapplier.domain.profile import normalize_draft, profile_draft_json_schema
 from autoapplier.domain.resume_files import MAX_TEXT_CHARS, DocumentKind, is_readable_text
-from autoapplier.ports.documents import DocumentTextExtractor, DocumentUnreadableError
+from autoapplier.ports.documents import (
+    AsyncDocumentTextExtractor,
+    DocumentParseTimeoutError,
+    DocumentUnreadableError,
+)
 from autoapplier.ports.llm import (
     LLMError,
     LLMMessage,
@@ -38,7 +42,7 @@ class ResumeExtractionService:
         self,
         store: ResumeStore,
         storage: FileStorage,
-        documents: DocumentTextExtractor,
+        documents: AsyncDocumentTextExtractor,
         llm: LLMProvider,
         *,
         clock: Callable[[], float] = time.monotonic,
@@ -91,7 +95,13 @@ class ResumeExtractionService:
 
         kind: DocumentKind = "pdf" if record.storage_path.endswith(".pdf") else "docx"
         try:
-            text = await asyncio.to_thread(self._documents.extract_text, data, kind)
+            text = await self._documents.extract_text(data, kind)
+        except DocumentParseTimeoutError:
+            # A parse that overran (and was killed) is the same outcome as the whole-attempt
+            # deadline: `ai_failed`, exactly as before the parse became killable.
+            _log.warning("resume %s: document parse timed out", resume_id)
+            await self._store.mark_failed(resume_id, "ai_failed")
+            return "failed"
         except DocumentUnreadableError:
             await self._store.mark_failed(resume_id, "unreadable")
             return "failed"
