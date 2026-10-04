@@ -25,7 +25,7 @@ type Props = {
   mode: "onboarding" | "app";
 };
 
-type EditorState = { key: number; initial: ProfileInput; banner: string | null };
+type EditorState = { key: number; initial: ProfileInput; banner: string | null; applied?: { baseline: ProfileInput } };
 type Review = { resume: ResumeState; draft: ProfileInput; diffs: FieldDiff[] };
 
 /**
@@ -101,7 +101,8 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
   function applyReview(choices: Record<string, "keep" | "use">): void {
     if (!review) return;
     const merged = applyChoices(saved, review.draft, choices as Partial<Record<DiffField, "keep" | "use">>);
-    setView((v) => ({ editor: { key: v.editor.key + 1, initial: { ...merged, sourceResumeId: review.resume.id }, banner: review.resume.fileName }, review: null }));
+    // Applied values are not saved yet: the editor remounts with the stored profile as its baseline so it is dirty.
+    setView((v) => ({ editor: { key: v.editor.key + 1, initial: { ...merged, sourceResumeId: review.resume.id }, banner: review.resume.fileName, applied: { baseline: saved } }, review: null }));
   }
 
   async function retry(): Promise<void> {
@@ -151,6 +152,7 @@ export function ProfileResumeHost({ saved, resume: initialResume, mode }: Props)
         initial={editor.initial}
         mode={mode}
         bannerFileName={editor.banner}
+        {...(editor.applied ? { savedBaseline: editor.applied.baseline, appliedHint: true } : {})}
         headerSlot={headerSlot}
         onDirtyChange={(dirty) => {
           editorDirty.current = dirty;

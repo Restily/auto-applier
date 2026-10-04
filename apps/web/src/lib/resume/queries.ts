@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logDbError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { toResumeState } from "./read";
@@ -15,6 +16,9 @@ export async function getCurrentResume(): Promise<ResumeState | null> {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error("resume_load_failed");
+  if (error) {
+    logDbError("resume_load_failed", error);
+    throw new Error("resume_load_failed");
+  }
   return data ? toResumeState(data) : null;
 }

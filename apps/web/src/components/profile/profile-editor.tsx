@@ -41,6 +41,10 @@ export type ProfileEditorProps = {
   /** The resume task injects Replace resume / the extraction notice here. */
   headerSlot?: ReactNode;
   onSaved?: (r: Extract<SaveProfileResult, { ok: true }>) => void;
+  /** The profile as stored in the database, when `initial` already differs from it (resume Apply): the editor starts dirty. */
+  savedBaseline?: ProfileInput;
+  /** Shows the "review the highlighted changes and save" hint beside the save bar until the next successful save. */
+  appliedHint?: boolean;
   /** Reports whether the form has unsaved changes (also once on mount), so the host can ask before replacing them. */
   onDirtyChange?: (dirty: boolean) => void;
 };
@@ -92,14 +96,16 @@ function firstFocusId(errors: Errors): string | undefined {
   return FOCUS_ORDER.find(([key]) => errors[key] !== undefined)?.[1];
 }
 
-export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSaved, onDirtyChange }: ProfileEditorProps): React.JSX.Element {
+export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, savedBaseline, appliedHint = false, onSaved, onDirtyChange }: ProfileEditorProps): React.JSX.Element {
   const t = useTranslations("profile");
   const te = useTranslations("profile.entries");
   const tc = useTranslations("common");
+  const tr = useTranslations("resume.review");
   const router = useRouter();
 
   const [values, setValues] = useState<ProfileInput>(initial);
-  const [baseline, setBaseline] = useState(() => JSON.stringify(initial));
+  const [baseline, setBaseline] = useState(() => JSON.stringify(savedBaseline ?? initial));
+  const [hintOpen, setHintOpen] = useState(appliedHint);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(true);
@@ -178,6 +184,7 @@ export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSav
         return;
       }
       setBaseline(JSON.stringify(values));
+      setHintOpen(false);
       if (result.missing.length > 0) {
         const missingErrors: Errors = {};
         for (const f of result.missing) missingErrors[f] = MISSING_ERROR[f];
@@ -350,7 +357,7 @@ export function ProfileEditor({ initial, mode, bannerFileName, headerSlot, onSav
         <ApplicationAnswers values={values} onChange={patch} errors={errors} />
       </SectionCard>
 
-      <SaveBar dirty={dirty} saving={saving} />
+      <SaveBar dirty={dirty} saving={saving} hint={hintOpen && dirty ? tr("appliedHint") : null} />
 
       {experienceDialog ? (
         <ExperienceDialog
