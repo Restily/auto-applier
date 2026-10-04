@@ -56,7 +56,7 @@ test.describe("manual profile (S-004)", () => {
     await expect(email).toHaveAttribute("aria-invalid", "true");
     await expect(linkedin).toHaveAttribute("aria-invalid", "true");
     await expect(email).toBeFocused();
-    await expect(page.getByText("Saved", { exact: false })).toHaveCount(0);
+    await expect(page.getByText(/^Saved/)).toHaveCount(0); // no toast: nothing was written
     expect(await profileRow(newUser.id)).toBeNull();
     await expectNoSeriousA11yViolations(page);
 
@@ -118,13 +118,13 @@ test.describe("manual profile (S-004)", () => {
     await page.reload();
     await expect(page.getByLabel(/^Full name/)).toHaveValue(REQUIRED.fullName);
     await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("+49 30 1234567");
-    await expect(page.getByRole("combobox", { name: "Work authorization" })).toHaveText("Would need visa sponsorship");
-    await expect(page.getByRole("combobox", { name: "Relocation readiness" })).toHaveText("Open to relocation");
-    await expect(page.getByRole("combobox", { name: "Notice period" })).toHaveText("1 month");
+    await expect(page.getByRole("combobox", { name: "Work authorization", exact: true })).toHaveText("Would need visa sponsorship");
+    await expect(page.getByRole("combobox", { name: "Relocation readiness", exact: true })).toHaveText("Open to relocation");
+    await expect(page.getByRole("combobox", { name: "Notice period", exact: true })).toHaveText("1 month");
     await expect(page.getByLabel("Min", { exact: true })).toHaveValue("4000");
     await expect(page.getByLabel("Max", { exact: true })).toHaveValue("6000");
-    await expect(page.getByRole("combobox", { name: "Currency" })).toHaveText("EUR");
-    await expect(page.getByRole("combobox", { name: "Period" })).toHaveText("/month");
+    await expect(page.getByRole("combobox", { name: "Currency", exact: true })).toHaveText("EUR");
+    await expect(page.getByRole("combobox", { name: "Period", exact: true })).toHaveText("/month");
 
     expect(await profileRow(newUser.id)).toMatchObject({
       phone: "+49 30 1234567",

@@ -114,8 +114,8 @@ export async function addChip(page: Page, label: string, value: string): Promise
 }
 
 export async function pickOption(page: Page, label: string | RegExp, option: string): Promise<void> {
-  await page.getByRole("combobox", { name: label }).click();
-  await page.getByRole("option", { name: option }).click();
+  await page.getByRole("combobox", { name: label, exact: true }).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
 }
 
 /** Fills the five required fields on the profile editor. */
