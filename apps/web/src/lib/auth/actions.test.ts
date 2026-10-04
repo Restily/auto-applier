@@ -87,7 +87,7 @@ beforeEach(() => {
   profileSelect.mockResolvedValue({ data: { ui_locale: "ru" } });
   profileUpdateEq.mockResolvedValue({ error: null });
   auth.signOut.mockResolvedValue({ error: null });
-  auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "otp", timestamp: 1 }] } }, error: null });
+  auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "otp", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
 });
 
 const idle = { status: "idle" } as const;
@@ -260,6 +260,15 @@ describe("updatePasswordAction", () => {
     );
     expect(auth.updateUser).not.toHaveBeenCalled();
     expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("M1 review N3: a recovery session older than 15 minutes is the expired-link panel, no update", async () => {
+    const twentyMinutesAgo = Math.floor(Date.now() / 1000) - 20 * 60;
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "otp", timestamp: twentyMinutesAgo }] } }, error: null });
+    expect(await redirectTarget(updatePasswordAction(idle, form({ password: "brand-new-pass" })))).toBe(
+      "/reset-password?error=link_invalid",
+    );
+    expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
   it("M1 review #10: no session at all is the expired-link panel, no update", async () => {

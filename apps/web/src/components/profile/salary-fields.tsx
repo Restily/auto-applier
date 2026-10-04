@@ -37,8 +37,8 @@ export function SalaryFields({ id, minId, value, onChange, minError, error }: Sa
   const t = useTranslations("profile.salary");
   const tp = useTranslations("profile");
   const uid = useId();
-  const errorId = `${uid}-error`;
-  const shownError = error ?? minError;
+  const minErrorId = `${uid}-min-error`;
+  const maxErrorId = `${uid}-max-error`;
   return (
     <fieldset className="flex min-w-0 flex-col gap-2">
       <legend className="mb-2 text-sm leading-none font-medium">{t("legend")}</legend>
@@ -53,7 +53,7 @@ export function SalaryFields({ id, minId, value, onChange, minError, error }: Sa
             step={1}
             className="h-11 scroll-mt-24"
             aria-invalid={minError ? true : undefined}
-            aria-describedby={minError ? errorId : undefined}
+            aria-describedby={minError ? minErrorId : undefined}
             value={value.salaryMin ?? ""}
             onChange={(e) => onChange({ salaryMin: toNumber(e.target.value) })}
           />
@@ -68,7 +68,7 @@ export function SalaryFields({ id, minId, value, onChange, minError, error }: Sa
             step={1}
             className="h-11 scroll-mt-24"
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={error ? maxErrorId : undefined}
             value={value.salaryMax ?? ""}
             onChange={(e) => onChange({ salaryMax: toNumber(e.target.value) })}
           />
@@ -107,7 +107,8 @@ export function SalaryFields({ id, minId, value, onChange, minError, error }: Sa
           </Select>
         </div>
       </div>
-      <FieldError id={errorId} error={shownError} />
+      <FieldError id={minErrorId} error={minError} />
+      <FieldError id={maxErrorId} error={error} />
     </fieldset>
   );
 }
