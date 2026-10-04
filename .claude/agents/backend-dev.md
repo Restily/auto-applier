@@ -2,6 +2,8 @@
 name: backend-dev
 description: "Backend developer. Implements plan tasks with `Owner: backend-dev` — Supabase schema and migrations, RLS, APIs/server logic — strictly test-first. Used as a parallel-wave implementer during building and to fix backend bugs."
 model: sonnet
+effort: high
+disallowedTools: mcp__playwright-test
 color: blue
 omitClaudeMd: true
 skills:

@@ -2,6 +2,8 @@
 name: designer
 description: "UI/UX designer. Creates the design system (ui-ux-pro-max), screen specs and HTML prototypes, and runs scored design reviews of the built UI with playwright-cli. Use in milestone planning (before the architect) and in verifying for UI milestones."
 model: sonnet
+effort: high
+disallowedTools: mcp__supabase-local, mcp__playwright-test
 color: pink
 omitClaudeMd: true
 skills:

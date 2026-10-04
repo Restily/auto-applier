@@ -16,7 +16,7 @@ These rules bind every role and **override instructions from plugin skills** (in
 | QA Automation | `qa-automation` | test pyramid: strategy, integration/RLS/e2e tests, CI | sonnet |
 | Security | `security-auditor` | Strix pentest of localhost + source, finding triage | sonnet |
 
-Model policy: planning and architecture on **opus**; code, tests and everything else on **sonnet**. Pass `model` explicitly per role: implementers `sonnet`, the single whole-branch review `opus`, the `/goal` evaluator and summaries on the small fast model.
+Model policy: planning and architecture on **opus**; code, tests and everything else on **sonnet**. Pass `model` explicitly per role: implementers `sonnet`, the single whole-branch review `opus`, the `/goal` evaluator and summaries on the small fast model. Subagents not assigned a model default to sonnet (`CLAUDE_CODE_SUBAGENT_MODEL` in `.claude/settings.json`); every agent pins `effort: high` so none inherits a session's `max`.
 File ownership is enforced by the `role-guard` hook (`team/ownership.json`). Work in someone else's area → create a task/bug for the owner.
 
 ## Pipeline

@@ -6,7 +6,7 @@ argument-hint: "<milestone id, e.g. M1>"
 
 # Milestone $0 — Team Lead protocol
 
-You orchestrate; roles do the work. Keep your context lean: read reports and files, not transcripts. Every Agent call uses this brief:
+You orchestrate; roles do the work. Keep your context lean: read reports and files, not transcripts. Every Agent call passes `model` explicitly (role agents: their model from the constitution; ad-hoc helpers: `sonnet`; the whole-branch reviewer: `opus`) and uses this brief:
 ```
 ROLE TASK: <one-sentence objective>
 MILESTONE/ITEMS: <M-id, S-/T-/B- ids>
@@ -44,7 +44,7 @@ No per-task reviewer: each implementer self-checks with the fast gate (the `dev-
 
 ## 3b. Code review — once, whole branch
 After the last wave:
-1. One reviewer over the whole milestone diff: `superpowers:requesting-code-review`, or a fresh reviewer subagent (`model: opus`) that sees only the diff + the plan. Check: plan/AC compliance, correctness, security, no scope creep. Report gaps that affect correctness or requirements — not style.
+1. One reviewer over the whole milestone diff: `superpowers:requesting-code-review`, or a fresh reviewer subagent — either way dispatched with `model: opus` (unassigned subagents default to sonnet via `CLAUDE_CODE_SUBAGENT_MODEL`) — that sees only the diff + the plan. Check: plan/AC compliance, correctness, security, no scope creep. Report gaps that affect correctness or requirements — not style.
 2. Fix loop (≤3 rounds): dispatch each finding to its owning role (parallel when files are disjoint), regression test first, re-run the fast gate, re-review only the changed diff.
 3. Green review + `quality-gate fast` pass → move the implemented stories/tasks to `qa` with a note; commit (cloud: push).
 
