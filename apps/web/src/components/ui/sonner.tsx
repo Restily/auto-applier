@@ -17,6 +17,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      // Top-center, below the shell header: bottom placements cover the sticky Save bar / Delete account and swallow clicks (B-004).
+      position="top-center"
+      offset="calc(var(--shell-header-height, 60px) + 8px)"
+      mobileOffset="calc(var(--shell-header-height, 60px) + 8px)"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

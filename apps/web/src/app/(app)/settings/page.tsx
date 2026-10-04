@@ -18,7 +18,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6">
       <h1 className="text-[length:var(--text-h1-size)] leading-[var(--text-h1-line)] font-bold text-foreground">{t("title")}</h1>
       <AccountCard email={data.email} />
-      <LanguageCard locale={data.locale} />
+      <LanguageCard />
       <DataCard />
       <DangerZoneCard email={data.email} />
     </div>

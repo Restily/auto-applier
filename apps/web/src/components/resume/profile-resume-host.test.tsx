@@ -167,3 +167,56 @@ describe("ProfileResumeHost with unsaved edits (M1 review #13)", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("ProfileResumeHost after Apply (B-005)", () => {
+  async function applyReview(user: ReturnType<typeof userEvent.setup>) {
+    const cur = saved({ fullName: "Alex Ivanov", skills: ["Python"] });
+    await renderWithIntl(<ProfileResumeHost saved={cur} resume={ready({ skills: ["Go"] })} mode="app" />);
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("radio", { name: /Use new/ }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  }
+
+  it("makes the editor dirty: Unsaved changes shown, beforeunload armed, applied hint rendered", async () => {
+    const user = userEvent.setup();
+    await applyReview(user);
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText("Review the highlighted changes and save when you're happy.")).toBeInTheDocument();
+    const evt = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(evt);
+    expect(evt.defaultPrevented).toBe(true);
+  });
+
+  it("Apply with Keep everything current is still dirty (the resume link is unsaved)", async () => {
+    const user = userEvent.setup();
+    const cur = saved({ fullName: "Alex Ivanov", skills: ["Python"] });
+    await renderWithIntl(<ProfileResumeHost saved={cur} resume={ready({ skills: ["Go"] })} mode="app" />);
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+  });
+
+  it("after Save the indicator and the hint go away and beforeunload is disarmed", async () => {
+    const user = userEvent.setup();
+    await applyReview(user);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(saveProfile).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument());
+    expect(screen.queryByText("Review the highlighted changes and save when you're happy.")).not.toBeInTheDocument();
+    const evt = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(evt);
+    expect(evt.defaultPrevented).toBe(false);
+  });
+
+  it("renders the hint in Russian", async () => {
+    const user = userEvent.setup();
+    const cur = saved({ fullName: "Alex Ivanov", skills: ["Python"] });
+    await renderWithIntl(<ProfileResumeHost saved={cur} resume={ready({ skills: ["Go"] })} mode="app" />, "ru");
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Применить" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByText("Проверьте изменения и сохраните, когда всё устраивает.")).toBeInTheDocument();
+  });
+});

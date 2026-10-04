@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -12,10 +12,18 @@ import { isLocale, LOCALES, type Locale } from "@/i18n/config";
 
 import { SettingsCard } from "./settings-card";
 
-export function LanguageCard({ locale }: { locale: Locale }): React.JSX.Element {
+/** The radio mirrors the active locale (useLocale), so a switch via the header menu is reflected without a reload (B-006). */
+export function LanguageCard(): React.JSX.Element {
   const t = useTranslations("settings");
   const router = useRouter();
-  const [selected, setSelected] = useState<Locale>(locale);
+  const active = useLocale() as Locale;
+  const [selected, setSelected] = useState<Locale>(active);
+  const [seenActive, setSeenActive] = useState<Locale>(active);
+  // Optimistic selection while the switch is in flight; whenever the active locale changes, it wins.
+  if (seenActive !== active) {
+    setSeenActive(active);
+    setSelected(active);
+  }
   const [, startTransition] = useTransition();
 
   function choose(next: string): void {
