@@ -71,3 +71,32 @@ Evidence:
 Only N1 blocks approval. N2–N4 are non-blocking (they can go to TECH-DEBT or a follow-up task).
 
 **Round 2 verdict: CHANGES REQUIRED**
+
+## Round 3 (N1 fix, T-028/T-029)
+
+_2026-10-04 · Reviewer: fresh opus subagent · Scope: backend T-028 (c601b74 + d64b00d: `SubprocessDocumentExtractor`, `child.py`, `AsyncDocumentTextExtractor`, wiring, service, tests) and web T-029 (f35a15e)_
+
+Evidence:
+- `uv run pytest -q tests/unit`: 233 passed.
+- `vitest run` on `recovery.test.ts`, `actions.test.ts` and `salary-fields.test.tsx`: 3 files, 54 tests passed.
+- **Prefork check:** a standalone script forked a `billiard.Process(daemon=True)` after the parent had already used an event loop. On a fresh per-process loop, the child ran 3 real PDF parses, then a hanging child (`DocumentParseTimeoutError` at 0.5 s), then a 6 MiB stdin echoed back to stdout. All of them worked, with no deadlock and exitcode 0. Python is 3.11, so asyncio uses `ThreadedChildWatcher`. Billiard sets `SIGCHLD=SIG_IGN` only in its forkserver, not on the prefork path, so `waitpid` reaping works.
+
+| Finding | Status | Note |
+|---|---|---|
+| N1 hanging parser | fixed | The parse runs in `python -m autoapplier.adapters.documents.child`.<br>**Kill and reap:** the `finally` always kills the child (ProcessLookupError suppressed) and reaps it with `await shield(proc.wait())`. That covers the inner 25 s timeout, cancellation by the outer 55 s `asyncio.timeout`, crashes and normal exit. A cancel during spawn is handled by asyncio itself (`transp.close()`).<br>**Pipes:** `communicate()` feeds stdin and drains stdout concurrently, and a BrokenPipe on early exit is suppressed. The child caps output at 2×`MAX_TEXT_CHARS`.<br>**Secrets and logs:** the env is an allowlist (PATH, PYTHONPATH, VIRTUAL_ENV, LANG, LC_ALL), so no secrets reach the child. stderr goes to DEVNULL, so tracebacks and pypdf warnings never reach the logs. Error messages carry only the kind and the exit code, and the service logs only the resume id.<br>**Budget:** 25 s parse < 55 s attempt < 60 s soft < 75 s hard.<br>**Error mapping:** a timeout raises `DocumentParseTimeoutError`, which is caught before its parent class and gives `ai_failed`. Exit 3 or a crash gives `unreadable`.<br>**Tests:** they cover both deadline orders and assert the pid is dead and no thread is left. `Container.documents` has no remaining API callers, so nothing parses in-process anymore. |
+| N2 salary describedby | fixed | Each field has its own `FieldError` id. Min and Max each describe only their own message, and 4 tests cover the combinations. |
+| N3 recovery freshness | fixed | `amr[0]` must be an object with a recovery/otp method and a finite numeric `timestamp`. The age is computed as `nowMs/1000 - timestamp`. The GoTrue `AMREntry.Timestamp` is Unix epoch seconds, so the units match. The age must be ≤ 900 s and ≥ -60 s of skew. The string-only `amr` shape fails closed. Tests cover the bound, the boundary, future and non-finite timestamps, and the action-level redirect. |
+| N4 / TD-010 | accepted | Recorded in TECH-DEBT. |
+| TD-011 (no rlimits) | accepted | Recorded in TECH-DEBT. See R3-1, which belongs with it. |
+
+### New findings
+
+| Sev | File:line | Finding | Fix |
+|---|---|---|---|
+| Minor | backend/src/autoapplier/adapters/documents/subprocess_extractor.py:85 | **R3-1.** The parse child is not tied to its parent's lifetime. If the pool child is SIGKILLed (the 75 s hard limit on a wedged loop, a cold worker shutdown, or the OOM killer), a spinning parse child is reparented to init and runs forever. Only the parent enforces the deadline. | Fold into TD-011. Add `RLIMIT_CPU` (e.g. 30 s) in `child.py` or `preexec_fn`, and/or `prctl(PR_SET_PDEATHSIG, SIGKILL)` on Linux. |
+| Minor | backend/src/autoapplier/adapters/documents/subprocess_extractor.py:104; services/resume_extraction.py:105 | **R3-2.** Any exit code other than 0 or 3 becomes `unreadable` with no log line. This includes a signal, an ImportError from a broken venv or env allowlist, and a MemoryError. An ops fault would therefore look to users like "your file is unreadable" and leave operators with nothing to see. | Log the exit code (no PII) at warning when it is not `EXIT_UNREADABLE`, or raise a distinct error for code ≠ 3 that maps to `ai_failed`. |
+| Nit | backend/src/autoapplier/wiring.py:62,94,117 | `Container.documents` (the in-process `PyPdfDocxTextExtractor`) is now unused. If something reuses it later, that would bring back an unkillable parse. | Remove it, or document that it is never to be called on the loop. |
+
+No Critical or Important findings.
+
+**Round 3 verdict: APPROVED**
