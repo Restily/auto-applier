@@ -48,7 +48,7 @@ Status: **building** · closed 19/30 · **ui**
 | T-022 | task | done | frontend-dev | P0 | 1/1 | M1 plan Task 11: Resume upload UI, extraction status, replace and review-changes dialog |
 | T-023 | task | done | qa-automation | P0 | 1/1 | M1 plan Task 12: E2E: auth, credits, Google edge states, EN/RU, a11y and touch targets |
 | T-024 | task | in_progress | qa-automation | P0 | 0/1 | M1 plan Task 13: E2E: resume, profile, export, delete and D5 re-sign-up; full gate |
-| T-025 | task | todo | backend-dev | P1 | 0/1 | Recovery email template: honour the request-time language marker (B-002) |
+| T-025 | task | in_progress | backend-dev | P1 | 0/1 | Recovery email template: honour the request-time language marker (B-002) |
 
 ## M2 — Vacancy feed
 

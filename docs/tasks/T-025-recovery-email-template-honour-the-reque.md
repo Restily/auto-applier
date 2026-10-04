@@ -2,7 +2,7 @@
 id: T-025
 type: task
 title: "Recovery email template: honour the request-time language marker (B-002)"
-status: todo
+status: in_progress
 milestone: M1
 owner: backend-dev
 priority: P1
@@ -27,3 +27,4 @@ Verify the redirect allowlist (additional_redirect_urls http://localhost:3000/**
 ## Log
 
 - 2026-10-04 12:07 created (frontend-dev)
+- 2026-10-04 12:12 todo → in_progress (team-lead)
