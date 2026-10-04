@@ -2,7 +2,7 @@
 id: T-028
 type: task
 title: "M1 review round 2 N1: make resume parsing killable (hanging PDF/DOCX parser thread outlives asyncio.timeout)"
-status: in_progress
+status: qa
 milestone: M1
 owner: backend-dev
 priority: P1
@@ -18,9 +18,11 @@ See docs/architecture/reviews/M1-code-review.md Round 2 N1. Parser runs in async
 
 ## Definition of done
 
-- [ ] …
+- [x] …
 
 ## Log
 
 - 2026-10-04 18:10 created (backend-dev)
 - 2026-10-04 18:11 todo → in_progress (backend-dev)
+- 2026-10-04 18:22 AC 1 ✔ (backend-dev): backend/tests/unit/test_subprocess_document_extractor.py
+- 2026-10-04 18:22 in_progress → qa (backend-dev): N1: parse in killable child process (SubprocessDocumentExtractor); uncommitted, lead commits wave

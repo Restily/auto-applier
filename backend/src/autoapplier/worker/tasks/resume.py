@@ -8,7 +8,8 @@ from autoapplier.ports.jobs import RESUME_EXTRACT
 from autoapplier.worker.celery_app import runtime
 
 # The service bounds one attempt at 55 s (`asyncio.timeout`). The soft limit fires just after
-# that, the hard limit kills a child stuck in native code (a hanging parser). Both stay below
+# that and the hard limit is a last resort for a wedged worker; a hanging parser is killed by
+# SubprocessDocumentExtractor at its own 25 s deadline. Both stay below
 # the 90 s stale-retry window so a retry can never overlap a still-running attempt.
 SOFT_TIME_LIMIT_S = 60
 HARD_TIME_LIMIT_S = 75
