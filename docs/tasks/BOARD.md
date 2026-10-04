@@ -20,14 +20,14 @@ Status: **verifying** · closed 25/34 · **ui**
 | ID | Type | Status | Owner | Pri | AC | Title |
 |---|---|---|---|---|---|---|
 | B-001 | bug (medium) | qa | frontend-dev | P1 | 1/2 | ui/dialog.tsx DialogContent hardcodes an English 'Close' screen-reader label (not localized, S-005) |
-| B-002 | bug (medium) | blocked | frontend-dev | P1 | 1/2 | auth/forgot-password: reset email ignores the language the user switched to (uses sign-up-time locale only) [S-005 AC2] |
+| B-002 | bug (medium) | qa | frontend-dev | P1 | 1/2 | auth/forgot-password: reset email ignores the language the user switched to (uses sign-up-time locale only) [S-005 AC2] |
 | B-003 | bug (medium) | qa | frontend-dev | P1 | 1/2 | i18n: language chosen before sign-in is discarded and the account's stored language wins [S-005 AC2] |
-| S-001 | story | todo | frontend-dev | P0 | 0/7 | Sign up, sign in, sign out and password reset with free credits |
-| S-002 | story | todo | frontend-dev | P1 | 0/3 | Sign in with Google |
-| S-003 | story | todo | frontend-dev | P0 | 0/5 | Upload a resume and get an AI-extracted profile |
-| S-004 | story | todo | frontend-dev | P0 | 0/4 | Fill and edit the profile manually |
-| S-005 | story | todo | frontend-dev | P0 | 0/3 | Interface in English and Russian |
-| S-006 | story | todo | backend-dev | P1 | 0/3 | Export my data and delete my account |
+| S-001 | story | qa | frontend-dev | P0 | 0/7 | Sign up, sign in, sign out and password reset with free credits |
+| S-002 | story | qa | frontend-dev | P1 | 0/3 | Sign in with Google |
+| S-003 | story | qa | frontend-dev | P0 | 0/5 | Upload a resume and get an AI-extracted profile |
+| S-004 | story | qa | frontend-dev | P0 | 0/4 | Fill and edit the profile manually |
+| S-005 | story | qa | frontend-dev | P0 | 0/3 | Interface in English and Russian |
+| S-006 | story | qa | backend-dev | P1 | 0/3 | Export my data and delete my account |
 | T-005 | task | done | architect | P1 | 3/3 | M1 plan: 3 contract-review gaps to close before building (password-reset expiry, profile maxLength tests, RLS anon/delete cases) |
 | T-006 | task | done | qa-automation | P2 | 1/1 | CI: pin Supabase CLI to 2.118.0 and run e2e/integration with APP_ENV=ci + LLM_PROVIDER=fake |
 | T-007 | task | done | architect | P2 | 1/1 | Backend: user-scoped DB transactions as authenticated role (SET LOCAL ROLE + request.jwt.claims) with cross-user denial test; add SUPABASE_JWT_SECRET to Settings/.env.example; drop or document unused API_HOST/API_PORT/WEB_ORIGIN |

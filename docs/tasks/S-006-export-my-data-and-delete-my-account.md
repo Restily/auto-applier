@@ -2,7 +2,7 @@
 id: S-006
 type: story
 title: Export my data and delete my account
-status: todo
+status: qa
 milestone: M1
 owner: backend-dev
 priority: P1
@@ -10,7 +10,7 @@ depends_on: [S-001]
 plan: docs/superpowers/plans/2026-09-27-M1-onboarding-profile.md
 needs_human: false
 created: 2026-09-27
-updated: 2026-09-28
+updated: 2026-10-04
 ---
 
 ## Description
@@ -39,3 +39,4 @@ As a <user>, I want <action>, so that <value>.
 - 2026-09-28 09:15 note (architect): Architect (D5): designer to confirm the privacy placeholder + delete-dialog/account-deleted fingerprint copy in plan Task 10 (legal.privacy.*, account.delete.fingerprintNote, account.deleted.fingerprintNote).
 - 2026-09-28 09:18 note (designer): D5 copy confirmed: delete-dialog fingerprint disclosure (account.delete.fingerprintNote) and post-deletion note (account.deleted.fingerprintNote), both linking to /privacy#after-deletion; new /privacy placeholder spec added as S-006 §6d (legal.privacy.* keys). See docs/design/screens/S-006.md.
 - 2026-09-28 09:18 note (qa-automation): QA delta contract review (2026-09-28): AC2 D5 fingerprint addendum verified (positive + negative/rollback case). No gaps. See docs/qa/plans/M1-test-plan.md.
+- 2026-10-04 18:34 todo → qa (team-lead)
