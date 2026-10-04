@@ -2,7 +2,7 @@
 id: B-001
 type: bug
 title: "ui/dialog.tsx DialogContent hardcodes an English 'Close' screen-reader label (not localized, S-005)"
-status: qa
+status: done
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -35,7 +35,7 @@ updated: 2026-10-04
 ## Acceptance criteria
 
 - [x] Regression test added that failed before the fix
-- [ ] Fix verified by QA
+- [x] Fix verified by QA
 
 ## Log
 
@@ -43,3 +43,5 @@ updated: 2026-10-04
 - 2026-10-04 11:56 todo → in_progress (frontend-dev)
 - 2026-10-04 11:56 AC 1 ✔ (frontend-dev): apps/web/src/components/ui/dialog.test.tsx + sheet.test.tsx (RU 'Закрыть'); 5 tests failed before the fix, 13/13 ui tests pass after
 - 2026-10-04 11:56 in_progress → qa (frontend-dev): Root cause: DialogContent/SheetContent/DialogFooter hardcoded 'Close'. Fix: useTranslations('common').close (+ optional closeLabel prop override); common.close added en/ru. Gate fast PASS.
+- 2026-10-04 19:10 AC 2 ✔ (qa-manual): docs/qa/evidence/M1/S-003-ac3-scanned-ru-375.png: upload dialog close button accessible name is 'Закрыть' in RU (snapshot), 'Close' in EN
+- 2026-10-04 19:10 qa → done (qa-manual)
