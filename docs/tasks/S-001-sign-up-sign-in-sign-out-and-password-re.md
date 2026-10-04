@@ -18,12 +18,12 @@ As a <user>, I want <action>, so that <value>.
 
 ## Acceptance criteria
 
-- [ ] Given a visitor on the sign-up page, When they submit a valid email and a password of at least 8 characters, Then an account is created, they are signed in, land on the onboarding checklist and see a credit balance of 20
-- [ ] Given the email is already registered, When a visitor signs up with it, Then no second account is created and a neutral message suggests signing in or resetting the password
-- [ ] Given a malformed email or a password shorter than 8 characters, When the form is submitted, Then field-level errors are shown and no account is created
-- [ ] Given a registered user, When they sign in with a wrong password or an unknown email, Then the same generic 'invalid email or password' error is shown
-- [ ] Given a user requests a password reset, When they open the emailed link (local mail catcher) and set a new password, Then they can sign in with the new password and not with the old one; an expired or reused link is rejected
-- [ ] Given a signed-in user, When they sign out, Then protected pages redirect to sign-in
+- [x] Given a visitor on the sign-up page, When they submit a valid email and a password of at least 8 characters, Then an account is created, they are signed in, land on the onboarding checklist and see a credit balance of 20
+- [x] Given the email is already registered, When a visitor signs up with it, Then no second account is created and a neutral message suggests signing in or resetting the password
+- [x] Given a malformed email or a password shorter than 8 characters, When the form is submitted, Then field-level errors are shown and no account is created
+- [x] Given a registered user, When they sign in with a wrong password or an unknown email, Then the same generic 'invalid email or password' error is shown
+- [x] Given a user requests a password reset, When they open the emailed link (local mail catcher) and set a new password, Then they can sign in with the new password and not with the old one; an expired or reused link is rejected
+- [x] Given a signed-in user, When they sign out, Then protected pages redirect to sign-in
 - [ ] Given any user, Then the credit ledger contains exactly one 'sign-up bonus' entry of 20 credits, and signing in again never grants more
 
 ## Notes
@@ -41,3 +41,9 @@ As a <user>, I want <action>, so that <value>.
 - 2026-09-28 09:18 note (designer): D5 copy confirmed: welcome toast (auth.signUp.welcomeToast) shows only when ShellData.signupBonusGranted; no toast, no substitute message when it's false — header balance badge just shows 0 with the same neutral styling as any other value. See docs/design/screens/S-001.md States/Success + Copy.
 - 2026-09-28 09:18 note (qa-automation): QA delta contract review (2026-09-28): AC7 amended wording (D5) verified — 3 test layers + control case, no gaps. See docs/qa/plans/M1-test-plan.md.
 - 2026-10-04 18:34 todo → qa (team-lead)
+- 2026-10-04 18:42 AC 1 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac1-en-1280.png, S-001-ac1-ru-375.png, S-001-ac1-en-375.png; ledger=1 signup_grant 20
+- 2026-10-04 18:42 AC 2 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac2-en-1280.png, S-001-ac2-ru-375.png; users with email=1
+- 2026-10-04 18:42 AC 3 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac3-en-1280.png, S-001-ac3-ru-375.png; no auth.users row
+- 2026-10-04 18:42 AC 4 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac4-wrongpw-en-1280.png, S-001-ac4-unknown-en-1280.png, S-001-ac4-en-375.png
+- 2026-10-04 18:42 AC 5 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac5-*.png: reset via Mailpit, old pw rejected, new works, reused + backdated (3h) links -> expired panel EN/RU
+- 2026-10-04 18:42 AC 6 ✔ (qa-manual): docs/qa/evidence/M1/S-001-ac6-en-1280.png: /profile,/settings,/onboarding redirect to /sign-in?next=
