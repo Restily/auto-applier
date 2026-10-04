@@ -20,7 +20,7 @@ Cheat sheet:
   board.py gate M1 [--run-checks]                 milestone Definition of Done
   board.py status | brief | next-step             overview / session context / pipeline position
   board.py scaffold qa M1                         create a report from a template with the exact name
-  board.py goal [--turns 200]                     condition text for the built-in /goal (autopilot)
+  board.py goal [--turns 200] [--milestone M1]    condition text for the built-in /goal (autopilot)
   board.py validate | render                      validate board / regenerate docs/tasks/BOARD.md
 """
 from __future__ import annotations
@@ -820,6 +820,21 @@ def cmd_scaffold(args) -> None:
 
 
 def cmd_goal(args) -> None:
+    if args.milestone:
+        # One milestone per session: autopilot.sh starts a fresh session per milestone so the lead's
+        # context never accumulates the whole MVP (long context is the main token cost).
+        mid = args.milestone.upper()
+        print(
+            f"/goal Drive milestone {mid} following the /mvp-autopilot protocol (team/CONSTITUTION.md applies), "
+            f"then stop: the next milestone runs in a fresh session. "
+            "After the milestone run `python3 team/bin/board.py next-step` and show its output. "
+            f"The goal is met when that output no longer names {mid} (it is done) or starts with `DONE`. "
+            "The goal is impossible without a human when that output starts with `KICKOFF`, `APPROVAL`, `STOPPED` or `BLOCKED` "
+            "— in that case write the question for the human and stop. "
+            "Never mark anything done by bypassing `board.py gate` or using --force. "
+            f"Or stop after {args.turns} turns."
+        )
+        return
     print(
         "/goal Drive the MVP autonomously following the /mvp-autopilot protocol (team/CONSTITUTION.md applies). "
         "After every milestone run `python3 team/bin/board.py next-step` and show its output. "
@@ -1002,6 +1017,7 @@ def main(argv=None) -> None:
 
     s = sub.add_parser("goal")
     s.add_argument("--turns", type=int, default=int(os.environ.get("TEAM_GOAL_TURNS", "200")))
+    s.add_argument("--milestone", help="scope the goal to one milestone (fresh session per milestone)")
     s.set_defaults(fn=cmd_goal)
 
     sub.add_parser("validate").set_defaults(fn=cmd_validate)

@@ -5,7 +5,8 @@
 |---|---|---|
 | Step by step | `/mvp-milestone M0`, `/mvp-milestone M1`, …, `/mvp-release` | first project, pilots, when you want to review each milestone |
 | Autopilot (interactive) | `/mvp-autopilot` → paste the `/goal …` line from `board.py goal` | you're around but don't want to prompt each step |
-| Autopilot (headless) | `bash team/bin/autopilot.sh --mode auto` | overnight / remote; logs in `.team/state/autopilot-*.jsonl` |
+| Autopilot (interactive, per milestone) | `board.py goal --milestone <M>` → paste; when it stops, `/clear` and paste the next | cheapest interactive mode: the lead's context never spans milestones |
+| Autopilot (headless) | `bash team/bin/autopilot.sh --mode auto` — a fresh session per milestone (`--one-session` for the old single run) | overnight / remote; logs in `.team/state/autopilot-*.jsonl` |
 | Strict lead | `claude --agent team-lead` | the main session takes the team-lead prompt and model (replaces the default system prompt) |
 
 `/goal` keeps the lead working turn after turn, survives `--resume`, pauses on usage limits and stops when it stalls. The goal is met when `board.py next-step` prints `DONE`, and judged impossible when it needs a human (`KICKOFF`, `APPROVAL`, `STOPPED`, `BLOCKED`). Clear it with `/goal clear`.
@@ -55,6 +56,10 @@ Building runs in dependency waves. The architect gives each build task a `files`
 - **Workers skip re-loading CLAUDE.md** (`omitClaudeMd` on the six worker agents): the hard rules are enforced by hooks and carried in the preloaded `team-protocol`, so the full constitution isn't re-injected into every parallel spawn.
 - **Best practices load on demand** from `team/practices/<role>.md` (read once per task), not preloaded into every spawn.
 - **opus only** for the lead, architect and the final review; sonnet for all workers; the `/goal` evaluator and summaries on the small fast model.
+- **The lead's context stays small.** A long-lived lead session is the biggest cost: every request re-reads the whole history. `autoCompactWindow: 200000` in `.claude/settings.json` compacts at 200K even on 1M-context models (the SessionStart hook restores the board brief after compaction), and `autopilot.sh` starts a fresh session per milestone.
+- **Effort is pinned, not inherited.** Subagents without `effort` inherit the session's level, so a lead on `max` made every worker run on `max`. Every agent now pins `effort: high`; the settings default for the main session is `high` too. Picking `max` in the model picker still overrides it for that session — use it deliberately (e.g. kickoff), not for a whole autopilot run.
+- **Unassigned subagents use sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL`), so ad-hoc helpers don't silently run on the lead's opus; the opus reviewer is requested explicitly.
+- **MCP servers only where used:** `disallowedTools` keeps `supabase-local` / `playwright-test` tool definitions out of roles that never call them.
 - Roles delegate wide reading to `Explore`, read only named files, and never paste large output back (see team-protocol → Token discipline).
 Quality is unchanged: the gates, independent QA/design/security evaluators, and the whole-branch review are all still there — only redundant context and duplicate reviews were removed.
 

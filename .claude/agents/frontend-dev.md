@@ -2,6 +2,8 @@
 name: frontend-dev
 description: "Frontend developer. Implements plan tasks with `Owner: frontend-dev` — UI per screen specs and the design system, state, API integration — test-first, with visual self-checks via playwright-cli. Used as a parallel-wave implementer during building and to fix UI bugs."
 model: sonnet
+effort: high
+disallowedTools: mcp__supabase-local, mcp__playwright-test
 color: cyan
 omitClaudeMd: true
 skills:

@@ -3,6 +3,7 @@ name: architect
 description: "Architect. Chooses stack and architecture, writes ADRs, API/DB contracts and the per-milestone implementation plan via superpowers:writing-plans. Use in the planning phase of every milestone and for technical decisions."
 model: opus
 effort: high
+disallowedTools: mcp__playwright-test
 color: purple
 memory: project
 skills:

@@ -37,7 +37,7 @@ claude
 
 # 4. Go autonomous
 > /mvp-autopilot                  # prints how to start; then paste the /goal line it gives you
-# or headless:  bash team/bin/autopilot.sh --mode auto
+# or headless:  bash team/bin/autopilot.sh --mode auto   (a fresh session per milestone)
 ```
 
 Step by step instead of autopilot: `/mvp-milestone M0`, `/mvp-milestone M1`, …, `/mvp-release`. Progress any time: `/mvp-status`.

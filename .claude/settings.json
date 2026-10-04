@@ -6,7 +6,15 @@
     "TEAM_DEV_GATE_RETRIES": "2",
     "TEAM_GOAL_TURNS": "200",
     "STRIX_LLM": "anthropic/claude-sonnet-4-6",
-    "STRIX_REASONING_EFFORT": "medium"
+    "STRIX_REASONING_EFFORT": "medium",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+  },
+  "autoCompactWindow": 200000,
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
   },
   "permissions": {
     "allow": [
