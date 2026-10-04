@@ -76,6 +76,33 @@ test.describe("password reset (S-001 AC5)", () => {
     // And the old password is untouched.
     await fillCredentialsAndSignIn(page, newUser);
   });
+
+  test("an ordinary password session cannot set a new password without the emailed link: submit lands on the expired panel and the old password still works", async ({
+    page,
+    browser,
+    newUser,
+  }) => {
+    // Signed in with the password (amr = password), not through a recovery link.
+    await signInEn(page, newUser);
+    await expect(page).toHaveURL(/\/onboarding$/);
+
+    await page.goto("/reset-password");
+    await page.getByLabel(/^Password/).fill("Sneaky-new-pass-42");
+    await page.getByRole("button", { name: "Save new password" }).click();
+    await expect(page).toHaveURL(/\/reset-password\?error=link_invalid/);
+    await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
+
+    // Nothing changed: the old password signs in from a clean browser, the attempted one does not.
+    const fresh = await browser.newContext(test.info().project.use as Parameters<typeof browser.newContext>[0]);
+    try {
+      const other = await fresh.newPage();
+      await signInEn(other, { email: newUser.email, password: "Sneaky-new-pass-42" });
+      await expect(other.getByRole("alert").filter({ hasText: "Invalid email or password" })).toBeVisible();
+      await fillCredentialsAndSignIn(other, newUser);
+    } finally {
+      await fresh.close();
+    }
+  });
 });
 
 async function fillCredentialsAndSignIn(page: Page, user: TestUser): Promise<void> {

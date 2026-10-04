@@ -2,7 +2,7 @@
 id: T-028
 type: task
 title: "M1 review round 2 N1: make resume parsing killable (hanging PDF/DOCX parser thread outlives asyncio.timeout)"
-status: todo
+status: in_progress
 milestone: M1
 owner: backend-dev
 priority: P1
@@ -23,3 +23,4 @@ See docs/architecture/reviews/M1-code-review.md Round 2 N1. Parser runs in async
 ## Log
 
 - 2026-10-04 18:10 created (backend-dev)
+- 2026-10-04 18:11 todo → in_progress (backend-dev)

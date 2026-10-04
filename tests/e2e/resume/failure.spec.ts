@@ -28,6 +28,24 @@ test.describe("resume upload failures (S-003 AC2, AC3)", () => {
     expect(await storedObjectCount(newUser.id)).toBe(0);
   });
 
+  test("the upload endpoint itself refuses an oversized body with 413 resume.too_large (not only the browser check) and nothing is stored", async ({
+    page,
+    newUser,
+  }) => {
+    await signInEn(page, newUser);
+    await expect(page).toHaveURL(/\/onboarding$/);
+
+    // Straight at /api/resume with the session cookies, bypassing the client-side size check.
+    const res = await page.request.post("/api/resume", {
+      multipart: { file: { name: "huge.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(MAX_BYTES + 200_000) } },
+    });
+    expect(res.status()).toBe(413);
+    expect(await res.json()).toEqual({ code: "resume.too_large" });
+
+    expect(await resumeRows(newUser.id)).toEqual([]);
+    expect(await storedObjectCount(newUser.id)).toBe(0);
+  });
+
   test("a PNG renamed to .pdf passes the client check, is rejected by the server with the same message, and nothing is stored", async ({
     page,
     newUser,

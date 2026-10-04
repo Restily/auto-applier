@@ -2,7 +2,7 @@
 id: T-029
 type: task
 title: "M1 review round 2 N2+N3: salary aria-describedby per field; recovery session max age 15 min"
-status: todo
+status: in_progress
 milestone: M1
 owner: frontend-dev
 priority: P2
@@ -23,3 +23,4 @@ See M1-code-review.md Round 2. N2: when both Min and Max invalid, each field mus
 ## Log
 
 - 2026-10-04 18:10 created (frontend-dev)
+- 2026-10-04 18:11 todo → in_progress (frontend-dev)
