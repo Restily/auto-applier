@@ -2,7 +2,7 @@
 id: B-003
 type: bug
 title: "i18n: language chosen before sign-in is discarded and the account's stored language wins [S-005 AC2]"
-status: todo
+status: qa
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -52,7 +52,7 @@ http://localhost:3000, chromium desktop, throwaway qa+<uuid>@example.test accoun
 
 ## Acceptance criteria
 
-- [ ] Regression test added that failed before the fix
+- [x] Regression test added that failed before the fix
 - [ ] Fix verified by QA
 
 ## Log
@@ -60,3 +60,6 @@ http://localhost:3000, chromium desktop, throwaway qa+<uuid>@example.test accoun
 - 2026-10-04 11:58 created (qa-automation)
 - 2026-10-04 12:05 set severity=medium (team-lead)
 - 2026-10-04 12:05 note (team-lead): lead decision: S-005 spec §Global language behavior says a deliberate pre-signup (signed-out) choice becomes the stored preference at sign-up/in — so an explicitly chosen locale (NEXT_LOCALE cookie set by the switcher) must be written to profiles.ui_locale on sign-in; Accept-Language-derived defaults must not override the stored profile value.
+- 2026-10-04 12:12 todo → in_progress (frontend-dev)
+- 2026-10-04 12:12 AC 1 ✔ (frontend-dev): apps/web/src/lib/auth/actions.test.ts + src/i18n/actions.test.ts (B-003 cases; failed before); scratch e2e of locale.spec.ts 'language precedence' passes
+- 2026-10-04 12:12 in_progress → qa (frontend-dev): Root cause: signInAction/OAuth copied profiles.ui_locale over NEXT_LOCALE and nothing distinguished a deliberate signed-out choice. Fix: setLocale (signed out) also sets httpOnly NEXT_LOCALE_PENDING; sign-in/OAuth adopt it into profiles.ui_locale (DB trigger mirrors to auth locale), else profile wins; sign-up drops it. Accept-Language never overrides.

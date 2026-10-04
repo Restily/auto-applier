@@ -2,7 +2,7 @@
 id: B-002
 type: bug
 title: "auth/forgot-password: reset email ignores the language the user switched to (uses sign-up-time locale only) [S-005 AC2]"
-status: todo
+status: blocked
 milestone: M1
 owner: frontend-dev
 priority: P1
@@ -55,9 +55,13 @@ Make the recovery email follow the locale in effect at request time (e.g. update
 
 ## Acceptance criteria
 
-- [ ] Regression test added that failed before the fix
+- [x] Regression test added that failed before the fix
 - [ ] Fix verified by QA
 
 ## Log
 
 - 2026-10-04 11:58 created (qa-automation)
+- 2026-10-04 12:12 todo → in_progress (frontend-dev)
+- 2026-10-04 12:12 AC 1 ✔ (frontend-dev): apps/web/src/lib/auth/actions.test.ts requestPasswordResetAction B-002 cases (failed before); e2e needs T-025 template
+- 2026-10-04 12:12 note (frontend-dev): Signed-in switches already reach the email locale (DB trigger profiles_sync_locale -> auth user_metadata.locale). Signed-out request-time language cannot reach user_metadata from apps/web, so requestPasswordResetAction now sends redirectTo=APP_ORIGIN/reset-password?lang=<locale> when a NEXT_LOCALE cookie exists (GoTrue accepted it, mail still sent). Remaining: recovery.html must read .RedirectTo -> T-025 (backend-dev). Scratch e2e of 'reset email arrives in Russian' still fails until T-025.
+- 2026-10-04 12:12 in_progress → blocked (frontend-dev): frontend half done; waiting on T-025 (supabase/templates/recovery.html)

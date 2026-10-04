@@ -2,6 +2,8 @@ export const LOCALES = ["en", "ru"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_COOKIE = "NEXT_LOCALE";
+/** A language deliberately chosen while signed out; adopted as the stored preference at the next sign-in. */
+export const PENDING_LOCALE_COOKIE = "NEXT_LOCALE_PENDING";
 export const NAMESPACES = [
   "common",
   "shell",

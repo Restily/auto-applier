@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 
-import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { isLocale, LOCALE_COOKIE, PENDING_LOCALE_COOKIE, type Locale } from "@/i18n/config";
 import { getServerEnv } from "@/lib/env.server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ValidationKey } from "@/lib/validation/messages";
@@ -36,13 +36,32 @@ function text(fd: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-async function copyProfileLocaleToCookie(userId: string): Promise<void> {
+function setLocaleCookie(store: Awaited<ReturnType<typeof cookies>>, locale: Locale): void {
+  store.set(LOCALE_COOKIE, locale, { maxAge: ONE_YEAR_SECONDS, path: "/", sameSite: "lax" });
+}
+
+/**
+ * After sign-in: a language deliberately chosen while signed out (pending cookie) becomes the stored preference
+ * (profiles.ui_locale; a DB trigger mirrors it to the auth locale used by email templates). Without one, the
+ * stored value wins; a locale negotiated from Accept-Language never overrides it (S-005 AC2, B-003).
+ */
+async function syncLocaleAfterSignIn(userId: string): Promise<void> {
   try {
+    const store = await cookies();
     const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.from("profiles").select("ui_locale").eq("id", userId).maybeSingle();
-    if (isLocale(data?.ui_locale)) {
-      (await cookies()).set(LOCALE_COOKIE, data.ui_locale, { maxAge: ONE_YEAR_SECONDS, path: "/", sameSite: "lax" });
+    const pending = store.get(PENDING_LOCALE_COOKIE)?.value;
+    store.delete(PENDING_LOCALE_COOKIE);
+
+    if (isLocale(pending)) {
+      const { error } = await supabase.from("profiles").update({ ui_locale: pending }).eq("id", userId);
+      if (!error) {
+        setLocaleCookie(store, pending);
+        return;
+      }
     }
+
+    const { data } = await supabase.from("profiles").select("ui_locale").eq("id", userId).maybeSingle();
+    if (isLocale(data?.ui_locale)) setLocaleCookie(store, data.ui_locale);
   } catch {
     // The cookie is a convenience; signing in must not fail because it could not be synced.
   }
@@ -65,6 +84,8 @@ export async function signUpAction(_prev: AuthFormState, fd: FormData): Promise<
   // Sign-up needs no email confirmation, so a session always comes back; anything else is unexpected.
   if (!data.session) return { status: "error", formError: "unknown", email: parsed.data.email };
 
+  // The pending choice is already the sign-up locale (getLocale above); nothing left to adopt.
+  (await cookies()).delete(PENDING_LOCALE_COOKIE);
   redirect("/onboarding?welcome=1");
 }
 
@@ -81,7 +102,7 @@ export async function signInAction(_prev: AuthFormState, fd: FormData): Promise<
     return { status: "error", formError: mapSignInError(error ?? {}), email: parsed.data.email };
   }
 
-  await copyProfileLocaleToCookie(data.user.id);
+  await syncLocaleAfterSignIn(data.user.id);
   redirect(safeNextPath(text(fd, "next")) ?? (await resolveLandingPath()));
 }
 
@@ -93,7 +114,13 @@ export async function requestPasswordResetAction(_prev: ForgotPasswordState, fd:
   }
   try {
     const supabase = await createSupabaseServerClient();
-    await supabase.auth.resetPasswordForEmail(parsed.data.email);
+    // The recovery template reads the account locale; a language deliberately chosen since (even while signed out)
+    // has to win, so it travels as a ?lang marker on redirectTo, which the template also receives (B-002).
+    const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+    const options = isLocale(chosen)
+      ? { redirectTo: `${getServerEnv().APP_ORIGIN}/reset-password?lang=${chosen}` }
+      : undefined;
+    await supabase.auth.resetPasswordForEmail(parsed.data.email, options);
   } catch {
     // Swallowed on purpose (no enumeration).
   }
@@ -142,7 +169,7 @@ export async function exchangeOAuthCodeAction(code: string): Promise<{ redirectT
       await supabase.from("profiles").update({ ui_locale: await getLocale() }).eq("id", data.user.id);
       return { redirectTo: "/onboarding?welcome=1" };
     }
-    await copyProfileLocaleToCookie(data.user.id);
+    await syncLocaleAfterSignIn(data.user.id);
     return { redirectTo: await resolveLandingPath() };
   } catch {
     return failed;

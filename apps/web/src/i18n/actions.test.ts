@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const cookieSet = vi.fn();
+const cookieDelete = vi.fn();
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ set: cookieSet }),
+  cookies: async () => ({ set: cookieSet, delete: cookieDelete }),
 }));
 
 const getSessionUser = vi.fn();
@@ -37,6 +38,22 @@ describe("setLocale", () => {
       expect.objectContaining({ path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 365 }),
     );
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("B-003: a signed-out choice is also remembered as a pending explicit choice", async () => {
+    await setLocale("ru");
+    expect(cookieSet).toHaveBeenCalledWith(
+      "NEXT_LOCALE_PENDING",
+      "ru",
+      expect.objectContaining({ path: "/", sameSite: "lax", httpOnly: true }),
+    );
+  });
+
+  it("B-003: a signed-in choice is stored on the profile and leaves no pending marker", async () => {
+    getSessionUser.mockResolvedValue({ id: "u1", email: "a@b.test" });
+    await setLocale("ru");
+    expect(cookieSet).not.toHaveBeenCalledWith("NEXT_LOCALE_PENDING", expect.anything(), expect.anything());
+    expect(cookieDelete).toHaveBeenCalledWith("NEXT_LOCALE_PENDING");
   });
 
   it("persists to profiles for signed-in users", async () => {
